@@ -119,6 +119,9 @@ local function sanitize(raw: any): PlayerData
 		data.flashlightCharge = math.min(charge, GameConfig.FlashlightBatterySeconds)
 	end
 	data.towerCompleted = raw.towerCompleted == true
+	if raw.language == "uk" or raw.language == "ru" or raw.language == "en" then
+		data.language = raw.language
+	end
 	return data
 end
 
@@ -132,6 +135,7 @@ local function serialize(data: PlayerData, version: number): { [string]: any }
 		flashlightCharge = data.flashlightCharge,
 		uniqueNodesTaken = table.clone(data.uniqueNodesTaken),
 		towerCompleted = data.towerCompleted,
+		language = data.language,
 		tutorialStep = data.tutorialStep,
 		discoveredNotes = table.clone(data.discoveredNotes),
 		ownedPasses = table.clone(data.ownedPasses),

@@ -4,8 +4,11 @@
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
+local Locale = require(game:GetService("ReplicatedStorage").Shared.Locale)
 local ClientState = require(script.Parent.ClientState)
+local Lang = require(script.Parent.Lang)
 local UIKit = require(script.Parent.UIKit)
 
 local HUDController = {}
@@ -25,9 +28,9 @@ local toastHolder: Frame
 local function buildStatusPanel(screen: ScreenGui)
 	local panel = UIKit.Panel({
 		Name = "Status",
-		-- Bottom-left: the default chat window lives in the top-left corner.
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 12, 1, -12),
+		-- PC/console: bottom-left (chat sits top-left). Touch: top-left, because the thumbstick owns bottom-left.
+		AnchorPoint = if UserInputService.TouchEnabled then Vector2.new(0, 0) else Vector2.new(0, 1),
+		Position = if UserInputService.TouchEnabled then UDim2.fromOffset(12, 56) else UDim2.new(0, 12, 1, -12),
 		Size = UDim2.fromOffset(250, 150),
 		Parent = screen,
 	})
@@ -49,15 +52,14 @@ local function buildStatusPanel(screen: ScreenGui)
 	}, { UIKit.Corner(6) })
 	healthText = UIKit.Label({
 		Size = UDim2.fromScale(1, 1),
-		Text = "Здоров'я 100 / 100",
+		Text = "",
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Font = Enum.Font.GothamBold,
 		TextSize = 14,
 		ZIndex = 2,
 		Parent = bar,
 	})
-	weightText =
-		UIKit.Label({ Size = UDim2.new(1, 0, 0, 20), Text = "Вага 0 / 20", LayoutOrder = 2, Parent = panel })
+	weightText = UIKit.Label({ Size = UDim2.new(1, 0, 0, 20), Text = "", LayoutOrder = 2, Parent = panel })
 	flashlightText = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 20),
 		Text = "",
@@ -89,7 +91,7 @@ local function buildObjective(screen: ScreenGui)
 	UIKit.Padding(8).Parent = panel
 	objectiveText = UIKit.Label({
 		Size = UDim2.new(1, -90, 1, 0),
-		Text = "Ціль: ...",
+		Text = "",
 		TextSize = 15,
 		Parent = panel,
 	})
@@ -97,7 +99,7 @@ local function buildObjective(screen: ScreenGui)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.new(0, 85, 1, 0),
-		Text = "Системи 0/3",
+		Text = "",
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = C.accent,
 		TextSize = 14,
@@ -179,16 +181,16 @@ local function updateHealth()
 	end
 	local ratio = if humanoid.MaxHealth > 0 then math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1) else 0
 	healthFill.Size = UDim2.fromScale(ratio, 1)
-	healthText.Text = ("Здоров'я %d / %d"):format(math.ceil(humanoid.Health), humanoid.MaxHealth)
+	healthText.Text = Lang.T("hud.health", math.ceil(humanoid.Health), humanoid.MaxHealth)
 end
 
 local function updateWarnings()
 	local lines = {}
 	if player:GetAttribute("InToxic") == true then
-		table.insert(lines, "⚠ ТОКСИЧНЕ ПОВІТРЯ")
+		table.insert(lines, Lang.T("hud.toxic"))
 	end
 	if player:GetAttribute("Hungry") == true then
-		table.insert(lines, "⚠ ГОЛОД: з'їж їжу")
+		table.insert(lines, Lang.T("hud.hungry"))
 	end
 	warningText.Text = table.concat(lines, "\n")
 end
@@ -203,20 +205,17 @@ local function updateFlashlight()
 	local charge = player:GetAttribute("FlashlightCharge")
 	local seconds = if type(charge) == "number" then charge else (s and s.flashlightCharge or 0)
 	local on = player:GetAttribute("FlashlightOn") == true
-	flashlightText.Text = ("Ліхтарик %s · %d с  [F]"):format(
-		if on then "увімк." else "вимк.",
-		seconds
-	)
+	flashlightText.Text = Lang.T("hud.flashlight", Lang.T(if on then "hud.on" else "hud.off"), seconds) .. "  [F]"
 	flashlightText.TextColor3 = if seconds <= 0 then C.bad elseif on then C.accent else C.muted
 end
 
 local function onState(s: { [string]: any })
-	weightText.Text = ("Вага %d / %d"):format(s.weight or 0, s.maxWeight or 0)
+	weightText.Text = Lang.T("hud.weight", s.weight or 0, s.maxWeight or 0)
 	weightText.TextColor3 = if (s.weight or 0) >= (s.maxWeight or 1) then C.warn else C.text
 	if s.tutorial then
-		objectiveText.Text = "Ціль: " .. s.tutorial.text
+		objectiveText.Text = Lang.T("hud.objective", { ref = s.tutorial.text })
 	end
-	actsText.Text = ("Системи %d/3"):format(s.acts or 0)
+	actsText.Text = Lang.T("hud.systems", s.acts or 0)
 	updateFlashlight()
 end
 
@@ -229,13 +228,38 @@ local function watchCharacter(character: Model)
 	end
 end
 
+local function buildLanguageButton(screen: ScreenGui)
+	local button = UIKit.Button({
+		Name = "LanguageToggle",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -64, 0, 8),
+		Size = UDim2.fromOffset(52, 44),
+		Text = string.upper(Lang.Get()),
+		TextSize = 16,
+		Parent = screen,
+	})
+	button.Activated:Connect(function()
+		local nextLang = Lang.Cycle()
+		Lang.Set(nextLang)
+		HUDController.Toast(Locale.LanguageNames[nextLang], "info")
+	end)
+	Lang.Changed:Connect(function(code)
+		button.Text = string.upper(code)
+	end)
+end
+
 function HUDController.Start()
 	local screen = UIKit.Screen()
+	buildLanguageButton(screen)
 	buildStatusPanel(screen)
 	buildObjective(screen)
 	buildToasts(screen)
 
 	ClientState.Changed:Connect(onState)
+	Lang.Changed:Connect(function()
+		updateHealth()
+		updateWarnings()
+	end)
 	player:GetAttributeChangedSignal("InToxic"):Connect(updateWarnings)
 	player:GetAttributeChangedSignal("Hungry"):Connect(updateWarnings)
 	player:GetAttributeChangedSignal("FlashlightCharge"):Connect(updateFlashlight)

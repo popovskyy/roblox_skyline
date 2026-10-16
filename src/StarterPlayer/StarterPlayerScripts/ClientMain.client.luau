@@ -5,7 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Make sure the shared modules have replicated before anything requires them.
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-for _, name in { "GameConfig", "ItemDefinitions", "UpgradeDefinitions", "RemoteNames", "Types", "MusicConfig" } do
+for _, name in
+	{ "GameConfig", "ItemDefinitions", "UpgradeDefinitions", "RemoteNames", "Types", "MusicConfig", "Locale" }
+do
 	Shared:WaitForChild(name)
 end
 
@@ -13,6 +15,7 @@ local RemoteNames = require(Shared:WaitForChild("RemoteNames"))
 local Controllers = script.Parent:WaitForChild("Controllers")
 
 local ClientState = require(Controllers:WaitForChild("ClientState"))
+local Lang = require(Controllers:WaitForChild("Lang"))
 local HUDController = require(Controllers:WaitForChild("HUDController"))
 local InventoryController = require(Controllers:WaitForChild("InventoryController"))
 local InteractionController = require(Controllers:WaitForChild("InteractionController"))
@@ -37,9 +40,18 @@ remote(RemoteNames.StateChanged).OnClientEvent:Connect(function(snapshot)
 		ClientState.Set(snapshot)
 	end
 end)
-remote(RemoteNames.Notify).OnClientEvent:Connect(function(text, kind)
-	if type(text) == "string" then
+remote(RemoteNames.Notify).OnClientEvent:Connect(function(message, kind)
+	local text = Lang.Format(message)
+	if text ~= "" then
 		HUDController.Toast(text, if type(kind) == "string" then kind else nil)
+	end
+end)
+
+-- Redraw everything in the new language.
+Lang.Changed:Connect(function()
+	local snapshot = ClientState.Get()
+	if snapshot then
+		ClientState.Set(snapshot)
 	end
 end)
 remote(RemoteNames.ShowNote).OnClientEvent:Connect(TutorialController.ShowNote)

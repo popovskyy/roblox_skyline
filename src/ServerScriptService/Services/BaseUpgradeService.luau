@@ -3,7 +3,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
@@ -24,48 +24,32 @@ function BaseUpgradeService.Owns(player: Player, upgradeId: string): boolean
 	return data ~= nil and data.upgrades[upgradeId] == true
 end
 
-function BaseUpgradeService.FormatCost(cost: { [string]: number }): string
-	local parts = {}
-	for _, itemId in ItemDefinitions.Order do
-		local amount = cost[itemId]
-		if amount then
-			table.insert(parts, ("%d %s"):format(amount, ItemDefinitions.Items[itemId].displayName))
-		end
-	end
-	return table.concat(parts, " + ")
-end
-
-function BaseUpgradeService.Purchase(player: Player, upgradeId: any): (boolean, string?)
+function BaseUpgradeService.Purchase(player: Player, upgradeId: any): (boolean, any)
 	local data = PlayerDataService.Get(player)
 	if not data then
-		return false, "Дані ще не завантажені"
+		return false, "err.notLoaded"
 	end
 	local def = if type(upgradeId) == "string" then UpgradeDefinitions.Get(upgradeId) else nil
 	if not def then
-		return false, "Невідоме поліпшення"
+		return false, "err.unknownUpgrade"
 	end
 	if data.upgrades[def.id] then
-		return false, ("%s уже збудовано"):format(def.displayName)
+		return false, { "upgrade.alreadyBuilt", Locale.Upgrade(def.id) }
 	end
 	for _, required in def.requires do
 		if not data.upgrades[required] then
-			local requiredDef = UpgradeDefinitions.Upgrades[required]
-			return false,
-				("Спершу потрібно: %s"):format(requiredDef and requiredDef.displayName or required)
+			return false, { "upgrade.requires", Locale.Upgrade(required) }
 		end
 	end
 	local cost = UpgradeDefinitions.GetCost(def)
 	if not StorageService.TrySpend(player, cost) then
-		return false,
-			("Недостатньо ресурсів. Потрібно: %s"):format(
-				BaseUpgradeService.FormatCost(cost)
-			)
+		return false, { "upgrade.notEnough", Locale.Cost(cost) }
 	end
 
 	data.upgrades[def.id] = true
 	PlayerDataService.MarkDirty(player)
 	StateSyncService.Request(player)
-	Net.Notify(player, ("Збудовано: %s"):format(def.displayName), "success")
+	Net.Notify(player, { "upgrade.built", Locale.Upgrade(def.id) }, "success")
 	for _, listener in listeners do
 		task.spawn(listener, player, def.id)
 	end

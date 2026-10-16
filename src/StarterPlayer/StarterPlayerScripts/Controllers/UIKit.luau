@@ -104,6 +104,21 @@ function UIKit.Screen(): ScreenGui
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = playerGui,
 	})
+	-- Scale the whole UI down on small screens (phones) and keep it 1:1 on PC, tablets and TVs.
+	local scale = UIKit.New("UIScale", { Parent = gui })
+	local function updateScale()
+		local camera = workspace.CurrentCamera
+		if not camera then
+			return
+		end
+		local viewport = camera.ViewportSize
+		scale.Scale = math.clamp(math.min(viewport.X / 1100, viewport.Y / 620), 0.6, 1)
+	end
+	updateScale()
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(updateScale)
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+	end
 	screen = gui
 	return gui
 end

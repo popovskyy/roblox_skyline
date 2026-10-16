@@ -13,6 +13,7 @@ export type PlayerData = {
 	towerCompleted: boolean,
 	tutorialStep: number,
 	discoveredNotes: { [string]: boolean },
+	language: string?, -- "uk" | "ru" | "en"; nil = follow the Roblox locale
 	-- Monetization stubs, unused while MonetizationConfig.Enabled = false.
 	ownedPasses: { [string]: boolean },
 	processedReceipts: { [string]: boolean },

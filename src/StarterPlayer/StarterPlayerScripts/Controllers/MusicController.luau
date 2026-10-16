@@ -33,6 +33,12 @@ local function fadeOut(sound: Sound)
 	tween:Play()
 end
 
+-- Music has its own SoundGroup so it can be balanced against effects in one place.
+local musicGroup = Instance.new("SoundGroup")
+musicGroup.Name = "Music"
+musicGroup.Volume = 1
+musicGroup.Parent = SoundService
+
 local playNext: (setName: string) -> ()
 
 playNext = function(setName: string)
@@ -51,6 +57,7 @@ playNext = function(setName: string)
 	sound.SoundId = "rbxassetid://" .. tostring(list[index])
 	sound.Volume = 0
 	sound.Looped = false
+	sound.SoundGroup = musicGroup
 	sound.Parent = SoundService
 	current = sound
 	sound.Ended:Once(function()

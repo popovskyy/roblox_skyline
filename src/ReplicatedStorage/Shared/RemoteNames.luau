@@ -13,6 +13,7 @@ local RemoteNames = {
 	StorageTransfer = "StorageTransfer",
 	UseItem = "UseItem",
 	ToggleFlashlight = "ToggleFlashlight",
+	SetLanguage = "SetLanguage",
 }
 
 return RemoteNames

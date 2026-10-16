@@ -1,6 +1,9 @@
 --!strict
 -- Terminal note and the ending screen. The note sits at the top and never blocks movement.
 
+local UserInputService = game:GetService("UserInputService")
+
+local Lang = require(script.Parent.Lang)
 local UIKit = require(script.Parent.UIKit)
 
 local TutorialController = {}
@@ -54,10 +57,11 @@ local function buildNote(screen: ScreenGui)
 	})
 	local close = UIKit.Button({
 		Size = UDim2.fromOffset(120, 34),
-		Text = "Закрити",
+		Text = "",
 		LayoutOrder = 4,
 		Parent = notePanel,
 	})
+	Lang.Bind(close, "ui.close")
 	close.Activated:Connect(function()
 		notePanel.Visible = false
 	end)
@@ -117,11 +121,12 @@ local function buildEnding(screen: ScreenGui)
 	})
 	local continueButton = UIKit.Button({
 		Size = UDim2.fromOffset(180, 44),
-		Text = "Продовжити",
+		Text = "",
 		LayoutOrder = 4,
 		ZIndex = 11,
 		Parent = box,
 	})
+	Lang.Bind(continueButton, "ui.continue")
 	continueButton.Activated:Connect(function()
 		endingPanel.Visible = false
 	end)
@@ -131,9 +136,10 @@ function TutorialController.ShowNote(payload: any)
 	if type(payload) ~= "table" then
 		return
 	end
-	local title = tostring(payload.title or "")
-	local body = tostring(payload.body or "")
-	local footer = tostring(payload.footer or "")
+	-- Note texts arrive as Locale messages and are rendered in the reader's language.
+	local title = Lang.Format(payload.title)
+	local body = Lang.Format(payload.body)
+	local footer = Lang.Format(payload.footer)
 	if payload.kind == "ending" then
 		endingTitle.Text = title
 		endingBody.Text = body
@@ -151,6 +157,13 @@ function TutorialController.Start()
 	local screen = UIKit.Screen()
 	buildNote(screen)
 	buildEnding(screen)
+	-- B on a gamepad (or Escape) closes the note and the ending screen.
+	UserInputService.InputBegan:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.ButtonB or input.KeyCode == Enum.KeyCode.Escape then
+			notePanel.Visible = false
+			endingPanel.Visible = false
+		end
+	end)
 end
 
 return TutorialController

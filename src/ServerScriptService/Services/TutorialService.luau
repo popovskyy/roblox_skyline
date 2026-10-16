@@ -18,7 +18,7 @@ local TutorialService = {}
 local TERMINAL_NOTE_ID = "Terminal01"
 
 type Step = {
-	text: string,
+	text: string, -- Locale key
 	-- Sticky steps depend on permanent progress, so reaching them lets the tutorial jump forward.
 	sticky: boolean,
 	complete: (player: Player, data: Types.PlayerData) -> boolean,
@@ -26,49 +26,49 @@ type Step = {
 
 local Steps: { Step } = {
 	{
-		text = "Знайди аварійний термінал на даху",
+		text = "tutorial.1",
 		sticky = false,
 		complete = function(_, data)
 			return data.discoveredNotes[TERMINAL_NOTE_ID] == true
 		end,
 	},
 	{
-		text = "Спустись сходами й збери 3 металобрухту на технічному поверсі",
+		text = "tutorial.2",
 		sticky = false,
 		complete = function(player)
 			return StorageService.Total(player, "Scrap") >= 3
 		end,
 	},
 	{
-		text = "Повернись на дах",
+		text = "tutorial.3",
 		sticky = false,
 		complete = function(player)
 			return not HazardService.IsOnExpedition(player)
 		end,
 	},
 	{
-		text = "Збудуй сховище (8 металобрухту)",
+		text = "tutorial.4",
 		sticky = true,
 		complete = function(_, data)
 			return data.upgrades.StorageCrate
 		end,
 	},
 	{
-		text = "Знайди 4 електронні деталі",
+		text = "tutorial.5",
 		sticky = false,
 		complete = function(player)
 			return StorageService.Total(player, "Electronics") >= 4
 		end,
 	},
 	{
-		text = "Увімкни генератор на даху",
+		text = "tutorial.6",
 		sticky = true,
 		complete = function(_, data)
 			return data.upgrades.Generator
 		end,
 	},
 	{
-		text = "Знайди кабель і мотор на 4 поверсі, полагодь міст і перейди на сусідню вежу",
+		text = "tutorial.7",
 		sticky = true,
 		complete = function(_, data)
 			return data.towerCompleted
@@ -101,7 +101,7 @@ local function evaluate(player: Player, data: Types.PlayerData): number
 		data.tutorialStep = step
 		PlayerDataService.MarkDirty(player)
 		if step <= #Steps then
-			Net.Notify(player, "Нова ціль: " .. Steps[step].text, "info")
+			Net.Notify(player, { "tutorial.new", { ref = Steps[step].text } }, "info")
 		end
 	end
 	return step
@@ -119,11 +119,9 @@ function TutorialService.ReadTerminal(player: Player)
 	local acts = countActs(data)
 	Net.Get(RemoteNames.ShowNote):FireClient(player, {
 		kind = "note",
-		title = "Аварійний термінал",
-		body = "«Якщо ти це читаєш, дах ще тримається. Генератор не працює, а вентиляція нижче забита. "
-			.. "Не спускайся без ліхтаря. Ми пробували дістатися до сусідньої вежі, але міст обвалився. "
-			.. "Знайди деталі — можливо, зможеш повернути світло».",
-		footer = ("Відновлено систем: %d / 3   (світло, повітря, міст)"):format(acts),
+		title = "note.terminal.title",
+		body = "note.terminal.body",
+		footer = { "note.terminal.footer", acts },
 	})
 	StateSyncService.Request(player)
 end
@@ -146,9 +144,9 @@ local function onZoneChanged(player: Player, newZone: string)
 	end
 	Net.Get(RemoteNames.ShowNote):FireClient(player, {
 		kind = "ending",
-		title = "Вежу 1 пройдено!",
-		body = "Ти повернув світло, очистив повітря й полагодив міст. Попереду нова вежа і нові поверхи.",
-		footer = "Skyline Zero · прототип · Дякуємо за гру!",
+		title = "ending.title",
+		body = "ending.body",
+		footer = "ending.footer",
 	})
 end
 
@@ -162,9 +160,7 @@ function TutorialService.Init()
 		snapshot.tutorial = {
 			step = step,
 			total = #Steps,
-			text = if step <= #Steps
-				then Steps[step].text
-				else "Вежу пройдено. Можеш і далі досліджувати поверхи",
+			text = if step <= #Steps then Steps[step].text else "tutorial.done",
 			done = step > #Steps,
 		}
 		snapshot.acts = countActs(data)

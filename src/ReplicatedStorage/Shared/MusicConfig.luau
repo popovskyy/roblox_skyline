@@ -4,7 +4,7 @@
 -- Swap ids here to change the soundtrack.
 
 local MusicConfig = {
-	Volume = 0.35,
+	Volume = 0.12, -- quiet background so sound effects stay clear
 	FadeSeconds = 3,
 
 	-- Calm, melancholic tracks for the roof base and the neighbour tower.

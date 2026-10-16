@@ -35,8 +35,9 @@ end
 
 export type NotifyKind = "info" | "success" | "warning" | "error"
 
-function Net.Notify(player: Player, text: string, kind: NotifyKind?)
-	Net.Get(RemoteNames.Notify):FireClient(player, text, kind or "info")
+-- message is a Locale key or { key, args... }; the client renders it in the player's language.
+function Net.Notify(player: Player, message: any, kind: NotifyKind?)
+	Net.Get(RemoteNames.Notify):FireClient(player, message, kind or "info")
 end
 
 function Net.IsReady(): boolean

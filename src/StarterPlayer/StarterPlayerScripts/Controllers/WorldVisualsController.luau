@@ -6,9 +6,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
-local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
 local ClientState = require(script.Parent.ClientState)
+local Lang = require(script.Parent.Lang)
 
 local WorldVisualsController = {}
 
@@ -78,20 +79,6 @@ local function setPrompt(part: Instance, enabled: boolean, actionText: string?, 
 	end
 end
 
-local function formatCost(cost: { [string]: number }?): string
-	if not cost then
-		return ""
-	end
-	local parts = {}
-	for _, itemId in ItemDefinitions.Order do
-		local amount = cost[itemId]
-		if amount then
-			table.insert(parts, ("%d %s"):format(amount, ItemDefinitions.Items[itemId].displayName))
-		end
-	end
-	return table.concat(parts, " + ")
-end
-
 local function applyResource(part: BasePart, s: { [string]: any })
 	local nodeId = part:GetAttribute("NodeId")
 	if type(nodeId) ~= "string" then
@@ -121,12 +108,13 @@ local function applyUpgradePad(part: BasePart, s: { [string]: any })
 	local missing = nil
 	for _, required in def.requires do
 		if not (s.upgrades and s.upgrades[required]) then
-			missing = UpgradeDefinitions.Upgrades[required].displayName
+			missing = required
 		end
 	end
 	local cost = s.costs and s.costs[def.id]
-	local action = if missing then ("Потрібно: %s"):format(missing) else "Збудувати"
-	setPrompt(part, not owned, action, ("%s: %s"):format(def.displayName, formatCost(cost)))
+	local action = if missing then Lang.T("prompt.needs", Locale.Upgrade(missing)) else Lang.T("prompt.build")
+	local object = Lang.T("prompt.costLine", Locale.Upgrade(def.id), Locale.Cost(cost or {}))
+	setPrompt(part, not owned, action, object)
 end
 
 local function applyUpgradeVisual(part: BasePart, s: { [string]: any })
@@ -198,6 +186,35 @@ local function applyPart(d: BasePart, s: { [string]: any })
 	end
 end
 
+-- World text is created by the server with Locale keys in attributes; translate it for this player.
+local function keyArg(value: any): any
+	if type(value) == "string" and string.sub(value, 1, 1) == "@" then
+		return { ref = string.sub(value, 2) }
+	end
+	return value
+end
+
+local function localizeInstance(d: Instance)
+	if d:IsA("TextLabel") then
+		local key = d:GetAttribute("TextKey")
+		if type(key) == "string" then
+			local arg = d:GetAttribute("TextArg1")
+			d.Text = if arg ~= nil then Lang.T(key, keyArg(arg)) else Lang.T(key)
+		end
+	elseif d:IsA("ProximityPrompt") then
+		local actionKey = d:GetAttribute("ActionKey")
+		if type(actionKey) == "string" then
+			d.ActionText = Lang.T(actionKey)
+		end
+		local objectKey = d:GetAttribute("ObjectKey")
+		if type(objectKey) == "string" then
+			local a1 = d:GetAttribute("ObjectArg1")
+			local a2 = d:GetAttribute("ObjectArg2")
+			d.ObjectText = if a1 ~= nil then Lang.T(objectKey, keyArg(a1), keyArg(a2)) else Lang.T(objectKey)
+		end
+	end
+end
+
 local function apply(s: { [string]: any }?)
 	if not s then
 		return
@@ -205,6 +222,9 @@ local function apply(s: { [string]: any }?)
 	local world = workspace:FindFirstChild(GameConfig.World.FolderName)
 	if not world then
 		return
+	end
+	for _, d in world:GetDescendants() do
+		localizeInstance(d)
 	end
 	for _, d in world:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -224,6 +244,7 @@ function WorldVisualsController.Start()
 		apply(ClientState.Get())
 		-- Covers backpacks dropped later and parts that stream in after the first pass.
 		world.DescendantAdded:Connect(function(d)
+			localizeInstance(d)
 			if d:IsA("BasePart") then
 				task.defer(function()
 					local s = ClientState.Get()

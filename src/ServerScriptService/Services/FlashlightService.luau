@@ -67,15 +67,11 @@ function FlashlightService.SetOn(player: Player, on: boolean)
 	end
 	if on then
 		if not InventoryService.Has(player, "Flashlight", 1) then
-			Net.Notify(player, "У тебе немає ліхтарика", "warning")
+			Net.Notify(player, "flash.none", "warning")
 			return
 		end
 		if data.flashlightCharge <= 0 then
-			Net.Notify(
-				player,
-				"Батарея розряджена. Заряди ліхтарик біля генератора",
-				"warning"
-			)
+			Net.Notify(player, "flash.empty", "warning")
 			return
 		end
 	end
@@ -116,7 +112,7 @@ local function tick(player: Player, dt: number)
 			if data.flashlightCharge <= 0 then
 				isOn[player] = false
 				apply(player)
-				Net.Notify(player, "Ліхтарик розрядився", "warning")
+				Net.Notify(player, "flash.drained", "warning")
 			end
 		end
 	elseif InventoryService.Has(player, "Flashlight", 1) and nearGenerator(player) then
@@ -124,7 +120,7 @@ local function tick(player: Player, dt: number)
 		if data.flashlightCharge < max then
 			data.flashlightCharge = math.min(max, data.flashlightCharge + GameConfig.FlashlightChargePerSecond * dt)
 			if data.flashlightCharge >= max then
-				Net.Notify(player, "Ліхтарик повністю заряджено", "success")
+				Net.Notify(player, "flash.full", "success")
 			end
 		end
 	end

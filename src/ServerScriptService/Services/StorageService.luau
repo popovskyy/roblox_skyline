@@ -41,25 +41,25 @@ local function isNearStorage(player: Player): boolean
 end
 
 -- direction: "Deposit" moves inventory -> storage, "Withdraw" moves storage -> inventory.
-function StorageService.Transfer(player: Player, direction: any, itemId: any, amount: any): (boolean, string?)
+function StorageService.Transfer(player: Player, direction: any, itemId: any, amount: any): (boolean, any)
 	local data = PlayerDataService.Get(player)
 	if not data then
-		return false, "Дані ще не завантажені"
+		return false, "err.notLoaded"
 	end
 	if direction ~= "Deposit" and direction ~= "Withdraw" then
-		return false, "Невідома дія"
+		return false, "storage.invalid"
 	end
 	if not ItemDefinitions.IsValid(itemId) or not ItemDefinitions.Items[itemId].storable then
-		return false, "Цей предмет не можна покласти в сховище"
+		return false, "storage.notStorable"
 	end
 	if not InventoryService.IsPositiveInt(amount) or amount > 1000 then
-		return false, "Неправильна кількість"
+		return false, "storage.badAmount"
 	end
 	if not data.upgrades.StorageCrate then
-		return false, "Спершу збудуй сховище"
+		return false, "storage.buildFirst"
 	end
 	if not isNearStorage(player) then
-		return false, "Підійди ближче до сховища"
+		return false, "storage.tooFar"
 	end
 
 	local def = ItemDefinitions.Items[itemId :: string]
@@ -72,7 +72,7 @@ function StorageService.Transfer(player: Player, direction: any, itemId: any, am
 		local free = GameConfig.StorageCapacity - StorageService.GetWeight(player)
 		count = math.min(count, math.floor(free / def.weight))
 		if count <= 0 then
-			return false, if have <= 0 then "Немає що класти" else "Сховище заповнене"
+			return false, if have <= 0 then "storage.nothing" else "storage.full"
 		end
 		data.inventory[id] = have - count
 		data.storage[id] = (data.storage[id] or 0) + count
@@ -80,10 +80,7 @@ function StorageService.Transfer(player: Player, direction: any, itemId: any, am
 		local stored = data.storage[id] or 0
 		count = math.min(count, stored, InventoryService.SpaceFor(player, id))
 		if count <= 0 then
-			return false,
-				if stored <= 0
-					then "У сховищі цього немає"
-					else "Інвентар переповнений"
+			return false, if stored <= 0 then "storage.notInStorage" else "storage.invFull"
 		end
 		data.storage[id] = stored - count
 		data.inventory[id] = (data.inventory[id] or 0) + count

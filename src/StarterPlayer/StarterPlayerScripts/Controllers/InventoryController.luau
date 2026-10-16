@@ -3,6 +3,7 @@
 -- Clicking a slot (or pressing its number key) uses Medkit / Food; other items just show their name.
 -- Buttons only send requests; the server decides and the next snapshot redraws the lists.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -11,6 +12,7 @@ local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local ClientState = require(script.Parent.ClientState)
 local ItemSlot = require(script.Parent.ItemSlot)
+local Lang = require(script.Parent.Lang)
 local UIKit = require(script.Parent.UIKit)
 
 local InventoryController = {}
@@ -46,8 +48,8 @@ local storageList: Frame
 local storageHeader: TextLabel
 
 local USE_LABELS: { [string]: string } = {
-	Medkit = "Використати",
-	Food = "З'їсти",
+	Medkit = "ui.use",
+	Food = "ui.eat",
 }
 
 local function clearRows(list: Frame)
@@ -79,11 +81,12 @@ local function makeWindow(
 	UIKit.Padding(12).Parent = panel
 	local header = UIKit.Label({
 		Size = UDim2.new(1, -40, 0, 26),
-		Text = title,
+		Text = "",
 		Font = Enum.Font.GothamBold,
 		TextSize = 18,
 		Parent = panel,
 	})
+	Lang.Bind(header, title)
 	local close = UIKit.Button({
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
@@ -111,7 +114,7 @@ end
 local function renderInventory(s: { [string]: any })
 	local weight = s.weight or 0
 	local maxWeight = math.max(s.maxWeight or 1, 1)
-	weightLabel.Text = ("Вага %d / %d"):format(weight, maxWeight)
+	weightLabel.Text = Lang.T("hud.weight", weight, maxWeight)
 	weightFill.Size = UDim2.fromScale(math.clamp(weight / maxWeight, 0, 1), 1)
 	weightFill.BackgroundColor3 = if weight >= maxWeight then C.warn else C.good
 
@@ -144,6 +147,11 @@ local function showTooltip(text: string)
 	end)
 end
 
+-- Gamepad shortcut: D-pad up uses a medkit, D-pad down eats food.
+local function useItem(itemId: string)
+	(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(itemId)
+end
+
 local function activateSlot(i: number)
 	local itemId = slotItems[i]
 	local def = if itemId then ItemDefinitions.Get(itemId) else nil
@@ -155,9 +163,16 @@ local function activateSlot(i: number)
 	local useLabel = USE_LABELS[def.id]
 	if useLabel then
 		(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(def.id)
-		showTooltip(("%s %s · %s"):format(def.icon, def.displayName, useLabel))
+		showTooltip(("%s %s · %s"):format(def.icon, Lang.T("item." .. def.id .. ".name"), Lang.T(useLabel)))
 	else
-		showTooltip(("%s %s ×%d · %s"):format(def.icon, def.displayName, count, def.description))
+		showTooltip(
+			("%s %s ×%d · %s"):format(
+				def.icon,
+				Lang.T("item." .. def.id .. ".name"),
+				count,
+				Lang.T("item." .. def.id .. ".desc")
+			)
+		)
 	end
 end
 
@@ -174,7 +189,7 @@ local function buildHotbar(screen: ScreenGui)
 
 	weightLabel = UIKit.Label({
 		Size = UDim2.fromOffset(120, 16),
-		Text = "Вага 0 / 20",
+		Text = "",
 		TextSize = 13,
 		TextColor3 = C.muted,
 		TextStrokeTransparency = 0.5,
@@ -244,12 +259,8 @@ local function transfer(direction: string, itemId: string, amount: number)
 end
 
 local function renderStorage(s: { [string]: any })
-	storageHeader.Text = ("Сховище %d / %d   ·   рюкзак %d / %d"):format(
-		s.storageWeight or 0,
-		s.storageCapacity or 0,
-		s.weight or 0,
-		s.maxWeight or 0
-	)
+	storageHeader.Text =
+		Lang.T("ui.storageHeader", s.storageWeight or 0, s.storageCapacity or 0, s.weight or 0, s.maxWeight or 0)
 	clearRows(storageList)
 	for order, itemId in ItemDefinitions.Order do
 		local def = ItemDefinitions.Items[itemId]
@@ -265,20 +276,25 @@ local function renderStorage(s: { [string]: any })
 			}, { UIKit.Corner(6), UIKit.Padding(6) })
 			UIKit.Label({
 				Size = UDim2.new(1, -230, 1, 0),
-				Text = ("%s %s\nз собою %d · у сховищі %d"):format(
-					def.icon,
-					def.displayName,
-					carried,
-					stored
-				),
+				Text = Lang.T("ui.storageRow", def.icon, Lang.T("item." .. def.id .. ".name"), carried, stored),
 				TextSize = 14,
 				Parent = row,
 			})
 			local buttons = {
 				{ text = "→ 1", direction = "Deposit", amount = 1, enabled = carried > 0 },
-				{ text = "→ всі", direction = "Deposit", amount = math.max(carried, 1), enabled = carried > 0 },
+				{
+					text = "→ " .. Lang.T("ui.all"),
+					direction = "Deposit",
+					amount = math.max(carried, 1),
+					enabled = carried > 0,
+				},
 				{ text = "← 1", direction = "Withdraw", amount = 1, enabled = stored > 0 },
-				{ text = "← всі", direction = "Withdraw", amount = math.max(stored, 1), enabled = stored > 0 },
+				{
+					text = "← " .. Lang.T("ui.all"),
+					direction = "Withdraw",
+					amount = math.max(stored, 1),
+					enabled = stored > 0,
+				},
 			}
 			for i, info in buttons do
 				local button = UIKit.Button({
@@ -307,6 +323,13 @@ function InventoryController.OpenStorage()
 	if s then
 		renderStorage(s)
 	end
+	-- Gamepads navigate menus through the selected object, so focus the first button.
+	if UserInputService.GamepadEnabled then
+		local first = storageList:FindFirstChildWhichIsA("TextButton", true)
+		if first then
+			GuiService.SelectedObject = first
+		end
+	end
 end
 
 function InventoryController.Start(remoteFolder: Folder)
@@ -314,13 +337,8 @@ function InventoryController.Start(remoteFolder: Folder)
 	local screen = UIKit.Screen()
 
 	buildHotbar(screen)
-	storagePanel, storageList, storageHeader = makeWindow(
-		"Storage",
-		"Сховище",
-		UDim2.new(0, 470, 0.7, 0),
-		UDim2.fromScale(0.5, 0.5),
-		Vector2.new(0.5, 0.5)
-	)
+	storagePanel, storageList, storageHeader =
+		makeWindow("Storage", "ui.storage", UDim2.new(0, 470, 0.7, 0), UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then
@@ -329,8 +347,15 @@ function InventoryController.Start(remoteFolder: Folder)
 		local slotIndex = table.find(NUMBER_KEYS, input.KeyCode)
 		if slotIndex then
 			activateSlot(slotIndex)
-		elseif input.KeyCode == Enum.KeyCode.Escape then
-			storagePanel.Visible = false
+		elseif input.KeyCode == Enum.KeyCode.DPadUp then
+			useItem("Medkit")
+		elseif input.KeyCode == Enum.KeyCode.DPadDown then
+			useItem("Food")
+		elseif input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.ButtonB then
+			if storagePanel.Visible then
+				storagePanel.Visible = false
+				GuiService.SelectedObject = nil
+			end
 		end
 	end)
 

@@ -9,8 +9,7 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
-local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
-local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 
 local World = GameConfig.World
 
@@ -113,7 +112,19 @@ local function wallBetween(
 	)
 end
 
-local function sign(parent: Instance, text: string, cframe: CFrame, size: Vector2, color: Color3?)
+-- Text in the world is stored as a Locale key; each client relabels it in its own language.
+-- An argument that starts with "@" is a key reference (e.g. "@upgrade.Bridge.name").
+local function localized(key: string, arg: any?): string
+	if type(arg) == "string" and string.sub(arg, 1, 1) == "@" then
+		return Locale.T("en", key, { ref = string.sub(arg, 2) })
+	end
+	if arg ~= nil then
+		return Locale.T("en", key, arg)
+	end
+	return Locale.T("en", key)
+end
+
+local function sign(parent: Instance, key: string, cframe: CFrame, size: Vector2, color: Color3?, arg: any?)
 	local board =
 		block(parent, "Sign", Vector3.new(size.X, size.Y, 0.3), cframe, Color3.fromRGB(30, 30, 30), Enum.Material.Metal)
 	board.CanCollide = false
@@ -129,14 +140,39 @@ local function sign(parent: Instance, text: string, cframe: CFrame, size: Vector
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBold
 	label.TextColor3 = color or Color3.fromRGB(255, 220, 80)
-	label.Text = text
+	label.Text = localized(key, arg)
+	label:SetAttribute("TextKey", key)
+	if arg ~= nil then
+		label:SetAttribute("TextArg1", arg)
+	end
 	label.Parent = gui
 end
 
-local function addPrompt(part: BasePart, action: string, objectText: string, hold: number?)
+local function addPrompt(
+	part: BasePart,
+	actionKey: string,
+	objectKey: string,
+	hold: number?,
+	objectArg1: any?,
+	objectArg2: any?
+)
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = action
-	prompt.ObjectText = objectText
+	prompt.ActionText = Locale.T("en", actionKey)
+	prompt:SetAttribute("ActionKey", actionKey)
+	prompt:SetAttribute("ObjectKey", objectKey)
+	prompt:SetAttribute("ObjectArg1", objectArg1)
+	prompt:SetAttribute("ObjectArg2", objectArg2)
+	local function arg(value: any): any
+		if type(value) == "string" and string.sub(value, 1, 1) == "@" then
+			return { ref = string.sub(value, 2) }
+		end
+		return value
+	end
+	if objectArg1 ~= nil then
+		prompt.ObjectText = Locale.T("en", objectKey, arg(objectArg1), arg(objectArg2))
+	else
+		prompt.ObjectText = Locale.T("en", objectKey)
+	end
 	prompt.HoldDuration = hold or 0
 	prompt.MaxActivationDistance = GameConfig.PromptActivationDistance
 	prompt.RequiresLineOfSight = false
@@ -281,12 +317,17 @@ local function buildStairwell(parent: Folder)
 			LANE_WIDTH
 		)
 		-- Floor number above each stairwell exit, so players always know where they are.
-		local label = if flight + 1 == World.FloorCount
-			then "4 ПОВЕРХ · РУЇНИ"
-			else ("%d ПОВЕРХ"):format(flight + 1)
-		sign(stairs, label, CFrame.new(0, lower + 13, HOLE_MIN_Z - 0.2), Vector2.new(10, 2))
+		local isBottom = flight + 1 == World.FloorCount
+		sign(
+			stairs,
+			if isBottom then "sign.floor4" else "sign.floor",
+			CFrame.new(0, lower + 13, HOLE_MIN_Z - 0.2),
+			Vector2.new(10, 2),
+			nil,
+			if isBottom then nil else flight + 1
+		)
 	end
-	sign(stairs, "СХОДИ ВНИЗ ↓", CFrame.new(-LANE_CENTER, top + 7, HOLE_MIN_Z - 0.2), Vector2.new(5.5, 1.5))
+	sign(stairs, "sign.stairsDown", CFrame.new(-LANE_CENTER, top + 7, HOLE_MIN_Z - 0.2), Vector2.new(5.5, 1.5))
 end
 
 local function buildFloorShell(parent: Instance, level: number, lit: boolean)
@@ -414,8 +455,7 @@ local function resourceNode(
 			part:SetAttribute("RequiresRubble", options.requiresRubble)
 		end
 	end
-	local def = ItemDefinitions.Items[itemId]
-	addPrompt(part, "Зібрати", ("%s ×%d"):format(def.displayName, amount), 0.3)
+	addPrompt(part, "prompt.collect", "prompt.itemAmount", 0.3, "@item." .. itemId .. ".name", amount)
 	return part
 end
 
@@ -476,12 +516,12 @@ local function rubble(
 	if needsTool then
 		sign(
 			main,
-			"ЛОМ",
+			"sign.crowbar",
 			main.CFrame * CFrame.new(-facing * (size.X / 2 + 0.2), 2, 0) * CFrame.Angles(0, facing * math.pi / 2, 0),
 			Vector2.new(3, 1)
 		)
 	end
-	addPrompt(main, if needsTool then "Розібрати ломом" else "Розібрати", "Завал", 1.2)
+	addPrompt(main, if needsTool then "prompt.clearCrowbar" else "prompt.clear", "prompt.rubble", 1.2)
 	return main
 end
 
@@ -650,7 +690,7 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	for _, z in { -22, 0, 22 } do
 		sign(
 			floor,
-			"⚠ TOXIC AIR · ТОКСИЧНЕ ПОВІТРЯ",
+			"sign.toxic",
 			CFrame.new(zoneMinX - 0.4, floorY + 8, z) * CFrame.Angles(0, math.pi / 2, 0),
 			Vector2.new(8, 2),
 			Color3.fromRGB(140, 255, 90)
@@ -688,13 +728,8 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	gate:SetAttribute("RequiresUpgrade", "Generator")
 	gate:SetAttribute("UpgradeVisual", "Generator")
 	gate:SetAttribute("VisualMode", "Hide")
-	addPrompt(gate, "Відчинити", "Двері на 4 поверх")
-	sign(
-		gate,
-		"ПОТРІБНЕ ЖИВЛЕННЯ · ГЕНЕРАТОР",
-		gate.CFrame * CFrame.new(0, 3, 0.7) * CFrame.Angles(0, math.pi, 0),
-		Vector2.new(10, 1.5)
-	)
+	addPrompt(gate, "prompt.open", "prompt.gate")
+	sign(gate, "sign.gate", gate.CFrame * CFrame.new(0, 3, 0.7) * CFrame.Angles(0, math.pi, 0), Vector2.new(10, 1.5))
 
 	cornerRoom(floor, level, -1, -1, "F4_Rubble_A", { requiresTool = "Crowbar", requiresUpgrade = "Generator" })
 	cornerRoom(floor, level, 1, 1, "F4_Rubble_B", { requiresTool = "Crowbar", requiresUpgrade = "Generator" })
@@ -833,7 +868,6 @@ local function upgradePad(
 	visualSize: Vector3,
 	visualColor: Color3
 ): (BasePart, BasePart)
-	local def = UpgradeDefinitions.Upgrades[upgradeId]
 	local pad = block(
 		interactables,
 		upgradeId .. "_Pad",
@@ -844,7 +878,7 @@ local function upgradePad(
 	)
 	pad:SetAttribute("InteractType", "Upgrade")
 	pad:SetAttribute("UpgradeId", upgradeId)
-	addPrompt(pad, "Збудувати", def.displayName, 0.5)
+	addPrompt(pad, "prompt.build", "upgrade." .. upgradeId .. ".name", 0.5)
 
 	local visual = block(
 		visuals,
@@ -859,7 +893,7 @@ local function upgradePad(
 	attachPropModel(visual, upgradeId)
 	sign(
 		visuals,
-		def.displayName,
+		"upgrade." .. upgradeId .. ".name",
 		CFrame.new(position + Vector3.new(0, 0.4 + visualSize.Y + 1.5, 0)),
 		Vector2.new(6, 1.2)
 	)
@@ -921,7 +955,7 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	barrier:SetAttribute("VisualMode", "Hide")
 	sign(
 		visuals,
-		"МІСТ ЗРУЙНОВАНО",
+		"sign.bridgeBroken",
 		CFrame.new(half - 0.5, roofY + railH + 1, 0) * CFrame.Angles(0, math.pi / 2, 0),
 		Vector2.new(8, 1.5)
 	)
@@ -1018,7 +1052,7 @@ local function buildRoof(parent: Folder, interactables: Folder)
 		Enum.Material.Metal
 	)
 	terminal:SetAttribute("InteractType", "Terminal")
-	addPrompt(terminal, "Прочитати", "Аварійний термінал")
+	addPrompt(terminal, "prompt.read", "prompt.terminal")
 	local screen = block(
 		terminal,
 		"Screen",
@@ -1042,7 +1076,7 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	storageVisual.Parent = interactables
 	storageVisual.Name = "StorageCrate"
 	storageVisual:SetAttribute("InteractType", "Storage")
-	addPrompt(storageVisual, "Відкрити", "Сховище")
+	addPrompt(storageVisual, "prompt.open", "ui.storage")
 	upgradePad(
 		interactables,
 		visuals,
@@ -1158,7 +1192,7 @@ local function buildNeighbor(parent: Folder)
 	)
 	sign(
 		neighbor,
-		"ВЕЖА 2",
+		"sign.tower2",
 		CFrame.new(cx - size / 2 + 6, roofY + 9, 0) * CFrame.Angles(0, math.pi / 2, 0),
 		Vector2.new(10, 3)
 	)
@@ -1252,16 +1286,20 @@ local function buildNeighbor(parent: Folder)
 	end
 end
 
--- Apocalyptic sunset: low orange sun, thick rust-coloured haze, warm colour grading.
+-- Apocalyptic sunset: a low burning sun behind layers of lit clouds, rust-coloured haze in the distance
+-- and a warm, slightly desaturated grade. Everything here is engine lighting, so it costs no assets.
 local function setupLighting()
-	Lighting.ClockTime = 17.6
-	Lighting.GeographicLatitude = 20
-	Lighting.Brightness = 1.8
-	Lighting.Ambient = Color3.fromRGB(30, 24, 22)
-	Lighting.OutdoorAmbient = Color3.fromRGB(150, 95, 65)
-	Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 80)
-	Lighting.EnvironmentDiffuseScale = 0.3
-	Lighting.EnvironmentSpecularScale = 0.3
+	Lighting.ClockTime = 17.75
+	Lighting.GeographicLatitude = 35
+	Lighting.Brightness = 2.4
+	Lighting.ExposureCompensation = 0.15
+	Lighting.Ambient = Color3.fromRGB(34, 26, 24)
+	Lighting.OutdoorAmbient = Color3.fromRGB(128, 86, 66)
+	Lighting.ColorShift_Top = Color3.fromRGB(255, 160, 95)
+	Lighting.ColorShift_Bottom = Color3.fromRGB(70, 40, 60)
+	Lighting.EnvironmentDiffuseScale = 0.45
+	Lighting.EnvironmentSpecularScale = 0.35
+	Lighting.ShadowSoftness = 0.25
 	Lighting.GlobalShadows = true
 
 	-- Replace whatever the template place shipped with.
@@ -1272,30 +1310,46 @@ local function setupLighting()
 	end
 
 	local sky = Instance.new("Sky")
-	sky.SunAngularSize = 18
+	sky.SunAngularSize = 14
 	sky.MoonAngularSize = 0
 	sky.StarCount = 0
+	sky.CelestialBodiesShown = true
 	sky.Parent = Lighting
 
+	-- Thin haze near the ground, thicker towards the horizon: keeps the base readable and the skyline moody.
 	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.42
-	atmosphere.Offset = 0.15
-	atmosphere.Haze = 2.6
-	atmosphere.Glare = 0.6
-	atmosphere.Color = Color3.fromRGB(255, 140, 60)
-	atmosphere.Decay = Color3.fromRGB(140, 55, 25)
+	atmosphere.Density = 0.3
+	atmosphere.Offset = 0.32
+	atmosphere.Haze = 1.9
+	atmosphere.Glare = 0.45
+	atmosphere.Color = Color3.fromRGB(214, 128, 78)
+	atmosphere.Decay = Color3.fromRGB(96, 52, 58)
 	atmosphere.Parent = Lighting
 
+	-- Volumetric clouds lit orange by the setting sun.
+	local terrain = workspace.Terrain
+	local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
+	clouds.Cover = 0.62
+	clouds.Density = 0.55
+	clouds.Color = Color3.fromRGB(255, 176, 128)
+	clouds.Parent = terrain
+
+	local rays = Instance.new("SunRaysEffect")
+	rays.Intensity = 0.08
+	rays.Spread = 0.6
+	rays.Parent = Lighting
+
 	local grading = Instance.new("ColorCorrectionEffect")
-	grading.TintColor = Color3.fromRGB(255, 225, 200)
-	grading.Saturation = -0.1
-	grading.Contrast = 0.12
+	grading.TintColor = Color3.fromRGB(255, 236, 222)
+	grading.Saturation = -0.05
+	grading.Contrast = 0.14
+	grading.Brightness = 0.02
 	grading.Parent = Lighting
 
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.6
-	bloom.Size = 30
-	bloom.Threshold = 1.6
+	bloom.Intensity = 0.5
+	bloom.Size = 28
+	bloom.Threshold = 1.4
 	bloom.Parent = Lighting
 end
 

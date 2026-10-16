@@ -94,8 +94,10 @@ local function dropBackpack(player: Player, position: Vector3)
 	light.Parent = part
 
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Забрати рюкзак"
-	prompt.ObjectText = "Твій рюкзак"
+	prompt.ActionText = "Take backpack"
+	prompt:SetAttribute("ActionKey", "backpack.action")
+	prompt.ObjectText = "Your backpack"
+	prompt:SetAttribute("ObjectKey", "backpack.object")
 	prompt.MaxActivationDistance = GameConfig.PromptActivationDistance
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = part
@@ -110,16 +112,16 @@ local function dropBackpack(player: Player, position: Vector3)
 		if backpacks[player] == backpack then
 			destroyBackpack(player)
 			if player.Parent then
-				Net.Notify(player, "Твій рюкзак загубився", "warning")
+				Net.Notify(player, "backpack.lost", "warning")
 			end
 		end
 	end)
 end
 
-function PlayerLifecycleService.RecoverBackpack(player: Player, part: BasePart): (boolean, string?)
+function PlayerLifecycleService.RecoverBackpack(player: Player, part: BasePart): (boolean, any)
 	local backpack = backpacks[player]
 	if not backpack or backpack.part ~= part then
-		return false, "Це не твій рюкзак"
+		return false, "backpack.notYours"
 	end
 	backpacks[player] = nil
 	for id, amount in backpack.items do
@@ -127,7 +129,7 @@ function PlayerLifecycleService.RecoverBackpack(player: Player, part: BasePart):
 	end
 	part:Destroy()
 	StateSyncService.Request(player)
-	Net.Notify(player, "Рюкзак повернуто", "success")
+	Net.Notify(player, "backpack.recovered", "success")
 	return true, nil
 end
 
@@ -142,7 +144,7 @@ local function onDied(player: Player, character: Model)
 	FlashlightService.SetOn(player, false)
 	HazardService.StopTracking(player)
 	StateSyncService.Request(player)
-	Net.Notify(player, "Ти загинув. Рюкзак лишився там, де ти впав", "error")
+	Net.Notify(player, "death.message", "error")
 
 	task.delay(GameConfig.RespawnDelaySeconds, function()
 		respawning[player] = nil
@@ -173,6 +175,10 @@ local function onPlayerAdded(player: Player)
 	if player.Parent ~= Players then
 		return
 	end
+	local data = PlayerDataService.Get(player)
+	if data and data.language then
+		player:SetAttribute("Language", data.language)
+	end
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)
@@ -180,11 +186,7 @@ local function onPlayerAdded(player: Player)
 	if not saved then
 		task.delay(3, function()
 			if player.Parent then
-				Net.Notify(
-					player,
-					"Прогрес не завантажився, тому в цій сесії він не збережеться",
-					"error"
-				)
+				Net.Notify(player, "save.failed", "error")
 			end
 		end)
 	end
@@ -200,26 +202,26 @@ local function useItem(player: Player, itemId: any)
 			return
 		end
 		if humanoid.Health >= humanoid.MaxHealth then
-			Net.Notify(player, "Здоров'я вже повне", "info")
+			Net.Notify(player, "medkit.full", "info")
 			return
 		end
 		if not InventoryService.Remove(player, "Medkit", 1) then
-			Net.Notify(player, "Немає аптечки", "warning")
+			Net.Notify(player, "medkit.none", "warning")
 			return
 		end
 		humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + GameConfig.MedkitHeal)
-		Net.Notify(player, ("Аптечка: +%d здоров'я"):format(GameConfig.MedkitHeal), "success")
+		Net.Notify(player, { "medkit.used", GameConfig.MedkitHeal }, "success")
 	elseif itemId == "Food" then
 		if not InventoryService.Has(player, "Food", 1) then
-			Net.Notify(player, "Немає їжі", "warning")
+			Net.Notify(player, "food.none", "warning")
 			return
 		end
 		if not HazardService.Feed(player) then
-			Net.Notify(player, "Ти не голодний", "info")
+			Net.Notify(player, "food.notHungry", "info")
 			return
 		end
 		InventoryService.Remove(player, "Food", 1)
-		Net.Notify(player, "Ти поїв. Голод минув", "success")
+		Net.Notify(player, "food.eaten", "success")
 	end
 end
 
@@ -256,6 +258,20 @@ function PlayerLifecycleService.Start()
 		if RateLimiter.Allow(player, "RequestState", 1) then
 			StateSyncService.Request(player)
 		end
+	end)
+	Net.Get(RemoteNames.SetLanguage).OnServerEvent:Connect(function(player, code)
+		if not RateLimiter.Allow(player, "SetLanguage", 0.5) then
+			return
+		end
+		if code ~= "uk" and code ~= "ru" and code ~= "en" then
+			return
+		end
+		local data = PlayerDataService.Get(player)
+		if data then
+			data.language = code
+			PlayerDataService.MarkDirty(player)
+		end
+		player:SetAttribute("Language", code)
 	end)
 	Net.Get(RemoteNames.ToggleFlashlight).OnServerEvent:Connect(function(player)
 		if RateLimiter.Allow(player, "ToggleFlashlight", 0.3) then

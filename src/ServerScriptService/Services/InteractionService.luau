@@ -24,7 +24,7 @@ function InteractionService.SetInteractables(folder: Folder)
 	interactables = folder
 end
 
-type Handler = (player: Player, target: BasePart) -> (boolean, string?)
+type Handler = (player: Player, target: BasePart) -> (boolean, any)
 
 local handlers: { [string]: Handler } = {
 	Resource = function(player, target)
@@ -40,7 +40,7 @@ local handlers: { [string]: Handler } = {
 	Storage = function(player)
 		local data = PlayerDataService.Get(player)
 		if not data or not data.upgrades.StorageCrate then
-			return false, "Сховища ще немає. Збудуй його за 8 металобрухту"
+			return false, "interact.noStorage"
 		end
 		Net.Get(RemoteNames.OpenStorage):FireClient(player)
 		return true, nil
@@ -51,7 +51,7 @@ local handlers: { [string]: Handler } = {
 	Gate = function(player, target)
 		local required = target:GetAttribute("RequiresUpgrade")
 		if type(required) == "string" and not BaseUpgradeService.Owns(player, required) then
-			return false, "Двері заблоковано. Потрібен генератор на даху"
+			return false, "interact.gateLocked"
 		end
 		return true, nil
 	end,
@@ -73,7 +73,7 @@ local function onPromptTriggered(prompt: ProximityPrompt, player: Player)
 		return
 	end
 	if not CharacterUtil.IsNear(player, target, GameConfig.InteractionDistance) then
-		Net.Notify(player, "Занадто далеко", "warning")
+		Net.Notify(player, "err.tooFar", "warning")
 		return
 	end
 	local interactType = target:GetAttribute("InteractType")

@@ -171,7 +171,7 @@ local function updateFall(player: Player, t: Tracker, root: BasePart, humanoid: 
 				local damage = math.floor(over * GameConfig.FallDamagePerStud)
 				if damage > 0 then
 					humanoid:TakeDamage(damage)
-					Net.Notify(player, ("Невдале падіння: -%d здоров'я"):format(damage), "warning")
+					Net.Notify(player, { "hazard.fall", damage }, "warning")
 				end
 			end
 		end
@@ -200,11 +200,7 @@ local function updateToxic(player: Player, t: Tracker, root: BasePart, humanoid:
 	t.toxicTime += dt
 	if not t.warnedToxic then
 		t.warnedToxic = true
-		Net.Notify(
-			player,
-			"ТОКСИЧНЕ ПОВІТРЯ! Виходь із зони або збудуй фільтр",
-			"warning"
-		)
+		Net.Notify(player, "hazard.toxic", "warning")
 	end
 	if t.toxicTime < GameConfig.ToxicGraceSeconds then
 		return
@@ -227,15 +223,11 @@ local function startExpedition(player: Player, t: Tracker)
 		t.fed = true
 	elseif InventoryService.Remove(player, "Food", cost) then
 		t.fed = true
-		Net.Notify(player, ("Спуск почався: -%d їжа"):format(cost), "info")
+		Net.Notify(player, { "hazard.descent", cost }, "info")
 	else
 		t.fed = false
 		local minutes = math.floor(GameConfig.HungerGraceSeconds / 60)
-		Net.Notify(
-			player,
-			("Немає їжі! Через %d хв почнеш слабшати"):format(minutes),
-			"warning"
-		)
+		Net.Notify(player, { "hazard.noFood", minutes }, "warning")
 	end
 end
 
@@ -271,11 +263,7 @@ local function updateExpedition(player: Player, t: Tracker, root: BasePart, huma
 	if not t.warnedHungry then
 		t.warnedHungry = true
 		player:SetAttribute("Hungry", true)
-		Net.Notify(
-			player,
-			"Ти голодний і слабшаєш. З'їж їжу або повертайся на дах",
-			"error"
-		)
+		Net.Notify(player, "hazard.hungry", "error")
 	end
 	humanoid:TakeDamage(GameConfig.HungerDamagePerSecond * dt)
 end

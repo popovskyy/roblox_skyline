@@ -8,6 +8,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local InventoryService = require(script.Parent.InventoryService)
@@ -34,18 +35,18 @@ local function getState(player: Player): PlayerNodes
 end
 
 -- Checks the access attributes a node or rubble may carry. Returns a reason when access is denied.
-function ResourceService.CheckAccess(player: Player, object: Instance): string?
+function ResourceService.CheckAccess(player: Player, object: Instance): any
 	local data = PlayerDataService.Get(player)
 	if not data then
-		return "Дані ще не завантажені"
+		return "err.notLoaded"
 	end
 	local requiredUpgrade = object:GetAttribute("RequiresUpgrade")
 	if type(requiredUpgrade) == "string" and not data.upgrades[requiredUpgrade] then
-		return "Ця зона відкриється після поліпшення бази"
+		return "res.zoneLocked"
 	end
 	local requiredRubble = object:GetAttribute("RequiresRubble")
 	if type(requiredRubble) == "string" and not getState(player).cleared[requiredRubble] then
-		return "Прохід завалено"
+		return "res.blocked"
 	end
 	return nil
 end
@@ -62,7 +63,7 @@ function ResourceService.IsTaken(player: Player, node: Instance): boolean
 	return getState(player).depleted[nodeId] == true
 end
 
-function ResourceService.Collect(player: Player, node: BasePart): (boolean, string?)
+function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 	local data = PlayerDataService.Get(player)
 	local nodeId = node:GetAttribute("NodeId")
 	local itemId = node:GetAttribute("ItemId")
@@ -75,7 +76,7 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, stri
 		return false, nil
 	end
 	if ResourceService.IsTaken(player, node) then
-		return false, "Тут уже порожньо"
+		return false, "res.empty"
 	end
 	local denied = ResourceService.CheckAccess(player, node)
 	if denied then
@@ -85,10 +86,10 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, stri
 	local count = amount :: number
 	local unique = node:GetAttribute("Unique") == true
 	if unique and InventoryService.GetCount(player, id) > 0 then
-		return false, "У тебе вже є цей предмет"
+		return false, "res.alreadyHave"
 	end
 	if not InventoryService.CanAdd(player, id, count) then
-		return false, "Інвентар переповнений. Віднеси знахідки на дах"
+		return false, "res.full"
 	end
 
 	if unique then
@@ -99,11 +100,11 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, stri
 	end
 	InventoryService.Add(player, id, count)
 	StateSyncService.Request(player)
-	Net.Notify(player, ("Зібрано: %s +%d"):format(ItemDefinitions.Items[id].displayName, count), "success")
+	Net.Notify(player, { "res.collected", Locale.Item(id), count }, "success")
 	return true, nil
 end
 
-function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean, string?)
+function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean, any)
 	local rubbleId = rubble:GetAttribute("RubbleId")
 	if type(rubbleId) ~= "string" then
 		return false, nil
@@ -118,8 +119,7 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 	end
 	local tool = rubble:GetAttribute("RequiresTool")
 	if type(tool) == "string" and not InventoryService.Has(player, tool, 1) then
-		return false,
-			"Потрібен лом. Розбери перший завал на технічному поверсі"
+		return false, "rubble.needCrowbar"
 	end
 
 	s.cleared[rubbleId] = true
@@ -127,13 +127,9 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 	if ItemDefinitions.IsValid(reward) and InventoryService.GetCount(player, reward :: string) == 0 then
 		-- The reward is a tool the player needs, so it ignores the weight limit.
 		InventoryService.ForceAdd(player, reward :: string, 1)
-		Net.Notify(
-			player,
-			("Під завалом знайдено: %s"):format(ItemDefinitions.Items[reward :: string].displayName),
-			"success"
-		)
+		Net.Notify(player, { "rubble.found", Locale.Item(reward :: string) }, "success")
 	else
-		Net.Notify(player, "Завал розібрано", "success")
+		Net.Notify(player, "rubble.cleared", "success")
 	end
 	StateSyncService.Request(player)
 	return true, nil

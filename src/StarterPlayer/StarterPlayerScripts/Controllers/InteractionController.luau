@@ -8,6 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local ClientState = require(script.Parent.ClientState)
+local Lang = require(script.Parent.Lang)
 local UIKit = require(script.Parent.UIKit)
 
 local InteractionController = {}
@@ -61,7 +62,8 @@ function InteractionController.Start(remotes: Folder)
 	end)
 
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if not processed and input.KeyCode == Enum.KeyCode.F then
+		-- F on keyboard, Y on a gamepad.
+		if not processed and (input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonY) then
 			toggleFlashlight(remotes)
 		end
 	end)
@@ -73,7 +75,7 @@ function InteractionController.Start(remotes: Folder)
 			AnchorPoint = Vector2.new(1, 1),
 			Position = UDim2.new(1, -24, 1, -180),
 			Size = UDim2.fromOffset(150, 70),
-			Text = "Взаємодія",
+			Text = "",
 			TextSize = 18,
 			BackgroundColor3 = Color3.fromRGB(70, 110, 160),
 			Visible = false,
@@ -103,6 +105,7 @@ function InteractionController.Start(remotes: Folder)
 				end
 			end
 		end)
+		Lang.Bind(button, "ui.interact")
 		interactButton = button
 
 		local flash = UIKit.Button({
@@ -110,13 +113,14 @@ function InteractionController.Start(remotes: Folder)
 			AnchorPoint = Vector2.new(1, 1),
 			Position = UDim2.new(1, -24, 1, -260),
 			Size = UDim2.fromOffset(110, 48),
-			Text = "Ліхтарик",
+			Text = "",
 			Visible = false,
 			Parent = screen,
 		})
 		flash.Activated:Connect(function()
 			toggleFlashlight(remotes)
 		end)
+		Lang.Bind(flash, "ui.flashlight")
 		flashlightButton = flash
 		ClientState.Changed:Connect(function(s)
 			if flashlightButton then
