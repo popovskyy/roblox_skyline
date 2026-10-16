@@ -6,6 +6,9 @@
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/ReplicatedStorage/Shared"
+      },
+      "Models": {
+        "$path": "assets/models/RoofProps.rbxm"
       }
     },
 
