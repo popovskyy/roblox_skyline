@@ -11,6 +11,7 @@ local Theme = require(ReplicatedStorage.Shared.Theme)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local Atmosphere = require(script.Parent.Atmosphere)
+local PropLibrary = require(script.Parent.PropLibrary)
 local Scenery = require(script.Parent.Scenery)
 
 local World = GameConfig.World
@@ -667,6 +668,182 @@ local function pipe(parent: Instance, level: number, x: number, z: number, lengt
 	part.CanCollide = false
 end
 
+-- Furniture and junk from the Blender prop pack, per floor: { prop, x, z, yaw, fit size }.
+-- When a prop is not available a plain block of the same size stands in, so the layout never changes.
+type Furnishing = { prop: string, x: number, z: number, yaw: number, fit: Vector3, high: boolean? }
+
+local FIT: { [string]: Vector3 } = {
+	Sofa = Vector3.new(7.4, 3.1, 3),
+	Bed = Vector3.new(4.4, 2.9, 7.4),
+	Mattress = Vector3.new(5.2, 1, 7.4),
+	Fridge = Vector3.new(3, 6.5, 2.6),
+	Counter = Vector3.new(8.2, 4.4, 2.6),
+	Table = Vector3.new(5, 3.4, 3),
+	Chair = Vector3.new(1.8, 3.6, 1.8),
+	Desk = Vector3.new(5.4, 4.1, 2.6),
+	Shelf = Vector3.new(5, 7, 1.8),
+	Boiler = Vector3.new(4.8, 10.6, 4.6),
+	Cabinet = Vector3.new(3, 9.9, 1.4),
+	PipeWall = Vector3.new(12, 5.8, 1.2),
+	VentDuct = Vector3.new(10.1, 4.9, 3),
+	Barrel = Vector3.new(2.5, 3, 2.5),
+	Boxes = Vector3.new(4.4, 3.4, 2.6),
+	Locker = Vector3.new(2, 6.5, 1.8),
+	RebarSlab = Vector3.new(11, 5, 8.5),
+	CeilingPanel = Vector3.new(6, 2.5, 4),
+}
+
+local function f(prop: string, x: number, z: number, yaw: number?, high: boolean?): Furnishing
+	return { prop = prop, x = x, z = z, yaw = yaw or 0, fit = FIT[prop], high = high }
+end
+
+local FURNISHING: { [number]: { Furnishing } } = {
+	-- Technical floor: boilers, switchboards, pipes along the walls, storage shelves.
+	[1] = {
+		f("Boiler", -28, -28),
+		f("Boiler", -28, 25, 30),
+		f("Cabinet", -33.5, -6, 90),
+		f("Cabinet", -33.5, 0, 90),
+		f("Cabinet", -33.5, 6, 90),
+		f("PipeWall", 0, 34, 180),
+		f("PipeWall", 34, -28, -90),
+		f("Shelf", 18, -34),
+		f("Shelf", 30, -34),
+		f("Barrel", 14, -26),
+		f("Barrel", 16.8, -27.5),
+		f("Barrel", 30, 12),
+		f("Boxes", 8, 28, 15),
+		f("Boxes", 30, -14, -20),
+		f("CeilingPanel", -10, 24, 25, true),
+	},
+	-- Residential floor: looted flats with kitchens and bedrooms.
+	[2] = {
+		f("Bed", -28, 18),
+		f("Bed", 28, -20, 180),
+		f("Mattress", -24, -28, 20),
+		f("Sofa", 12, 31, 180),
+		f("Table", 12, 23),
+		f("Chair", 8.5, 23, 90),
+		f("Chair", 16, 21, -60),
+		f("Counter", -32.5, -4, 90),
+		f("Fridge", -32.5, -12, 90),
+		f("Fridge", 31, 25, -90),
+		f("Counter", 26, 33, 180),
+		f("Locker", -14, 33, 180),
+		f("Locker", 33.5, -3, -90),
+		f("Shelf", -25, 33.5, 180),
+		f("Boxes", -8, -31, 10),
+		f("Chair", 22, 8, 160),
+		f("CeilingPanel", 22, 2, -30, true),
+	},
+	-- Ventilation floor: big ducts on the floor, drums and shelving.
+	[3] = {
+		f("VentDuct", -24, -26),
+		f("VentDuct", -24, 20, 90),
+		f("VentDuct", 22, -20, 90),
+		f("VentDuct", 22, 14),
+		f("VentDuct", 0, 30),
+		f("Barrel", -30, 29),
+		f("Barrel", 28, 30),
+		f("Barrel", -12, -31),
+		f("Shelf", -33.5, 2, 90),
+		f("Cabinet", 33.5, -6, -90),
+	},
+	-- Ruins: collapsed ceiling slabs with rebar, wrecked offices.
+	[4] = {
+		f("RebarSlab", -20, 6, 20),
+		f("RebarSlab", 17, 6, -30),
+		f("RebarSlab", 0, 27, 10),
+		f("RebarSlab", -6, -29, 60),
+		f("RebarSlab", 28, -6),
+		f("Desk", -28, 24, 10),
+		f("Desk", -31, -6, 80),
+		f("Chair", -25, 21, 200),
+		f("Cabinet", 31, -31, 10),
+		f("Barrel", 14, -21),
+		f("CeilingPanel", -18, -18, 15, true),
+		f("CeilingPanel", 16, 18, -40, true),
+		f("CeilingPanel", -8, 14, 70, true),
+	},
+}
+
+local function furnish(floor: Folder, level: number)
+	local floorY = levelY(level)
+	for _, item in FURNISHING[level] or {} do
+		-- Ceiling panels hang from the ceiling instead of standing on the floor.
+		local y = if item.high then floorY + WALL_HEIGHT - item.fit.Y - 0.5 else floorY
+		local base = Vector3.new(item.x, y, item.z)
+		local placed = PropLibrary.Place(floor, item.prop, base, item.fit, item.yaw, not item.high)
+		if not placed and not item.high then
+			local stand = block(
+				floor,
+				item.prop,
+				item.fit,
+				CFrame.new(base + Vector3.new(0, item.fit.Y / 2, 0)) * CFrame.Angles(0, math.rad(item.yaw), 0),
+				COLORS.darkConcrete,
+				Enum.Material.Concrete
+			)
+			stand.CastShadow = true
+		end
+	end
+
+	-- Light falling in through the broken windows, puddles on the floor.
+	local mood = Random.new(level * 977)
+	local half = World.FloorSize / 2
+	for _ = 1, 3 do
+		local side = mood:NextInteger(1, 4)
+		local along = mood:NextNumber(-half + 8, half - 8)
+		local window: Vector3, inward: Vector3
+		if side == 1 then
+			window, inward = Vector3.new(along, floorY + 10, -half), Vector3.new(0, 0, 1)
+		elseif side == 2 then
+			window, inward = Vector3.new(along, floorY + 10, half), Vector3.new(0, 0, -1)
+		elseif side == 3 then
+			window, inward = Vector3.new(-half, floorY + 10, along), Vector3.new(1, 0, 0)
+		else
+			window, inward = Vector3.new(half, floorY + 10, along), Vector3.new(-1, 0, 0)
+		end
+		local landing = window + inward * 12 - Vector3.new(0, 10, 0)
+		local beam = block(
+			floor,
+			"LightShaft",
+			Vector3.new(5, 0.2, (landing - window).Magnitude),
+			CFrame.lookAt((window + landing) / 2, landing),
+			Color3.fromRGB(255, 236, 200),
+			Enum.Material.Neon
+		)
+		beam.Transparency = 0.93
+		beam.CanCollide = false
+		beam.CastShadow = false
+		beam.CanQuery = false
+		local sun = Instance.new("SpotLight")
+		sun.Face = Enum.NormalId.Front
+		sun.Angle = 60
+		sun.Range = 24
+		sun.Brightness = 1.4
+		sun.Color = Color3.fromRGB(255, 226, 180)
+		sun.Parent = beam
+	end
+	for _ = 1, 3 do
+		local x = mood:NextNumber(-half + 6, half - 6)
+		local z = mood:NextNumber(-half + 6, half - 6)
+		if math.abs(x) > HOLE_X + 3 or math.abs(z) > HOLE_MAX_Z + 3 then
+			local puddle = block(
+				floor,
+				"Puddle",
+				Vector3.new(mood:NextNumber(3, 7), 0.06, mood:NextNumber(2, 5)),
+				CFrame.new(x, floorY + 0.03, z) * CFrame.Angles(0, mood:NextNumber(0, math.pi), 0),
+				Color3.fromRGB(58, 66, 64),
+				Enum.Material.Glass
+			)
+			puddle.Transparency = 0.25
+			puddle.Reflectance = 0.25
+			puddle.CanCollide = false
+			puddle.CastShadow = false
+		end
+	end
+end
+
 -- Random but sensible spots for items on a floor, rolled anew every server so nobody can learn the map.
 -- Zones: "open" (anywhere walkable outside locked rooms), "toxic"/"safe" (east/west halves on floor 3),
 -- "roomPP"/"roomNN" (inside the +x+z / -x-z corner rooms behind rubble).
@@ -765,6 +942,7 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	pipe(floor, level, 0, -25, 60, true)
 	pipe(floor, level, -28, 0, 60, false)
 
+	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, { "roomPP" })
 	resourceNode(interactables, level, "F1_Scrap_1", "Scrap", 2, at("open"))
@@ -794,12 +972,8 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	wallBetween(floor, "Wall", level, 18, -35, 18, -24, WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, 18, -14, 18, -10, WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, 26, -10, 35, -10, WALL_HEIGHT)
-	for _, p in { { -28, 18 }, { 28, -18 }, { -26, -28 } } do
-		onFloor(floor, "Bed", level, p[1], p[2], Vector3.new(4, 1.5, 7), COLORS.fabric, Enum.Material.Fabric)
-	end
-	onFloor(floor, "Sofa", level, 12, 28, Vector3.new(8, 2.5, 3), COLORS.fabric, Enum.Material.Fabric)
-	onFloor(floor, "Table", level, -10, -28, Vector3.new(5, 3, 3), COLORS.wood, Enum.Material.Wood)
 
+	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, {})
 	resourceNode(interactables, level, "F2_Food_1", "Food", 1, at("open"))
@@ -882,6 +1056,7 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 		)
 	end
 
+	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, {})
 	resourceNode(interactables, level, "F3_Elec_1", "Electronics", 2, at("toxic"))
@@ -947,6 +1122,7 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 		false
 
 	local gen = { requiresUpgrade = "Generator" }
+	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, { "roomNN", "roomPP" })
 	resourceNode(interactables, level, "F4_Cable_1", "Cable", 2, at("open"), gen)
@@ -1504,6 +1680,7 @@ function WorldBuilder.Build(): WorldRefs
 	end
 
 	Atmosphere.Apply()
+	PropLibrary.Load()
 	local root = Instance.new("Folder")
 	root.Name = World.FolderName
 	local interactables = Instance.new("Folder")
