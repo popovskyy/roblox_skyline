@@ -4,6 +4,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Theme = require(ReplicatedStorage.Shared.Theme)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local UIKit = require(script.Parent.UIKit)
 
@@ -40,7 +41,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		Size = UDim2.fromScale(0.62, 0.62),
 		TextScaled = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Font = Enum.Font.GothamBold,
+		FontFace = Theme.Bold,
 		Text = "",
 		Parent = frame,
 	})
@@ -58,7 +59,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		Position = UDim2.new(1, -5, 1, -3),
 		Size = UDim2.fromOffset(40, 16),
 		TextXAlignment = Enum.TextXAlignment.Right,
-		Font = Enum.Font.GothamBlack,
+		FontFace = Theme.Display,
 		TextSize = 14,
 		TextStrokeTransparency = 0.4,
 		Text = "",

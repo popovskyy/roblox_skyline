@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
+local Theme = require(ReplicatedStorage.Shared.Theme)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local ClientState = require(script.Parent.ClientState)
@@ -82,7 +83,7 @@ local function makeWindow(
 	local header = UIKit.Label({
 		Size = UDim2.new(1, -40, 0, 26),
 		Text = "",
-		Font = Enum.Font.GothamBold,
+		FontFace = Theme.Bold,
 		TextSize = 18,
 		Parent = panel,
 	})
@@ -246,7 +247,7 @@ local function buildHotbar(screen: ScreenGui)
 		Position = UDim2.new(0.5, 0, 0, -6),
 		Size = UDim2.new(1.4, 0, 0, 22),
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Font = Enum.Font.GothamBold,
+		FontFace = Theme.Bold,
 		TextSize = 15,
 		TextStrokeTransparency = 0.3,
 		Visible = false,

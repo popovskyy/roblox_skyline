@@ -16,6 +16,8 @@ local WorldVisualsController = {}
 local player = Players.LocalPlayer
 local GHOST_TRANSPARENCY = 0.55
 local GHOST_COLOR = Color3.fromRGB(90, 200, 255)
+local LOCKED_COLOR = Color3.fromRGB(130, 130, 130)
+local LOCKED_TRANSPARENCY = 0.88
 
 -- Original look of every part we touch, so it can be restored.
 local originals: { [BasePart]: { transparency: number, collide: boolean, material: Enum.Material, color: Color3 } } = {}
@@ -31,7 +33,7 @@ local function remember(part: BasePart)
 	end
 end
 
-local function setPartState(part: BasePart, mode: "normal" | "ghost" | "hidden")
+local function setPartState(part: BasePart, mode: "normal" | "ghost" | "locked" | "hidden")
 	remember(part)
 	local original = originals[part]
 	if mode == "normal" then
@@ -45,6 +47,12 @@ local function setPartState(part: BasePart, mode: "normal" | "ghost" | "hidden")
 		part.CanCollide = false
 		part.Material = Enum.Material.ForceField
 		part.Color = GHOST_COLOR
+	elseif mode == "locked" then
+		-- Not available yet: a faint grey outline so the base layout is visible but clearly off-limits.
+		part.Transparency = math.max(original.transparency, LOCKED_TRANSPARENCY)
+		part.CanCollide = false
+		part.Material = Enum.Material.ForceField
+		part.Color = LOCKED_COLOR
 	else
 		part.Transparency = 1
 		part.CanCollide = false
@@ -52,7 +60,7 @@ local function setPartState(part: BasePart, mode: "normal" | "ghost" | "hidden")
 end
 
 -- Applies to the part and everything under it (rubble chunks, signs, rails).
-local function setTreeState(root: BasePart, mode: "normal" | "ghost" | "hidden")
+local function setTreeState(root: BasePart, mode: "normal" | "ghost" | "locked" | "hidden")
 	setPartState(root, mode)
 	for _, d in root:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -98,6 +106,20 @@ local function applyRubble(part: BasePart, s: { [string]: any })
 	setPrompt(part, not cleared)
 end
 
+-- First upgrade this one still waits for, or nil when it can be built.
+local function missingRequirement(upgradeId: string, s: { [string]: any }): string?
+	local def = UpgradeDefinitions.Get(upgradeId)
+	if not def then
+		return nil
+	end
+	for _, required in def.requires do
+		if not (s.upgrades and s.upgrades[required]) then
+			return required
+		end
+	end
+	return nil
+end
+
 local function applyUpgradePad(part: BasePart, s: { [string]: any })
 	local upgradeId = part:GetAttribute("UpgradeId")
 	local def = if type(upgradeId) == "string" then UpgradeDefinitions.Get(upgradeId) else nil
@@ -105,14 +127,9 @@ local function applyUpgradePad(part: BasePart, s: { [string]: any })
 		return
 	end
 	local owned = s.upgrades and s.upgrades[def.id]
-	local missing = nil
-	for _, required in def.requires do
-		if not (s.upgrades and s.upgrades[required]) then
-			missing = required
-		end
-	end
+	local missing = missingRequirement(def.id, s)
 	local cost = s.costs and s.costs[def.id]
-	local action = if missing then Lang.T("prompt.needs", Locale.Upgrade(missing)) else Lang.T("prompt.build")
+	local action = if missing then Lang.T("prompt.locked", Locale.Upgrade(missing)) else Lang.T("prompt.build")
 	local object = Lang.T("prompt.costLine", Locale.Upgrade(def.id), Locale.Cost(cost or {}))
 	setPrompt(part, not owned, action, object)
 end
@@ -134,8 +151,10 @@ local function applyUpgradeVisual(part: BasePart, s: { [string]: any })
 		if part:GetAttribute("InteractType") == "Gate" then
 			setPrompt(part, not owned)
 		end
+	elseif owned then
+		setPartState(part, "normal")
 	else
-		setPartState(part, if owned then "normal" else "ghost")
+		setPartState(part, if missingRequirement(upgradeId, s) then "locked" else "ghost")
 	end
 end
 

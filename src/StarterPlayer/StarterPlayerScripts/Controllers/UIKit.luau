@@ -1,6 +1,7 @@
 --!strict
 -- Tiny helpers for building UI in code with a consistent look.
 
+local Theme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Theme"))
 local Players = game:GetService("Players")
 
 local UIKit = {}
@@ -64,7 +65,7 @@ end
 function UIKit.Label(props: { [string]: any }): TextLabel
 	local merged = {
 		BackgroundTransparency = 1,
-		Font = Enum.Font.GothamMedium,
+		FontFace = Theme.Body,
 		TextColor3 = UIKit.Colors.text,
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -80,7 +81,7 @@ function UIKit.Button(props: { [string]: any }): TextButton
 	local merged = {
 		BackgroundColor3 = UIKit.Colors.panelLight,
 		BorderSizePixel = 0,
-		Font = Enum.Font.GothamBold,
+		FontFace = Theme.Bold,
 		TextColor3 = UIKit.Colors.text,
 		TextSize = 16,
 		AutoButtonColor = true,

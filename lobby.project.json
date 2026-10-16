@@ -13,6 +13,9 @@
       "$path": "src/Lobby/Server",
       "Atmosphere": {
         "$path": "src/ServerScriptService/Atmosphere.luau"
+      },
+      "Scenery": {
+        "$path": "src/ServerScriptService/Scenery.luau"
       }
     },
 

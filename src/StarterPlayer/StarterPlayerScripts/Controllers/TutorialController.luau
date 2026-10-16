@@ -1,6 +1,7 @@
 --!strict
 -- Terminal note and the ending screen. The note sits at the top and never blocks movement.
 
+local Theme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Theme"))
 local UserInputService = game:GetService("UserInputService")
 
 local Lang = require(script.Parent.Lang)
@@ -35,7 +36,7 @@ local function buildNote(screen: ScreenGui)
 	UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = notePanel })
 	noteTitle = UIKit.Label({
 		Size = UDim2.new(1, -40, 0, 24),
-		Font = Enum.Font.GothamBold,
+		FontFace = Theme.Bold,
 		TextSize = 18,
 		TextColor3 = C.good,
 		LayoutOrder = 1,
@@ -94,7 +95,7 @@ local function buildEnding(screen: ScreenGui)
 	})
 	endingTitle = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 50),
-		Font = Enum.Font.GothamBlack,
+		FontFace = Theme.Display,
 		TextSize = 36,
 		TextColor3 = C.accent,
 		TextXAlignment = Enum.TextXAlignment.Center,

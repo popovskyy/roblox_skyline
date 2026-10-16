@@ -55,13 +55,22 @@ local function liftOf(player: Player): Lift?
 	return nil
 end
 
+-- Riders get the countdown as player attributes (LiftSeconds, LiftCount, LiftCapacity) for their own screen.
 local function updateStatus(lift: Lift)
 	local count = #lift.members
-	local text = ("%d / %d"):format(count, lift.def.capacity)
-	if lift.deadline and count > 0 then
-		text ..= ("   ·   %d"):format(math.max(0, math.ceil(lift.deadline - os.clock())))
+	lift.statusLabel.Text = ("%d / %d"):format(count, lift.def.capacity)
+	local seconds = if lift.deadline then math.max(0, math.ceil(lift.deadline - os.clock())) else nil
+	for _, player in lift.members do
+		player:SetAttribute("LiftSeconds", if lift.launching then 0 else seconds)
+		player:SetAttribute("LiftCount", count)
+		player:SetAttribute("LiftCapacity", lift.def.capacity)
 	end
-	lift.statusLabel.Text = text
+end
+
+local function clearRider(player: Player)
+	player:SetAttribute("LiftSeconds", nil)
+	player:SetAttribute("LiftCount", nil)
+	player:SetAttribute("LiftCapacity", nil)
 end
 
 local function removeMember(lift: Lift, player: Player)
@@ -70,6 +79,7 @@ local function removeMember(lift: Lift, player: Player)
 		return
 	end
 	table.remove(lift.members, index)
+	clearRider(player)
 	if #lift.members == 0 then
 		lift.deadline = nil
 	end
@@ -86,7 +96,6 @@ local function addMember(lift: Lift, player: Player)
 		lift.deadline = math.min(lift.deadline, now + lift.def.fullCountdown)
 	end
 	updateStatus(lift)
-	notify(player, { "lobby.joined", math.ceil((lift.deadline or now) - now) }, "info")
 end
 
 local function withRetries(fn: () -> any): (boolean, any)
@@ -117,6 +126,7 @@ local function launch(lift: Lift)
 		lift.launching = false
 		for _, player in lift.members do
 			lift.blocked[player] = true
+			clearRider(player)
 		end
 		table.clear(lift.members)
 		updateStatus(lift)
@@ -180,6 +190,11 @@ local function launch(lift: Lift)
 	-- Teleporting players stay in the lift until they disappear, so nobody else can take their slot.
 	task.delay(15, function()
 		lift.launching = false
+		for _, player in lift.members do
+			if player.Parent then
+				clearRider(player)
+			end
+		end
 		table.clear(lift.members)
 		updateStatus(lift)
 	end)

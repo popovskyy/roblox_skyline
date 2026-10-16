@@ -4,8 +4,10 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Theme = require(ReplicatedStorage.Shared.Theme)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
+local Scenery = require(script.Parent.Scenery)
 
 local LobbyWorld = {}
 
@@ -51,7 +53,7 @@ local function textLabel(parent: Instance, key: string?, size: UDim2, position: 
 	label.BackgroundTransparency = 1
 	label.Size = size
 	label.Position = position
-	label.Font = Enum.Font.GothamBold
+	label.FontFace = Theme.Bold
 	label.TextColor3 = Color3.fromRGB(255, 225, 170)
 	label.TextStrokeTransparency = 0.4
 	label.TextWrapped = true
@@ -140,23 +142,18 @@ local function buildLift(parent: Instance, def: { id: string, capacity: number }
 	zone.CanQuery = false
 	zone.CanTouch = false
 
+	-- Only the head count floats above the lift; the countdown shows on the screen of whoever is inside.
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(260, 90)
-	billboard.StudsOffsetWorldSpace = Vector3.new(0, 16, 0)
+	billboard.Size = UDim2.fromOffset(140, 60)
+	billboard.StudsOffsetWorldSpace = Vector3.new(0, 15.5, 0)
 	billboard.LightInfluence = 0
 	billboard.MaxDistance = 140
 	billboard.Adornee = zone
 	billboard.Parent = zone
-	local title = textLabel(
-		billboard,
-		if solo then "lobby.liftSolo" else "lobby.liftGroup",
-		UDim2.fromScale(1, 0.45),
-		UDim2.new()
-	)
-	title.TextColor3 = accent
-	local status = textLabel(billboard, nil, UDim2.fromScale(1, 0.55), UDim2.fromScale(0, 0.45))
-	status.Font = Enum.Font.GothamBlack
-	status.TextColor3 = Color3.new(1, 1, 1)
+	local status = textLabel(billboard, nil, UDim2.fromScale(1, 1), UDim2.new())
+	status.FontFace = Theme.Display
+	status.TextColor3 = accent
+	status.TextStrokeTransparency = 0.2
 	return { zone = zone, statusLabel = status }
 end
 
@@ -184,34 +181,90 @@ function LobbyWorld.Build(): Refs
 		chunk.CastShadow = true
 	end
 
-	-- The tower itself rises behind the lifts and disappears into the haze.
-	block(root, "Tower", Vector3.new(130, 420, 40), CFrame.new(0, 210, 78), COLORS.silhouette, Enum.Material.Concrete)
-	for i = 1, 30 do
-		local window = block(
-			root,
-			"Window",
-			Vector3.new(3, 4, 0.2),
-			CFrame.new(rng:NextNumber(-60, 60), rng:NextNumber(20, 400), 57.9),
-			COLORS.glow,
-			Enum.Material.Neon
-		)
-		window.CanCollide = false
-		window.Transparency = if i % 3 == 0 then 0 else 0.6
+	-- The tower itself rises behind the lifts and disappears into the haze, overgrown like the rest of the city.
+	block(root, "Tower", Vector3.new(130, 420, 40), CFrame.new(0, 210, 78), COLORS.concrete, Enum.Material.Concrete).CastShadow =
+		false
+	Scenery.Dress(root, Vector3.new(0, 0, 78), 130, 40, 420, Random.new(5), false)
+	Scenery.Skyline(root, Vector3.zero, 12, 170, 260, 120, 320, 9, { { Vector3.new(0, 0, 78), 120 } })
+
+	-- Street around the plaza: lamps that still work, wrecked cars, plants pushing through the asphalt.
+	local street = Random.new(31)
+	for _, x in { -52, -26, 26, 52 } do
+		for _, z in { -36, 20 } do
+			block(root, "LampPost", Vector3.new(0.6, 12, 0.6), CFrame.new(x, 6, z), COLORS.dark, Enum.Material.Metal)
+			local bulb = block(
+				root,
+				"LampBulb",
+				Vector3.new(1.6, 0.8, 1.6),
+				CFrame.new(x, 12.2, z),
+				Color3.fromRGB(255, 226, 170),
+				Enum.Material.Neon
+			)
+			bulb.CanCollide = false
+			local glow = Instance.new("PointLight")
+			glow.Color = Color3.fromRGB(255, 214, 160)
+			glow.Range = 30
+			glow.Brightness = 1.6
+			glow.Shadows = true
+			glow.Parent = bulb
+		end
 	end
-	local skyline = Random.new(9)
-	for i = 1, 12 do
-		local angle = (i / 12) * math.pi * 2
-		local dist = skyline:NextNumber(170, 260)
-		local h = skyline:NextNumber(120, 320)
-		local w = skyline:NextNumber(30, 60)
+	for _, car in { { -40, -8, 0.4 }, { 44, -28, -0.6 }, { -18, -52, 1.2 } } do
+		local carColor = Color3.fromHSV(street:NextNumber(), 0.35, 0.45)
+		local body = block(
+			root,
+			"WreckedCar",
+			Vector3.new(6, 2.4, 13),
+			CFrame.new(car[1], 1.5, car[2]) * CFrame.Angles(0, car[3], 0.06),
+			carColor,
+			Enum.Material.CorrodedMetal
+		)
 		block(
 			root,
-			"Skyline",
-			Vector3.new(w, h, w),
-			CFrame.new(math.cos(angle) * dist, h / 2, math.sin(angle) * dist),
-			COLORS.silhouette
-		).CastShadow =
-			false
+			"CarRoof",
+			Vector3.new(5.4, 1.8, 6),
+			body.CFrame * CFrame.new(0, 2, 0.5),
+			carColor,
+			Enum.Material.CorrodedMetal
+		)
+		Scenery.Grass(root, Vector3.new(car[1], 0, car[2]), Vector2.new(9, 15), street)
+	end
+	for _ = 1, 18 do
+		local x = street:NextNumber(-70, 70)
+		local z = street:NextNumber(-60, 30)
+		if math.abs(x) > 30 or z < -40 then
+			Scenery.Grass(
+				root,
+				Vector3.new(x, 0.4, z),
+				Vector2.new(street:NextNumber(5, 12), street:NextNumber(5, 12)),
+				street
+			)
+		end
+	end
+	for _, p in { { -60, -20 }, { 62, 4 }, { -64, 26 }, { 58, -44 }, { -30, -58 } } do
+		Scenery.Tree(root, Vector3.new(p[1], 0, p[2]), street:NextNumber(18, 26), street)
+	end
+	for _, p in { { -36, 28 }, { 36, 28 }, { -12, -44 }, { 14, -46 } } do
+		Scenery.Bush(root, Vector3.new(p[1], 0.4, p[2]), 4, street)
+	end
+
+	-- Floodlights on the lifts so the boarding area reads as the safe, lit place.
+	for _, x in { -30, 0, 30 } do
+		local flood = block(
+			root,
+			"Floodlight",
+			Vector3.new(2, 1, 1),
+			CFrame.new(x, 20, 34) * CFrame.Angles(math.rad(-40), 0, 0),
+			COLORS.metal,
+			Enum.Material.Metal
+		)
+		local beam = Instance.new("SpotLight")
+		beam.Face = Enum.NormalId.Front
+		beam.Angle = 80
+		beam.Range = 40
+		beam.Brightness = 2.2
+		beam.Color = Color3.fromRGB(255, 236, 205)
+		beam.Parent = flood
 	end
 
 	-- Lifts in a row in front of the tower: solo on the left, party lifts to the right.
@@ -236,11 +289,8 @@ function LobbyWorld.Build(): Refs
 
 	-- Title, hint, how to play, leaderboard.
 	local titleGui = board(root, "TitleBoard", Vector2.new(40, 8), CFrame.new(0, 26, 57.5))
-	textLabel(titleGui, "lobby.title", UDim2.fromScale(1, 0.62), UDim2.new()).Font = Enum.Font.GothamBlack
-	textLabel(titleGui, "lobby.hint", UDim2.fromScale(1, 0.26), UDim2.fromScale(0, 0.64))
-	local build = textLabel(titleGui, nil, UDim2.fromScale(1, 0.08), UDim2.fromScale(0, 0.91))
-	build.Text = ("build %s · tower %d"):format(PlacesConfig.Build, PlacesConfig.TowerPlaceId)
-	build.TextColor3 = Color3.fromRGB(160, 160, 160)
+	textLabel(titleGui, "lobby.title", UDim2.fromScale(1, 0.62), UDim2.new()).FontFace = Theme.Display
+	textLabel(titleGui, "lobby.hint", UDim2.fromScale(1, 0.32), UDim2.fromScale(0, 0.64))
 
 	local howGui =
 		board(root, "HowToPlay", Vector2.new(16, 12), CFrame.new(46, 7, 0) * CFrame.Angles(0, math.pi / 2, 0))
@@ -248,7 +298,7 @@ function LobbyWorld.Build(): Refs
 	local howBody = textLabel(howGui, "lobby.howBody", UDim2.fromScale(0.92, 0.78), UDim2.fromScale(0.04, 0.2))
 	howBody.TextXAlignment = Enum.TextXAlignment.Left
 	howBody.TextYAlignment = Enum.TextYAlignment.Top
-	howBody.Font = Enum.Font.GothamMedium
+	howBody.FontFace = Theme.Body
 	howBody.TextColor3 = Color3.fromRGB(235, 235, 235)
 
 	local leadersGui =
@@ -259,7 +309,7 @@ function LobbyWorld.Build(): Refs
 		local row =
 			textLabel(leadersGui, nil, UDim2.fromScale(0.9, 0.08), UDim2.fromScale(0.05, 0.16 + (i - 1) * 0.083))
 		row.TextXAlignment = Enum.TextXAlignment.Left
-		row.Font = Enum.Font.GothamMedium
+		row.FontFace = Theme.Body
 		row.TextColor3 = Color3.fromRGB(235, 235, 235)
 		rows[i] = row
 	end

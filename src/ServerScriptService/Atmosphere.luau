@@ -1,24 +1,24 @@
 --!strict
--- Shared look of both places (lobby and tower): sky, clouds, haze and colour grading.
+-- Shared look of both places (lobby and tower), in the spirit of The Last of Us: a quiet, overgrown city
+-- in warm late-afternoon light. Soft golden sun, hazy green-brown distance, readable shadows and interiors.
 
 local Lighting = game:GetService("Lighting")
 
 local Atmosphere = {}
 
--- Apocalyptic sunset: a low burning sun behind layers of lit clouds, rust-coloured haze in the distance
--- and a warm, slightly desaturated grade. Everything here is engine lighting, so it costs no assets.
 function Atmosphere.Apply()
-	Lighting.ClockTime = 17.75
-	Lighting.GeographicLatitude = 35
-	Lighting.Brightness = 2.4
-	Lighting.ExposureCompensation = 0.15
-	Lighting.Ambient = Color3.fromRGB(34, 26, 24)
-	Lighting.OutdoorAmbient = Color3.fromRGB(128, 86, 66)
-	Lighting.ColorShift_Top = Color3.fromRGB(255, 160, 95)
-	Lighting.ColorShift_Bottom = Color3.fromRGB(70, 40, 60)
-	Lighting.EnvironmentDiffuseScale = 0.45
+	Lighting.ClockTime = 16.4
+	Lighting.GeographicLatitude = 30
+	Lighting.Brightness = 3
+	Lighting.ExposureCompensation = 0.25
+	-- Ambient decides how dark the interiors are: dim enough for the flashlight to matter, never pitch black.
+	Lighting.Ambient = Color3.fromRGB(78, 74, 66)
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 144, 128)
+	Lighting.ColorShift_Top = Color3.fromRGB(255, 226, 180)
+	Lighting.ColorShift_Bottom = Color3.fromRGB(60, 70, 50)
+	Lighting.EnvironmentDiffuseScale = 0.6
 	Lighting.EnvironmentSpecularScale = 0.35
-	Lighting.ShadowSoftness = 0.25
+	Lighting.ShadowSoftness = 0.3
 	Lighting.GlobalShadows = true
 
 	-- Replace whatever the template place shipped with.
@@ -29,46 +29,45 @@ function Atmosphere.Apply()
 	end
 
 	local sky = Instance.new("Sky")
-	sky.SunAngularSize = 14
+	sky.SunAngularSize = 12
 	sky.MoonAngularSize = 0
 	sky.StarCount = 0
-	sky.CelestialBodiesShown = true
 	sky.Parent = Lighting
 
-	-- Thin haze near the ground, thicker towards the horizon: keeps the base readable and the skyline moody.
+	-- Light haze near the player, thicker towards the horizon so the ruins fade into a warm green-grey.
 	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.3
-	atmosphere.Offset = 0.32
-	atmosphere.Haze = 1.9
-	atmosphere.Glare = 0.45
-	atmosphere.Color = Color3.fromRGB(214, 128, 78)
-	atmosphere.Decay = Color3.fromRGB(96, 52, 58)
+	atmosphere.Density = 0.28
+	atmosphere.Offset = 0.3
+	atmosphere.Haze = 1.6
+	atmosphere.Glare = 0.35
+	atmosphere.Color = Color3.fromRGB(206, 190, 160)
+	atmosphere.Decay = Color3.fromRGB(104, 112, 86)
 	atmosphere.Parent = Lighting
 
-	-- Volumetric clouds lit orange by the setting sun.
+	-- Broken cloud cover lit by the afternoon sun.
 	local terrain = workspace.Terrain
 	local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
-	clouds.Cover = 0.62
-	clouds.Density = 0.55
-	clouds.Color = Color3.fromRGB(255, 176, 128)
+	clouds.Cover = 0.55
+	clouds.Density = 0.5
+	clouds.Color = Color3.fromRGB(255, 236, 214)
 	clouds.Parent = terrain
 
 	local rays = Instance.new("SunRaysEffect")
-	rays.Intensity = 0.08
-	rays.Spread = 0.6
+	rays.Intensity = 0.06
+	rays.Spread = 0.5
 	rays.Parent = Lighting
 
 	local grading = Instance.new("ColorCorrectionEffect")
-	grading.TintColor = Color3.fromRGB(255, 236, 222)
-	grading.Saturation = -0.05
-	grading.Contrast = 0.14
-	grading.Brightness = 0.02
+	grading.TintColor = Color3.fromRGB(255, 246, 232)
+	grading.Saturation = 0.04
+	grading.Contrast = 0.1
+	grading.Brightness = 0.03
 	grading.Parent = Lighting
 
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.5
-	bloom.Size = 28
-	bloom.Threshold = 1.4
+	bloom.Intensity = 0.35
+	bloom.Size = 24
+	bloom.Threshold = 1.6
 	bloom.Parent = Lighting
 end
 

@@ -73,7 +73,7 @@ local S: { [string]: Entry } = {
 	},
 
 	-- Upgrades
-	["upgrade.StorageCrate.name"] = { uk = "Сховище", ru = "Хранилище", en = "Storage" },
+	["upgrade.StorageCrate.name"] = { uk = "Скриня", ru = "Сундук", en = "Chest" },
 	["upgrade.Generator.name"] = { uk = "Генератор", ru = "Генератор", en = "Generator" },
 	["upgrade.AirFilter.name"] = {
 		uk = "Фільтр повітря",
@@ -160,9 +160,9 @@ local S: { [string]: Entry } = {
 	},
 
 	["interact.noStorage"] = {
-		uk = "Сховища ще немає. Збудуй його за 8 металобрухту",
-		ru = "Хранилища ещё нет. Построй его за 8 металлолома",
-		en = "No storage yet. Build it for 8 scrap",
+		uk = "Скрині ще немає. Збудуй її за 8 металобрухту",
+		ru = "Сундука ещё нет. Построй его за 8 металлолома",
+		en = "No chest yet. Build it for 8 scrap",
 	},
 	["interact.gateLocked"] = {
 		uk = "Двері заблоковано. Потрібен генератор на даху",
@@ -273,8 +273,8 @@ local S: { [string]: Entry } = {
 		en = "Unknown action",
 	},
 	["storage.notStorable"] = {
-		uk = "Цей предмет не можна покласти в сховище",
-		ru = "Этот предмет нельзя положить в хранилище",
+		uk = "Цей предмет не можна покласти в скриню",
+		ru = "Этот предмет нельзя положить в сундук",
 		en = "This item cannot be stored",
 	},
 	["storage.badAmount"] = {
@@ -283,14 +283,14 @@ local S: { [string]: Entry } = {
 		en = "Invalid amount",
 	},
 	["storage.buildFirst"] = {
-		uk = "Спершу збудуй сховище",
-		ru = "Сначала построй хранилище",
-		en = "Build the storage first",
+		uk = "Спершу збудуй скриню",
+		ru = "Сначала построй сундук",
+		en = "Build the chest first",
 	},
 	["storage.tooFar"] = {
-		uk = "Підійди ближче до сховища",
-		ru = "Подойди ближе к хранилищу",
-		en = "Move closer to the storage",
+		uk = "Підійди ближче до скрині",
+		ru = "Подойди ближе к сундуку",
+		en = "Move closer to the chest",
 	},
 	["storage.nothing"] = {
 		uk = "Немає що класти",
@@ -298,14 +298,14 @@ local S: { [string]: Entry } = {
 		en = "Nothing to put in",
 	},
 	["storage.full"] = {
-		uk = "Сховище заповнене",
-		ru = "Хранилище заполнено",
-		en = "Storage is full",
+		uk = "Скриня заповнена",
+		ru = "Сундук заполнен",
+		en = "The chest is full",
 	},
 	["storage.notInStorage"] = {
-		uk = "У сховищі цього немає",
-		ru = "В хранилище этого нет",
-		en = "Not in storage",
+		uk = "У скрині цього немає",
+		ru = "В сундуке этого нет",
+		en = "Not in the chest",
 	},
 	["storage.invFull"] = {
 		uk = "Рюкзак переповнений",
@@ -330,9 +330,9 @@ local S: { [string]: Entry } = {
 		en = "Return to the roof",
 	},
 	["tutorial.4"] = {
-		uk = "Збудуй сховище (8 металобрухту)",
-		ru = "Построй хранилище (8 металлолома)",
-		en = "Build the storage (8 scrap)",
+		uk = "Збудуй скриню на даху (8 металобрухту)",
+		ru = "Построй сундук на крыше (8 металлолома)",
+		en = "Build the chest on the roof (8 scrap)",
 	},
 	["tutorial.5"] = {
 		uk = "Знайди 4 електроніки",
@@ -466,15 +466,15 @@ local S: { [string]: Entry } = {
 	["ui.flashlight"] = { uk = "Ліхтарик", ru = "Фонарик", en = "Flashlight" },
 	["ui.use"] = { uk = "Використати", ru = "Использовать", en = "Use" },
 	["ui.eat"] = { uk = "З'їсти", ru = "Съесть", en = "Eat" },
-	["ui.storage"] = { uk = "Сховище", ru = "Хранилище", en = "Storage" },
+	["ui.storage"] = { uk = "Скриня", ru = "Сундук", en = "Chest" },
 	["ui.storageHeader"] = {
-		uk = "Сховище %d / %d   ·   рюкзак %d / %d",
-		ru = "Хранилище %d / %d   ·   рюкзак %d / %d",
-		en = "Storage %d / %d   ·   backpack %d / %d",
+		uk = "Скриня %d / %d   ·   рюкзак %d / %d",
+		ru = "Сундук %d / %d   ·   рюкзак %d / %d",
+		en = "Chest %d / %d   ·   backpack %d / %d",
 	},
 	["ui.storageRow"] = {
-		uk = "%s %s\nз собою %d · у сховищі %d",
-		ru = "%s %s\nс собой %d · в хранилище %d",
+		uk = "%s %s\nз собою %d · у скрині %d",
+		ru = "%s %s\nс собой %d · в сундуке %d",
 		en = "%s %s\ncarried %d · stored %d",
 	},
 	["ui.all"] = { uk = "всі", ru = "все", en = "all" },
@@ -536,8 +536,17 @@ local S: { [string]: Entry } = {
 		ru = "Не удалось запустить игру. Попробуй ещё раз",
 		en = "Could not start the game. Please try again",
 	},
+	["lobby.countdown"] = { uk = "Старт через %d", ru = "Старт через %d", en = "Starting in %d" },
+	["lobby.riders"] = { uk = "У ліфті %d / %d", ru = "В лифте %d / %d", en = "In the lift %d / %d" },
+	["lobby.teleporting"] = {
+		uk = "Піднімаємось на дах…",
+		ru = "Поднимаемся на крышу…",
+		en = "Going up to the roof…",
+	},
 	["party.built"] = { uk = "%s збудував: %s", ru = "%s построил: %s", en = "%s built: %s" },
 	["party.leader"] = { uk = "Лідер групи: %s", ru = "Лидер группы: %s", en = "Party leader: %s" },
+	["marker.here"] = { uk = "Сюди · %d м", ru = "Сюда · %d м", en = "Here · %d m" },
+	["prompt.locked"] = { uk = "🔒 Спершу: %s", ru = "🔒 Сначала: %s", en = "🔒 First: %s" },
 	["ui.toLobby"] = { uk = "В лобі", ru = "В лобби", en = "Lobby" },
 
 	["ui.weightEach"] = { uk = "вага %d", ru = "вес %d", en = "weight %d" },

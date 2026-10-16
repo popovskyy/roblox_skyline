@@ -7,9 +7,11 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Theme = require(ReplicatedStorage.Shared.Theme)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local Atmosphere = require(script.Parent.Atmosphere)
+local Scenery = require(script.Parent.Scenery)
 
 local World = GameConfig.World
 
@@ -26,12 +28,12 @@ export type WorldRefs = {
 local WorldBuilder = {}
 
 -- Stairwell footprint (hole in every slab except the bottom floor).
-local HOLE_X = 6
+local HOLE_X = 9 -- half width of the stairwell; each lane is HOLE_X - 0.5 wide
 local HOLE_MIN_Z = -15
 local HOLE_MAX_Z = 15
 local LANDING_Z = 9
-local LANE_CENTER = 3.25
-local LANE_WIDTH = 5.5
+local LANE_CENTER = (HOLE_X + 0.5) / 2
+local LANE_WIDTH = HOLE_X - 0.5
 local WALL_HEIGHT = World.FloorSpacing - World.SlabThickness
 
 local COLORS = {
@@ -138,7 +140,7 @@ local function sign(parent: Instance, key: string, cframe: CFrame, size: Vector2
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
 	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
+	label.FontFace = Theme.Bold
 	label.TextColor3 = color or Color3.fromRGB(255, 220, 80)
 	label.Text = localized(key, arg)
 	label:SetAttribute("TextKey", key)
@@ -368,6 +370,38 @@ local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 				pz.Transparency = 0.55
 			end
 		end
+	end
+
+	-- Nature got in through the broken windows: grass in the cracks and ivy hanging from the ceiling.
+	local green = Random.new(level * 101)
+	for _ = 1, 4 + level * 2 do
+		local x = green:NextNumber(-half + 4, half - 4)
+		local z = green:NextNumber(-half + 4, half - 4)
+		if math.abs(x) > HOLE_X + 3 or math.abs(z) > HOLE_MAX_Z + 3 then
+			Scenery.Grass(
+				parent,
+				Vector3.new(x, floorY, z),
+				Vector2.new(green:NextNumber(3, 7), green:NextNumber(3, 7)),
+				green
+			)
+		end
+	end
+	for _ = 1, 3 + level do
+		local side = green:NextInteger(1, 4)
+		local along = green:NextNumber(-half + 5, half - 5)
+		local inner = half - 0.2
+		local top = floorY + WALL_HEIGHT - 0.2
+		local pos, normal
+		if side == 1 then
+			pos, normal = Vector3.new(along, top, -inner), Vector3.new(0, 0, 1)
+		elseif side == 2 then
+			pos, normal = Vector3.new(along, top, inner), Vector3.new(0, 0, -1)
+		elseif side == 3 then
+			pos, normal = Vector3.new(-inner, top, along), Vector3.new(1, 0, 0)
+		else
+			pos, normal = Vector3.new(inner, top, along), Vector3.new(-1, 0, 0)
+		end
+		Scenery.Vine(parent, pos, green:NextNumber(5, 14), normal, green)
 	end
 
 	if lit then
@@ -649,7 +683,7 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	end
 
 	-- Toxic zone covers the east half; the stairwell and the west half stay safe for a retreat.
-	local zoneMinX = 9
+	local zoneMinX = HOLE_X + 3
 	local half = World.FloorSize / 2
 	local zoneSize = Vector3.new(half - zoneMinX, WALL_HEIGHT, World.FloorSize)
 	local zone = block(
@@ -738,7 +772,7 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	for _ = 1, 10 do
 		local x = rng:NextNumber(-30, 30)
 		local z = rng:NextNumber(-30, 30)
-		if math.abs(x) > 10 or math.abs(z) > 20 then
+		if math.abs(x) > HOLE_X + 4 or math.abs(z) > 20 then
 			local s = rng:NextNumber(2, 4)
 			local chunk =
 				onFloor(floor, "Debris", level, x, z, Vector3.new(s, s * 0.6, s), COLORS.rubble, Enum.Material.Slate)
@@ -972,77 +1006,6 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	spawn.Duration = 0
 	spawn.Parent = roof
 
-	-- Translucent windbreak around the spawn and a hologram title above it.
-	local glassColor = Color3.fromRGB(170, 210, 230)
-	for _, panel in
-		{
-			{ CFrame.new(-6, roofY + 3.5, -44), Vector3.new(8, 7, 0.4) },
-			{ CFrame.new(6, roofY + 3.5, -44), Vector3.new(8, 7, 0.4) },
-			{ CFrame.new(-10.5, roofY + 3.5, -39) * CFrame.Angles(0, math.rad(70), 0), Vector3.new(8, 7, 0.4) },
-			{ CFrame.new(10.5, roofY + 3.5, -39) * CFrame.Angles(0, math.rad(-70), 0), Vector3.new(8, 7, 0.4) },
-		}
-	do
-		local glass = block(roof, "Windbreak", panel[2], panel[1], glassColor, Enum.Material.Glass)
-		glass.Transparency = 0.6
-		glass.CastShadow = false
-		block(
-			roof,
-			"WindbreakFrame",
-			Vector3.new(panel[2].X, 0.4, 0.6),
-			panel[1] * CFrame.new(0, 3.5, 0),
-			COLORS.metal,
-			Enum.Material.Metal
-		)
-	end
-
-	local holo = block(
-		roof,
-		"HoloTitle",
-		Vector3.new(14, 3.5, 0.1),
-		CFrame.new(0, roofY + 9, -42),
-		Color3.fromRGB(90, 200, 255),
-		Enum.Material.ForceField
-	)
-	holo.Transparency = 0.5
-	holo.CanCollide = false
-	holo.CastShadow = false
-	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
-		local gui = Instance.new("SurfaceGui")
-		gui.Face = face
-		gui.LightInfluence = 0
-		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 40
-		gui.Parent = holo
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.fromScale(1, 1)
-		label.BackgroundTransparency = 1
-		label.TextScaled = true
-		label.Font = Enum.Font.GothamBlack
-		label.TextColor3 = Color3.fromRGB(150, 230, 255)
-		label.TextTransparency = 0.15
-		label.Text = "SKYLINE ZERO"
-		label.Parent = gui
-	end
-	pointLight(holo, Color3.fromRGB(90, 200, 255), 16, 1, true)
-
-	-- Hologram markers floating over each build spot so new players see where to go.
-	for _, marker in
-		{ Vector3.new(-32, 0, -15), Vector3.new(32, 0, -24), Vector3.new(32, 0, 18), Vector3.new(42, 0, -12) }
-	do
-		local ring = block(
-			roof,
-			"HoloMarker",
-			Vector3.new(0.2, 9, 9),
-			CFrame.new(marker.X, roofY + 0.3, marker.Z) * CFrame.Angles(0, 0, math.pi / 2),
-			Color3.fromRGB(90, 200, 255),
-			Enum.Material.ForceField
-		)
-		ring.Shape = Enum.PartType.Cylinder
-		ring.Transparency = 0.4
-		ring.CanCollide = false
-		ring.CastShadow = false
-	end
-
 	local terminal = block(
 		interactables,
 		"EmergencyTerminal",
@@ -1148,6 +1111,44 @@ local function buildRoof(parent: Folder, interactables: Folder)
 		onFloor(roof, "Vent", 0, p[1], p[2], Vector3.new(4, 3, 4), COLORS.metal, Enum.Material.Metal)
 	end
 	onFloor(roof, "Antenna", 0, 30, 44, Vector3.new(0.8, 25, 0.8), COLORS.metal, Enum.Material.Metal)
+
+	-- Survivors' rooftop garden and plants creeping over the edges.
+	local green = Random.new(396)
+	for _, p in { { -42, -6 }, { -42, 12 }, { 10, 44 }, { -28, 42 } } do
+		onFloor(roof, "Planter", 0, p[1], p[2], Vector3.new(6, 1.6, 6), COLORS.wood, Enum.Material.WoodPlanks)
+		Scenery.Bush(roof, Vector3.new(p[1], roofY + 1.6, p[2]), 3.5, green)
+	end
+	Scenery.Tree(roof, Vector3.new(-44, roofY, -44), 16, green)
+	Scenery.Tree(roof, Vector3.new(44, roofY, 44), 14, green)
+	for _ = 1, 14 do
+		local x = green:NextNumber(-46, 46)
+		local z = green:NextNumber(-46, 46)
+		-- Keep walkways, the stairwell and the build spots clear.
+		if math.abs(x) > 12 and math.abs(z + 38) > 8 then
+			Scenery.Grass(
+				roof,
+				Vector3.new(x, roofY, z),
+				Vector2.new(green:NextNumber(4, 9), green:NextNumber(4, 9)),
+				green
+			)
+		end
+	end
+	for _ = 1, 10 do
+		local side = green:NextInteger(1, 4)
+		local along = green:NextNumber(-45, 45)
+		local edge = World.RoofSize / 2 + 0.4
+		local pos, normal
+		if side == 1 then
+			pos, normal = Vector3.new(along, roofY, -edge), Vector3.new(0, 0, -1)
+		elseif side == 2 then
+			pos, normal = Vector3.new(along, roofY, edge), Vector3.new(0, 0, 1)
+		elseif side == 3 then
+			pos, normal = Vector3.new(-edge, roofY, along), Vector3.new(-1, 0, 0)
+		else
+			pos, normal = Vector3.new(edge, roofY, along), Vector3.new(1, 0, 0)
+		end
+		Scenery.Vine(roof, pos, green:NextNumber(8, 30), normal, green)
+	end
 end
 
 local function buildNeighbor(parent: Folder)
@@ -1158,13 +1159,26 @@ local function buildNeighbor(parent: Folder)
 	local cx = World.NeighborOffsetX
 	local size = 60
 	local bodyHeight = roofY - 20
+	local bodyBottom = roofY - World.SlabThickness - bodyHeight
 	block(
 		neighbor,
 		"TowerBody",
 		Vector3.new(size, bodyHeight, size),
-		CFrame.new(cx, roofY - World.SlabThickness - bodyHeight / 2, 0),
-		COLORS.silhouette
-	)
+		CFrame.new(cx, bodyBottom + bodyHeight / 2, 0),
+		COLORS.concrete
+	).CastShadow =
+		false
+	Scenery.Dress(neighbor, Vector3.new(cx, bodyBottom, 0), size, size, bodyHeight, Random.new(150), false)
+	local neighborGreen = Random.new(151)
+	for _ = 1, 6 do
+		Scenery.Grass(
+			neighbor,
+			Vector3.new(cx + neighborGreen:NextNumber(-24, 24), roofY, neighborGreen:NextNumber(-24, 24)),
+			Vector2.new(neighborGreen:NextNumber(5, 10), neighborGreen:NextNumber(5, 10)),
+			neighborGreen
+		)
+	end
+	Scenery.Tree(neighbor, Vector3.new(cx + 18, roofY, 18), 15, neighborGreen)
 	block(
 		neighbor,
 		"TowerRoof",
@@ -1247,43 +1261,8 @@ local function buildNeighbor(parent: Folder)
 	victory.CanQuery = false
 	victory.CanTouch = false
 
-	-- Distant skyline so the roof does not float in an empty sky.
-	local rng = Random.new(2026)
-	for i = 1, 14 do
-		local angle = (i / 14) * math.pi * 2
-		local dist = rng:NextNumber(230, 420)
-		local h = rng:NextNumber(250, 480)
-		local w = rng:NextNumber(40, 80)
-		local x = math.cos(angle) * dist
-		local z = math.sin(angle) * dist
-		if math.abs(x - cx) > 60 or math.abs(z) > 60 then
-			local building =
-				block(neighbor, "Skyline", Vector3.new(w, h, w), CFrame.new(x, h / 2, z), COLORS.silhouette)
-			building.CastShadow = false
-			-- Every third ruin is still burning: a glowing top and a column of smoke.
-			if i % 3 == 0 then
-				local fire = block(
-					building,
-					"Fire",
-					Vector3.new(w * 0.6, 2, w * 0.6),
-					CFrame.new(x, h + 1, z),
-					Color3.fromRGB(255, 110, 30),
-					Enum.Material.Neon
-				)
-				fire.CanCollide = false
-				local smoke = Instance.new("ParticleEmitter")
-				smoke.Color = ColorSequence.new(Color3.fromRGB(60, 45, 40))
-				smoke.Size = NumberSequence.new(14, 40)
-				smoke.Transparency = NumberSequence.new(0.3, 1)
-				smoke.Lifetime = NumberRange.new(10, 14)
-				smoke.Rate = 4
-				smoke.Speed = NumberRange.new(10, 16)
-				smoke.Acceleration = Vector3.new(6, 0, 0)
-				smoke.EmissionDirection = Enum.NormalId.Top
-				smoke.Parent = fire
-			end
-		end
-	end
+	-- Distant skyline: overgrown ruins all around, with a gap where the neighbour tower stands.
+	Scenery.Skyline(neighbor, Vector3.zero, 16, 230, 420, 250, 470, 2026, { { Vector3.new(cx, 0, 0), 95 } })
 end
 
 local function collectRefs(root: Folder): WorldRefs
@@ -1346,9 +1325,10 @@ function WorldBuilder.Build(): WorldRefs
 		"TowerBody",
 		Vector3.new(World.FloorSize + 2, bottom, World.FloorSize + 2),
 		CFrame.new(0, bottom / 2, 0),
-		COLORS.silhouette
+		COLORS.concrete
 	)
 	towerBody.CastShadow = false
+	Scenery.Dress(root, Vector3.zero, World.FloorSize + 2, World.FloorSize + 2, bottom, Random.new(1), false)
 
 	root.Parent = workspace
 	disableOtherSpawns(root)

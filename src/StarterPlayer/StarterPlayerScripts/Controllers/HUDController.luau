@@ -2,6 +2,7 @@
 -- HUD: health, carry weight, flashlight battery, hazard warnings, objective and short messages.
 -- Kept to the screen edges so the centre stays clear while exploring.
 
+local Theme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Theme"))
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -54,7 +55,7 @@ local function buildStatusPanel(screen: ScreenGui)
 		Size = UDim2.fromScale(1, 1),
 		Text = "",
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Font = Enum.Font.GothamBold,
+		FontFace = Theme.Bold,
 		TextSize = 14,
 		ZIndex = 2,
 		Parent = bar,
@@ -71,7 +72,7 @@ local function buildStatusPanel(screen: ScreenGui)
 	warningText = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 40),
 		Text = "",
-		Font = Enum.Font.GothamBold,
+		FontFace = Theme.Bold,
 		TextColor3 = C.warn,
 		LayoutOrder = 4,
 		Parent = panel,
