@@ -19,6 +19,8 @@ local C = UIKit.Colors
 
 local healthFill: Frame
 local healthText: TextLabel
+local hungerFill: Frame
+local hungerText: TextLabel
 local weightText: TextLabel
 local flashlightText: TextLabel
 local warningText: TextLabel
@@ -32,7 +34,7 @@ local function buildStatusPanel(screen: ScreenGui)
 		-- PC/console: bottom-left (chat sits top-left). Touch: top-left, because the thumbstick owns bottom-left.
 		AnchorPoint = if UserInputService.TouchEnabled then Vector2.new(0, 0) else Vector2.new(0, 1),
 		Position = if UserInputService.TouchEnabled then UDim2.fromOffset(12, 56) else UDim2.new(0, 12, 1, -12),
-		Size = UDim2.fromOffset(250, 150),
+		Size = UDim2.fromOffset(260, 186),
 		Parent = screen,
 	})
 	UIKit.Padding(10).Parent = panel
@@ -60,12 +62,34 @@ local function buildStatusPanel(screen: ScreenGui)
 		ZIndex = 2,
 		Parent = bar,
 	})
-	weightText = UIKit.Label({ Size = UDim2.new(1, 0, 0, 20), Text = "", LayoutOrder = 2, Parent = panel })
+	local hungerBar = UIKit.New("Frame", {
+		Size = UDim2.new(1, 0, 0, 22),
+		BackgroundColor3 = C.panelLight,
+		BorderSizePixel = 0,
+		LayoutOrder = 2,
+		Parent = panel,
+	}, { UIKit.Corner(6) })
+	hungerFill = UIKit.New("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(214, 150, 60),
+		BorderSizePixel = 0,
+		Parent = hungerBar,
+	}, { UIKit.Corner(6) })
+	hungerText = UIKit.Label({
+		Size = UDim2.fromScale(1, 1),
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Center,
+		FontFace = Theme.Bold,
+		TextSize = 14,
+		ZIndex = 2,
+		Parent = hungerBar,
+	})
+	weightText = UIKit.Label({ Size = UDim2.new(1, 0, 0, 20), Text = "", LayoutOrder = 3, Parent = panel })
 	flashlightText = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 20),
 		Text = "",
 		TextColor3 = C.muted,
-		LayoutOrder = 3,
+		LayoutOrder = 4,
 		Visible = false,
 		Parent = panel,
 	})
@@ -74,7 +98,7 @@ local function buildStatusPanel(screen: ScreenGui)
 		Text = "",
 		FontFace = Theme.Bold,
 		TextColor3 = C.warn,
-		LayoutOrder = 4,
+		LayoutOrder = 5,
 		Parent = panel,
 	})
 end
@@ -172,6 +196,14 @@ function HUDController.Toast(text: string, kind: string?)
 			toast:Destroy()
 		end
 	end)
+end
+
+local function updateHunger()
+	local value = player:GetAttribute("Hunger")
+	local hunger = if type(value) == "number" then value else 100
+	hungerFill.Size = UDim2.fromScale(math.clamp(hunger / 100, 0, 1), 1)
+	hungerFill.BackgroundColor3 = if hunger <= 25 then C.bad else Color3.fromRGB(214, 150, 60)
+	hungerText.Text = Lang.T("hud.hunger", math.floor(hunger))
 end
 
 local function updateHealth()
@@ -289,6 +321,9 @@ function HUDController.Start()
 	end)
 	player:GetAttributeChangedSignal("InToxic"):Connect(updateWarnings)
 	player:GetAttributeChangedSignal("Hungry"):Connect(updateWarnings)
+	player:GetAttributeChangedSignal("Hunger"):Connect(updateHunger)
+	Lang.Changed:Connect(updateHunger)
+	updateHunger()
 	player:GetAttributeChangedSignal("FlashlightCharge"):Connect(updateFlashlight)
 	player:GetAttributeChangedSignal("FlashlightOn"):Connect(updateFlashlight)
 	if player.Character then

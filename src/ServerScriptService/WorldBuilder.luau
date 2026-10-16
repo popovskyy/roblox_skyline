@@ -778,6 +778,7 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	lootCrate(interactables, level, "F1_Crate_1", "Common", at("open"))
 	lootCrate(interactables, level, "F1_Crate_2", "Common", at("open"))
+	resourceNode(interactables, level, "F1_Food_1", "Food", 1, at("open"))
 end
 
 local function buildFloor2(parent: Folder, interactables: Folder)
@@ -893,6 +894,7 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F3_Scrap_3", "Scrap", 1, at("safe"))
 	lootCrate(interactables, level, "F3_Crate_1", "Rare", at("safe"))
 	lootCrate(interactables, level, "F3_Crate_2", "Gold", at("toxic"))
+	resourceNode(interactables, level, "F3_Food_1", "Food", 1, at("safe"))
 end
 
 local function buildFloor4(parent: Folder, interactables: Folder)
@@ -975,6 +977,8 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 1, at("open"), gen)
 	lootCrate(interactables, level, "F4_Crate_1", "Rare", at("open"), gen)
 	lootCrate(interactables, level, "F4_Crate_2", "Gold", at("open"), gen)
+	resourceNode(interactables, level, "F4_Food_1", "Food", 2, at("open"), gen)
+	resourceNode(interactables, level, "F4_Food_2", "Food", 1, at("open"), gen)
 	lootCrate(
 		interactables,
 		level,

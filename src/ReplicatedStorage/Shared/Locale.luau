@@ -37,9 +37,9 @@ local S: { [string]: Entry } = {
 	},
 	["item.Food.name"] = { uk = "Їжа", ru = "Еда", en = "Food" },
 	["item.Food.desc"] = {
-		uk = "Кожен спуск з'їдає 1 їжу. Без неї через 3 хв почнеш слабшати.",
-		ru = "Каждый спуск съедает 1 еду. Без неё через 3 мин начнёшь слабеть.",
-		en = "Each descent uses 1 food. Without it you start to weaken after 3 min.",
+		uk = "Наповнює ситість. Коли вона порожня, починаєш слабшати.",
+		ru = "Наполняет сытость. Когда она пуста, начинаешь слабеть.",
+		en = "Fills your hunger meter. When it runs out you start to weaken.",
 	},
 	["item.Medkit.name"] = { uk = "Аптечка", ru = "Аптечка", en = "Medkit" },
 	["item.Medkit.desc"] = {
@@ -484,6 +484,7 @@ local S: { [string]: Entry } = {
 		ru = "Фонарик %s · %d с",
 		en = "Flashlight %s · %ds",
 	},
+	["hud.hunger"] = { uk = "Ситість %d", ru = "Сытость %d", en = "Food %d" },
 	["hud.on"] = { uk = "увімк.", ru = "вкл.", en = "on" },
 	["hud.off"] = { uk = "вимк.", ru = "выкл.", en = "off" },
 

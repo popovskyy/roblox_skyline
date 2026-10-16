@@ -91,7 +91,7 @@ local Items: { [string]: ItemDef } = {
 		color = Color3.fromRGB(220, 140, 50),
 		displayName = "Їжа",
 		weight = 1,
-		startAmount = 2,
+		startAmount = 3,
 		description = "Кожен спуск з'їдає 1 їжу. Без неї через 3 хв почнеш слабшати.",
 		storable = true,
 	},

@@ -1,9 +1,10 @@
 --!strict
 -- Fall damage, toxic air, hunger and zone/expedition tracking. All health changes happen here on the server.
--- Live values the HUD needs are published as player attributes: Zone, InToxic, Hungry.
+-- Live values the HUD needs are published as player attributes: Zone, InToxic, Hunger, Hungry.
 --
--- An expedition starts when the player goes well below the roof (eats ExpeditionFoodCost Food)
--- and ends after the player has stood on the roof for a moment.
+-- Hunger is a meter that empties over time everywhere (faster below the roof); eating Food fills it,
+-- an empty meter slowly drains health. An expedition starts when the player goes well below the roof
+-- and ends after they have stood on the roof for a moment (that refills the resource nodes).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,7 +14,6 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local DamageService = require(script.Parent.DamageService)
 local Net = require(script.Parent.Net)
-local InventoryService = require(script.Parent.InventoryService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
 local HazardService = {}
@@ -27,8 +27,7 @@ type Tracker = {
 	zone: string,
 	onExpedition: boolean,
 	roofTime: number,
-	fed: boolean,
-	hungerTime: number,
+	hunger: number,
 	warnedHungry: boolean,
 }
 
@@ -85,24 +84,24 @@ function HazardService.ResetCharacter(player: Player)
 		zone = "Roof",
 		onExpedition = false,
 		roofTime = 0,
-		fed = true,
-		hungerTime = 0,
+		hunger = GameConfig.HungerMax,
 		warnedHungry = false,
 	}
 	player:SetAttribute("InToxic", false)
 	player:SetAttribute("Hungry", false)
+	player:SetAttribute("Hunger", GameConfig.HungerMax)
 	player:SetAttribute("Zone", "Roof")
 end
 
--- Eating mid-expedition. Returns false when the player is not hungry, so no food is wasted.
+-- Eating. Returns false when the player is already full, so no food is wasted.
 function HazardService.Feed(player: Player): boolean
 	local t = trackers[player]
-	if not t or not t.onExpedition or t.fed then
+	if not t or t.hunger >= GameConfig.HungerMax - 1 then
 		return false
 	end
-	t.fed = true
-	t.hungerTime = 0
+	t.hunger = math.min(GameConfig.HungerMax, t.hunger + GameConfig.FoodRestore)
 	t.warnedHungry = false
+	player:SetAttribute("Hunger", math.floor(t.hunger))
 	player:SetAttribute("Hungry", false)
 	return true
 end
@@ -214,59 +213,43 @@ local function updateToxic(player: Player, t: Tracker, root: BasePart, _humanoid
 	DamageService.Damage(player, GameConfig.ToxicDamagePerSecond * multiplier * dt)
 end
 
-local function startExpedition(player: Player, t: Tracker)
-	t.onExpedition = true
-	t.roofTime = 0
-	t.hungerTime = 0
-	t.warnedHungry = false
-	local cost = GameConfig.ExpeditionFoodCost
-	if cost <= 0 then
-		t.fed = true
-	elseif InventoryService.Remove(player, "Food", cost) then
-		t.fed = true
-		Net.Notify(player, { "hazard.descent", cost }, "info")
-	else
-		t.fed = false
-		local minutes = math.floor(GameConfig.HungerGraceSeconds / 60)
-		Net.Notify(player, { "hazard.noFood", minutes }, "warning")
-	end
-end
-
 local function updateExpedition(player: Player, t: Tracker, root: BasePart, _humanoid: Humanoid, dt: number)
 	if not t.onExpedition then
 		if t.zone ~= "Roof" and t.zone ~= "NeighborRoof" and root.Position.Y < World.RoofY - EXPEDITION_DEPTH then
-			startExpedition(player, t)
+			t.onExpedition = true
+			t.roofTime = 0
 		end
-		return
-	end
-
-	if t.zone == "Roof" then
+	elseif t.zone == "Roof" then
 		t.roofTime += dt
 		if t.roofTime >= ROOF_RETURN_SECONDS then
 			t.onExpedition = false
-			t.fed = true
-			player:SetAttribute("Hungry", false)
 			for _, listener in roofReturnListeners do
 				task.spawn(listener, player)
 			end
 		end
-		return
+	else
+		t.roofTime = 0
 	end
-	t.roofTime = 0
 
-	if t.fed then
-		return
+	-- Hunger meter.
+	local drain = if t.onExpedition then GameConfig.HungerDrainBelow else GameConfig.HungerDrainRoof
+	local before = math.floor(t.hunger)
+	t.hunger = math.max(0, t.hunger - drain * dt)
+	local after = math.floor(t.hunger)
+	if after ~= before then
+		player:SetAttribute("Hunger", after)
 	end
-	t.hungerTime += dt
-	if t.hungerTime < GameConfig.HungerGraceSeconds then
-		return
+	local hungry = t.hunger <= GameConfig.HungerWarnAt
+	if hungry ~= (player:GetAttribute("Hungry") == true) then
+		player:SetAttribute("Hungry", hungry)
 	end
-	if not t.warnedHungry then
-		t.warnedHungry = true
-		player:SetAttribute("Hungry", true)
-		Net.Notify(player, "hazard.hungry", "error")
+	if t.hunger <= 0 then
+		if not t.warnedHungry then
+			t.warnedHungry = true
+			Net.Notify(player, "hazard.hungry", "error")
+		end
+		DamageService.Damage(player, GameConfig.HungerDamagePerSecond * dt)
 	end
-	DamageService.Damage(player, GameConfig.HungerDamagePerSecond * dt)
 end
 
 function HazardService.Start()

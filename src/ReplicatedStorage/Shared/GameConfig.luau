@@ -18,10 +18,13 @@ local GameConfig = {
 	AirFilterToxicReduction = 0.75,
 	HazardTickSeconds = 0.25,
 
-	-- Food and hunger: each descent below the roof eats ExpeditionFoodCost Food.
-	-- Without food, after HungerGraceSeconds below the roof health slowly drops.
-	ExpeditionFoodCost = 1,
-	HungerGraceSeconds = 180,
+	-- Hunger meter: empties over time (faster below the roof), Food refills it, empty = slow health loss.
+	-- Full to empty takes about 6 min below the roof and about 11 min resting on it.
+	HungerMax = 100,
+	HungerDrainBelow = 0.28,
+	HungerDrainRoof = 0.15,
+	HungerWarnAt = 25,
+	FoodRestore = 35,
 	HungerDamagePerSecond = 1,
 
 	-- Flashlight: battery drains while switched on, charges next to a built Generator.
@@ -72,7 +75,7 @@ local GameConfig = {
 	LootTables = {
 		Common = {
 			{ item = "Scrap", min = 1, max = 3 },
-			{ item = "Food", min = 1, max = 1, chance = 0.5 },
+			{ item = "Food", min = 1, max = 2, chance = 0.7 },
 			{ item = "Bandage", min = 1, max = 1, chance = 0.25 },
 		},
 		Rare = {
