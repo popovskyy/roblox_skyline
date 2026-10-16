@@ -21,6 +21,7 @@ local InventoryController = require(Controllers:WaitForChild("InventoryControlle
 local InteractionController = require(Controllers:WaitForChild("InteractionController"))
 local MusicController = require(Controllers:WaitForChild("MusicController"))
 local ObjectiveMarkerController = require(Controllers:WaitForChild("ObjectiveMarkerController"))
+local CombatController = require(Controllers:WaitForChild("CombatController"))
 local TutorialController = require(Controllers:WaitForChild("TutorialController"))
 local WorldVisualsController = require(Controllers:WaitForChild("WorldVisualsController"))
 
@@ -36,6 +37,7 @@ TutorialController.Start()
 WorldVisualsController.Start()
 MusicController.Start()
 ObjectiveMarkerController.Start()
+CombatController.Start(remotes)
 
 remote(RemoteNames.StateChanged).OnClientEvent:Connect(function(snapshot)
 	if type(snapshot) == "table" then
@@ -58,6 +60,7 @@ Lang.Changed:Connect(function()
 end)
 remote(RemoteNames.ShowNote).OnClientEvent:Connect(TutorialController.ShowNote)
 remote(RemoteNames.OpenStorage).OnClientEvent:Connect(InventoryController.OpenStorage)
+remote(RemoteNames.OpenCraft).OnClientEvent:Connect(CombatController.OpenCraft)
 
 -- Ask for the current state in case the first snapshot arrived before these listeners existed.
 remote(RemoteNames.RequestState):FireServer()

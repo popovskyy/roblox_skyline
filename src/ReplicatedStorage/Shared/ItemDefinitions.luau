@@ -11,9 +11,60 @@ export type ItemDef = {
 	icon: string, -- emoji placeholder until real icons are drawn
 	iconImage: string?, -- rbxassetid://... once an icon is uploaded; wins over the emoji
 	color: Color3, -- slot accent colour
+	weapon: WeaponStats?, -- melee weapons; the best one carried is the one in the player's hands
+}
+
+export type WeaponStats = {
+	damage: number,
+	cooldown: number, -- seconds between swings
+	range: number, -- studs in front of the player
+	rank: number, -- higher rank wins when several are carried
 }
 
 local Items: { [string]: ItemDef } = {
+	Club = {
+		id = "Club",
+		icon = "🏏",
+		color = Color3.fromRGB(150, 110, 70),
+		displayName = "Дубина",
+		weight = 0,
+		startAmount = 1,
+		description = "",
+		storable = false,
+		weapon = { damage = 12, cooldown = 0.7, range = 6, rank = 1 },
+	},
+	Pipe = {
+		id = "Pipe",
+		icon = "🔨",
+		color = Color3.fromRGB(140, 145, 155),
+		displayName = "Труба",
+		weight = 2,
+		startAmount = 0,
+		description = "",
+		storable = false,
+		weapon = { damage = 22, cooldown = 0.75, range = 6.5, rank = 2 },
+	},
+	Machete = {
+		id = "Machete",
+		icon = "🔪",
+		color = Color3.fromRGB(200, 205, 215),
+		displayName = "Мачете",
+		weight = 2,
+		startAmount = 0,
+		description = "",
+		storable = false,
+		weapon = { damage = 34, cooldown = 0.6, range = 7, rank = 3 },
+	},
+	Bandage = {
+		id = "Bandage",
+		icon = "🩹",
+		color = Color3.fromRGB(235, 220, 200),
+		displayName = "Бинт",
+		weight = 1,
+		startAmount = 0,
+		description = "",
+		storable = true,
+	},
 	Scrap = {
 		id = "Scrap",
 		icon = "🔩",
@@ -46,7 +97,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Medkit = {
 		id = "Medkit",
-		icon = "🩹",
+		icon = "💉",
 		color = Color3.fromRGB(220, 70, 70),
 		displayName = "Аптечка",
 		weight = 2,
@@ -97,7 +148,20 @@ local Items: { [string]: ItemDef } = {
 }
 
 -- Display order in the UI.
-local Order = { "Scrap", "Electronics", "Food", "Medkit", "Cable", "Motor", "Crowbar", "Flashlight" }
+local Order = {
+	"Club",
+	"Pipe",
+	"Machete",
+	"Scrap",
+	"Electronics",
+	"Food",
+	"Medkit",
+	"Bandage",
+	"Cable",
+	"Motor",
+	"Crowbar",
+	"Flashlight",
+}
 
 local ItemDefinitions = {
 	Items = Items,
@@ -106,6 +170,18 @@ local ItemDefinitions = {
 
 function ItemDefinitions.Get(id: string): ItemDef?
 	return Items[id]
+end
+
+-- The strongest weapon among the carried items, or nil.
+function ItemDefinitions.BestWeapon(inventory: { [string]: number }): ItemDef?
+	local best: ItemDef? = nil
+	for id, count in inventory do
+		local def = Items[id]
+		if def and def.weapon and count > 0 and (not best or def.weapon.rank > (best.weapon :: WeaponStats).rank) then
+			best = def
+		end
+	end
+	return best
 end
 
 function ItemDefinitions.IsValid(id: any): boolean

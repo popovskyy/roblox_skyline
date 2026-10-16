@@ -135,6 +135,57 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 	return true, nil
 end
 
+-- Loot crates: rolled when opened, refilled on roof return like resource nodes.
+-- Attributes: NodeId, Tier (Common/Rare/Gold/Diamond), RequiresUpgrade?, RequiresRubble?
+local function rollLoot(player: Player, tier: string): { [string]: number }
+	local loot: { [string]: number } = {}
+	local tierTable = GameConfig.LootTables[tier]
+	if not tierTable then
+		return loot
+	end
+	for _, entry in tierTable do
+		if not entry.chance or math.random() < entry.chance then
+			local def = ItemDefinitions.Get(entry.item)
+			local amount = math.random(entry.min, entry.max)
+			-- One of each weapon is enough; a duplicate turns into scrap.
+			if def and def.weapon and InventoryService.GetCount(player, entry.item) > 0 then
+				loot.Scrap = (loot.Scrap or 0) + 2
+			elseif def then
+				loot[entry.item] = (loot[entry.item] or 0) + amount
+			end
+		end
+	end
+	return loot
+end
+
+function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, any)
+	local data = PlayerDataService.Get(player)
+	local nodeId = crate:GetAttribute("NodeId")
+	local tier = crate:GetAttribute("Tier")
+	if not data or type(nodeId) ~= "string" or type(tier) ~= "string" then
+		return false, nil
+	end
+	local s = getState(player)
+	if s.depleted[nodeId] then
+		return false, "loot.empty"
+	end
+	local denied = ResourceService.CheckAccess(player, crate)
+	if denied then
+		return false, denied
+	end
+	local loot = rollLoot(player, tier)
+	if InventoryService.WeightOf(loot) > InventoryService.GetCapacity(player) - InventoryService.GetWeight(player) then
+		return false, "res.full"
+	end
+	s.depleted[nodeId] = true
+	for id, amount in loot do
+		InventoryService.ForceAdd(player, id, amount)
+	end
+	StateSyncService.Request(player)
+	Net.Notify(player, { "loot.found", Locale.Cost(loot) }, "success")
+	return true, nil
+end
+
 -- Called when the player comes back up to the roof.
 function ResourceService.OnReturnedToRoof(player: Player)
 	if not GameConfig.ResetNodesOnRoofReturn then

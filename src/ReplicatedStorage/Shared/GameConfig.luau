@@ -43,9 +43,67 @@ local GameConfig = {
 	DeathProtectedItems = {
 		Crowbar = true,
 		Flashlight = true,
+		Club = true,
+		Pipe = true,
+		Machete = true,
 	} :: { [string]: boolean },
 	BackpackDropLifetimeSeconds = 900,
 	RespawnDelaySeconds = 3,
+
+	-- Combat and zombies
+	Zombie = {
+		MaxHealth = 60,
+		WalkSpeed = 11, -- players run at 16, so running away works
+		Damage = 12,
+		AttackCooldown = 1.2,
+		AttackRange = 4.5,
+		AggroRange = 45,
+		RespawnSeconds = 45,
+		PerFloor = { 2, 3, 3, 5 }, -- floors 1..4; the roof is always safe
+	},
+
+	-- Downed instead of dead: a teammate with a Bandage can lift you back up.
+	BleedOutSeconds = 45,
+	SoloBleedOutSeconds = 4, -- nobody else around to help
+	ReviveHealth = 35,
+	ReviveHoldSeconds = 3,
+
+	-- Loot crates: each roll picks "count" from min..max; "chance" makes the item optional.
+	LootTables = {
+		Common = {
+			{ item = "Scrap", min = 1, max = 3 },
+			{ item = "Food", min = 1, max = 1, chance = 0.5 },
+			{ item = "Bandage", min = 1, max = 1, chance = 0.25 },
+		},
+		Rare = {
+			{ item = "Scrap", min = 2, max = 4 },
+			{ item = "Electronics", min = 1, max = 2 },
+			{ item = "Bandage", min = 1, max = 1, chance = 0.5 },
+			{ item = "Medkit", min = 1, max = 1, chance = 0.3 },
+			{ item = "Pipe", min = 1, max = 1, chance = 0.2 },
+		},
+		Gold = {
+			{ item = "Electronics", min = 2, max = 3 },
+			{ item = "Bandage", min = 1, max = 2 },
+			{ item = "Medkit", min = 1, max = 1 },
+			{ item = "Pipe", min = 1, max = 1, chance = 0.35 },
+			{ item = "Machete", min = 1, max = 1, chance = 0.2 },
+		},
+		Diamond = {
+			{ item = "Electronics", min = 3, max = 4 },
+			{ item = "Cable", min = 1, max = 1 },
+			{ item = "Bandage", min = 2, max = 2 },
+			{ item = "Medkit", min = 1, max = 1 },
+			{ item = "Machete", min = 1, max = 1, chance = 0.6 },
+		},
+	} :: { [string]: { { item: string, min: number, max: number, chance: number? } } },
+
+	-- Workbench on the roof.
+	Recipes = {
+		{ id = "Bandage", cost = { Food = 1, Scrap = 1 } },
+		{ id = "Pipe", cost = { Scrap = 4 } },
+		{ id = "Machete", cost = { Scrap = 5, Electronics = 2 } },
+	} :: { { id: string, cost: { [string]: number } } },
 
 	-- Testing: every upgrade costs 1 of each listed item. Never ship with this on.
 	TestPrices = false,

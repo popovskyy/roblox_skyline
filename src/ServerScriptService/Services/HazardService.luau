@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local CharacterUtil = require(script.Parent.CharacterUtil)
+local DamageService = require(script.Parent.DamageService)
 local Net = require(script.Parent.Net)
 local InventoryService = require(script.Parent.InventoryService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
@@ -145,7 +146,7 @@ local function setZone(player: Player, t: Tracker, zone: string)
 	end
 end
 
-local function updateFall(player: Player, t: Tracker, root: BasePart, humanoid: Humanoid)
+local function updateFall(player: Player, t: Tracker, root: BasePart, _humanoid: Humanoid)
 	if os.clock() - t.spawnedAt < 1.5 then
 		t.airborne = false
 		t.minVelocityY = 0
@@ -170,7 +171,7 @@ local function updateFall(player: Player, t: Tracker, root: BasePart, humanoid: 
 			if over > 0 then
 				local damage = math.floor(over * GameConfig.FallDamagePerStud)
 				if damage > 0 then
-					humanoid:TakeDamage(damage)
+					DamageService.Damage(player, damage)
 					Net.Notify(player, { "hazard.fall", damage }, "warning")
 				end
 			end
@@ -178,7 +179,7 @@ local function updateFall(player: Player, t: Tracker, root: BasePart, humanoid: 
 	end
 end
 
-local function updateToxic(player: Player, t: Tracker, root: BasePart, humanoid: Humanoid, dt: number)
+local function updateToxic(player: Player, t: Tracker, root: BasePart, _humanoid: Humanoid, dt: number)
 	local inside = false
 	for _, zone in toxicZones do
 		if isInside(zone, root.Position) then
@@ -210,7 +211,7 @@ local function updateToxic(player: Player, t: Tracker, root: BasePart, humanoid:
 	if data and data.upgrades.AirFilter then
 		multiplier = 1 - GameConfig.AirFilterToxicReduction
 	end
-	humanoid:TakeDamage(GameConfig.ToxicDamagePerSecond * multiplier * dt)
+	DamageService.Damage(player, GameConfig.ToxicDamagePerSecond * multiplier * dt)
 end
 
 local function startExpedition(player: Player, t: Tracker)
@@ -231,7 +232,7 @@ local function startExpedition(player: Player, t: Tracker)
 	end
 end
 
-local function updateExpedition(player: Player, t: Tracker, root: BasePart, humanoid: Humanoid, dt: number)
+local function updateExpedition(player: Player, t: Tracker, root: BasePart, _humanoid: Humanoid, dt: number)
 	if not t.onExpedition then
 		if t.zone ~= "Roof" and t.zone ~= "NeighborRoof" and root.Position.Y < World.RoofY - EXPEDITION_DEPTH then
 			startExpedition(player, t)
@@ -265,7 +266,7 @@ local function updateExpedition(player: Player, t: Tracker, root: BasePart, huma
 		player:SetAttribute("Hungry", true)
 		Net.Notify(player, "hazard.hungry", "error")
 	end
-	humanoid:TakeDamage(GameConfig.HungerDamagePerSecond * dt)
+	DamageService.Damage(player, GameConfig.HungerDamagePerSecond * dt)
 end
 
 function HazardService.Start()

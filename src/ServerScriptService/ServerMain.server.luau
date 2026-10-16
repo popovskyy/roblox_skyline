@@ -21,6 +21,10 @@ local TutorialService = require(Services.TutorialService)
 local PlayerLifecycleService = require(Services.PlayerLifecycleService)
 local InteractionService = require(Services.InteractionService)
 local PartyService = require(Services.PartyService)
+local DamageService = require(Services.DamageService)
+local ZombieService = require(Services.ZombieService)
+local CombatService = require(Services.CombatService)
+local CraftService = require(Services.CraftService)
 
 Net.Init()
 PlayerDataService.Init()
@@ -37,6 +41,8 @@ if GameConfig.World.Mode == "Generated" then
 	HazardService.SetToxicZones(world.toxicZones)
 	HazardService.SetVictoryZone(world.victoryZone)
 	PlayerLifecycleService.SetWorld(world.interactables, world.roofDropPosition)
+	CraftService.SetWorkbench(world.workbench)
+	ZombieService.Start(world.root)
 else
 	warn("[ServerMain] World.Mode is Manual: wire a hand-built map into the services before playing")
 end
@@ -51,6 +57,9 @@ HazardService.Start()
 TutorialService.Start()
 InteractionService.Start()
 PartyService.Start()
+DamageService.Start()
+CombatService.Start()
+CraftService.Start()
 PlayerLifecycleService.Start() -- last: it loads characters, so everything above must be ready
 
 print(("[Skyline Zero] Server ready, build %s"):format(require(ReplicatedStorage.Shared.PlacesConfig).Build))

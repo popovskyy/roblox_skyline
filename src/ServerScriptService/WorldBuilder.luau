@@ -22,6 +22,7 @@ export type WorldRefs = {
 	generatorPart: BasePart,
 	toxicZones: { BasePart },
 	victoryZone: BasePart,
+	workbench: BasePart,
 	roofDropPosition: Vector3,
 }
 
@@ -454,6 +455,66 @@ type NodeOptions = {
 	requiresRubble: string?,
 }
 
+local CRATE_LOOKS: { [string]: { body: Color3, trim: Color3, glow: boolean } } = {
+	Common = { body = Color3.fromRGB(116, 84, 56), trim = Color3.fromRGB(90, 90, 90), glow = false },
+	Rare = { body = Color3.fromRGB(52, 78, 120), trim = Color3.fromRGB(110, 170, 255), glow = false },
+	Gold = { body = Color3.fromRGB(110, 80, 40), trim = Color3.fromRGB(255, 196, 60), glow = true },
+	Diamond = { body = Color3.fromRGB(40, 60, 70), trim = Color3.fromRGB(110, 240, 255), glow = true },
+}
+
+-- Loot crate; the higher the tier, the brighter the trim. Opened per player, refilled on roof return.
+local function lootCrate(
+	parent: Instance,
+	level: number,
+	nodeId: string,
+	tier: string,
+	x: number,
+	z: number,
+	options: { requiresUpgrade: string?, requiresRubble: string? }?
+)
+	local look = CRATE_LOOKS[tier]
+	local crate = onFloor(parent, nodeId, level, x, z, Vector3.new(3.4, 2.2, 2.4), look.body, Enum.Material.WoodPlanks)
+	if tier ~= "Common" then
+		crate.Material = Enum.Material.Metal
+	end
+	crate:SetAttribute("InteractType", "LootChest")
+	crate:SetAttribute("NodeId", nodeId)
+	crate:SetAttribute("Tier", tier)
+	if options then
+		if options.requiresUpgrade then
+			crate:SetAttribute("RequiresUpgrade", options.requiresUpgrade)
+		end
+		if options.requiresRubble then
+			crate:SetAttribute("RequiresRubble", options.requiresRubble)
+		end
+	end
+	local lid = block(
+		crate,
+		"Lid",
+		Vector3.new(3.6, 0.5, 2.6),
+		crate.CFrame * CFrame.new(0, 1.35, 0),
+		look.body,
+		crate.Material
+	)
+	lid.CanCollide = false
+	for _, offset in { -1.2, 1.2 } do
+		local band = block(
+			crate,
+			"Trim",
+			Vector3.new(0.3, 2.35, 2.5),
+			crate.CFrame * CFrame.new(offset, 0, 0),
+			look.trim,
+			if look.glow then Enum.Material.Neon else Enum.Material.Metal
+		)
+		band.CanCollide = false
+	end
+	if look.glow then
+		pointLight(crate, look.trim, 12, 1.2, true)
+	end
+	addPrompt(crate, "prompt.open", "loot." .. tier, 0.6)
+	return crate
+end
+
 local function resourceNode(
 	parent: Instance,
 	level: number,
@@ -633,6 +694,8 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, -30, -2)
 	resourceNode(interactables, level, "F1_Elec_2", "Electronics", 2, 30, 30, { requiresRubble = "F1_Rubble" })
 	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, 25, 33, { requiresRubble = "F1_Rubble" })
+	lootCrate(interactables, level, "F1_Crate_1", "Common", -8, -30)
+	lootCrate(interactables, level, "F1_Crate_2", "Common", 30, -8)
 end
 
 local function buildFloor2(parent: Folder, interactables: Folder)
@@ -665,6 +728,9 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F2_Scrap_2", "Scrap", 1, -15, -30)
 	resourceNode(interactables, level, "F2_Scrap_3", "Scrap", 1, 15, 22)
 	resourceNode(interactables, level, "F2_Flashlight", "Flashlight", 1, 31, -31, { unique = true })
+	lootCrate(interactables, level, "F2_Crate_1", "Common", -12, 30)
+	lootCrate(interactables, level, "F2_Crate_2", "Common", 30, 0)
+	lootCrate(interactables, level, "F2_Crate_3", "Rare", 22, -30)
 end
 
 local function buildFloor3(parent: Folder, interactables: Folder)
@@ -739,6 +805,8 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F3_Scrap_1", "Scrap", 2, -15, -30)
 	resourceNode(interactables, level, "F3_Scrap_2", "Scrap", 2, -30, 0)
 	resourceNode(interactables, level, "F3_Scrap_3", "Scrap", 1, -10, 28)
+	lootCrate(interactables, level, "F3_Crate_1", "Rare", -30, 14)
+	lootCrate(interactables, level, "F3_Crate_2", "Gold", 30, -28)
 end
 
 local function buildFloor4(parent: Folder, interactables: Folder)
@@ -819,6 +887,17 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F4_Scrap_4", "Scrap", 1, -30, 2, gen)
 	resourceNode(interactables, level, "F4_Elec_1", "Electronics", 2, 15, -30, gen)
 	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 1, -16, 14, gen)
+	lootCrate(interactables, level, "F4_Crate_1", "Rare", -30, 30, gen)
+	lootCrate(interactables, level, "F4_Crate_2", "Gold", 20, -12, gen)
+	lootCrate(
+		interactables,
+		level,
+		"F4_Crate_3",
+		"Diamond",
+		25,
+		25,
+		{ requiresUpgrade = "Generator", requiresRubble = "F4_Rubble_B" }
+	)
 end
 
 -- Colour and material for Blender props, picked from the "<Prop>_<Part>_<Paint>" name suffix.
@@ -1005,6 +1084,37 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	spawn.Neutral = true
 	spawn.Duration = 0
 	spawn.Parent = roof
+
+	-- Workbench for bandages and weapons.
+	local bench = block(
+		interactables,
+		"Workbench",
+		Vector3.new(6, 3, 3),
+		CFrame.new(-26, roofY + 1.5, 14),
+		COLORS.wood,
+		Enum.Material.WoodPlanks
+	)
+	bench:SetAttribute("InteractType", "Workbench")
+	block(
+		bench,
+		"Vice",
+		Vector3.new(1, 1, 1.2),
+		bench.CFrame * CFrame.new(2.2, 2, 0),
+		COLORS.metal,
+		Enum.Material.Metal
+	).CanCollide =
+		false
+	block(
+		bench,
+		"Tools",
+		Vector3.new(3, 0.3, 1.5),
+		bench.CFrame * CFrame.new(-0.8, 1.65, 0.2),
+		COLORS.rust,
+		Enum.Material.CorrodedMetal
+	).CanCollide =
+		false
+	sign(bench, "craft.title", bench.CFrame * CFrame.new(0, 3.2, -1.6), Vector2.new(5, 1.2))
+	addPrompt(bench, "prompt.craft", "prompt.workbench")
 
 	local terminal = block(
 		interactables,
@@ -1284,6 +1394,7 @@ local function collectRefs(root: Folder): WorldRefs
 		toxicZones = toxicZones,
 		victoryZone = neighbor:FindFirstChild("VictoryZone") :: BasePart,
 		roofDropPosition = Vector3.new(0, World.RoofY + 2, -28),
+		workbench = interactables:FindFirstChild("Workbench") :: BasePart,
 	}
 end
 

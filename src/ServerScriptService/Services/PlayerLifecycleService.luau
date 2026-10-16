@@ -8,6 +8,8 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
 local CharacterUtil = require(script.Parent.CharacterUtil)
+local CombatService = require(script.Parent.CombatService)
+local DamageService = require(script.Parent.DamageService)
 local FlashlightService = require(script.Parent.FlashlightService)
 local HazardService = require(script.Parent.HazardService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -162,6 +164,8 @@ local function onCharacterAdded(player: Player, character: Model)
 	humanoid.MaxHealth = GameConfig.StartingHealth
 	humanoid.Health = GameConfig.StartingHealth
 	HazardService.ResetCharacter(player)
+	DamageService.OnCharacterAdded(player)
+	CombatService.OnCharacterAdded(player)
 	ResourceService.OnReturnedToRoof(player)
 	FlashlightService.OnCharacterAdded(player)
 	humanoid.Died:Once(function()
@@ -203,6 +207,9 @@ end
 
 local function useItem(player: Player, itemId: any)
 	if not RateLimiter.Allow(player, "UseItem", GameConfig.InteractionCooldown) then
+		return
+	end
+	if DamageService.IsDowned(player) then
 		return
 	end
 	if itemId == "Medkit" then

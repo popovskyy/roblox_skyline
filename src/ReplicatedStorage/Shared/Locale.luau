@@ -72,6 +72,31 @@ local S: { [string]: Entry } = {
 		en = "Toggle with F. Charges next to the generator.",
 	},
 
+	["item.Club.name"] = { uk = "Дубина", ru = "Дубина", en = "Club" },
+	["item.Club.desc"] = {
+		uk = "Стара добра дубина. Б'є слабко, але завжди з тобою.",
+		ru = "Старая добрая дубина. Бьёт слабо, но всегда с тобой.",
+		en = "A trusty club. Weak, but always with you.",
+	},
+	["item.Pipe.name"] = { uk = "Труба", ru = "Труба", en = "Pipe" },
+	["item.Pipe.desc"] = {
+		uk = "Важка сталева труба. Б'є майже вдвічі сильніше за дубину.",
+		ru = "Тяжёлая стальная труба. Бьёт почти вдвое сильнее дубины.",
+		en = "A heavy steel pipe. Hits almost twice as hard as the club.",
+	},
+	["item.Machete.name"] = { uk = "Мачете", ru = "Мачете", en = "Machete" },
+	["item.Machete.desc"] = {
+		uk = "Швидке й гостре. Найкраща зброя проти зомбі.",
+		ru = "Быстрое и острое. Лучшее оружие против зомби.",
+		en = "Fast and sharp. The best tool against zombies.",
+	},
+	["item.Bandage.name"] = { uk = "Бинт", ru = "Бинт", en = "Bandage" },
+	["item.Bandage.desc"] = {
+		uk = "Ним можна підняти пораненого тіммейта.",
+		ru = "Им можно поднять раненого тиммейта.",
+		en = "Use it to get a downed teammate back on their feet.",
+	},
+
 	-- Upgrades
 	["upgrade.StorageCrate.name"] = { uk = "Скриня", ru = "Сундук", en = "Chest" },
 	["upgrade.Generator.name"] = { uk = "Генератор", ru = "Генератор", en = "Generator" },
@@ -559,6 +584,53 @@ local S: { [string]: Entry } = {
 	["party.leader"] = { uk = "Лідер групи: %s", ru = "Лидер группы: %s", en = "Party leader: %s" },
 	["marker.here"] = { uk = "Сюди · %d м", ru = "Сюда · %d м", en = "Here · %d m" },
 	["prompt.locked"] = { uk = "🔒 Спершу: %s", ru = "🔒 Сначала: %s", en = "🔒 First: %s" },
+	["ui.attack"] = { uk = "Удар", ru = "Удар", en = "Hit" },
+	["downed.title"] = { uk = "ТИ ПОРАНЕНИЙ", ru = "ТЫ РАНЕН", en = "YOU ARE DOWN" },
+	["downed.wait"] = {
+		uk = "Тіммейт може підняти тебе бинтом · %d с",
+		ru = "Тиммейт может поднять тебя бинтом · %d с",
+		en = "A teammate can lift you with a bandage · %d s",
+	},
+	["downed.someone"] = {
+		uk = "%s поранений! Підніми його бинтом",
+		ru = "%s ранен! Подними его бинтом",
+		en = "%s is down! Lift them with a bandage",
+	},
+	["revive.action"] = { uk = "Підняти", ru = "Поднять", en = "Revive" },
+	["revive.needBandage"] = { uk = "Потрібен бинт", ru = "Нужен бинт", en = "You need a bandage" },
+	["revive.revivedBy"] = { uk = "%s підняв тебе!", ru = "%s поднял тебя!", en = "%s got you up!" },
+	["revive.youRevived"] = { uk = "Ти підняв: %s", ru = "Ты поднял: %s", en = "You revived %s" },
+	["craft.title"] = { uk = "Верстак", ru = "Верстак", en = "Workbench" },
+	["craft.button"] = { uk = "Зробити", ru = "Сделать", en = "Craft" },
+	["craft.done"] = { uk = "Зроблено: %s", ru = "Сделано: %s", en = "Crafted: %s" },
+	["craft.tooFar"] = {
+		uk = "Підійди до верстака",
+		ru = "Подойди к верстаку",
+		en = "Go to the workbench",
+	},
+	["craft.unknown"] = {
+		uk = "Невідомий рецепт",
+		ru = "Неизвестный рецепт",
+		en = "Unknown recipe",
+	},
+	["craft.haveIt"] = {
+		uk = "У тебе вже є така зброя",
+		ru = "У тебя уже есть такое оружие",
+		en = "You already have this weapon",
+	},
+	["prompt.workbench"] = { uk = "Верстак", ru = "Верстак", en = "Workbench" },
+	["prompt.craft"] = { uk = "Крафт", ru = "Крафт", en = "Craft" },
+	["loot.Common"] = { uk = "Звичайний ящик", ru = "Обычный ящик", en = "Common crate" },
+	["loot.Rare"] = { uk = "Рідкісний ящик", ru = "Редкий ящик", en = "Rare crate" },
+	["loot.Gold"] = { uk = "Золотий ящик", ru = "Золотой ящик", en = "Gold crate" },
+	["loot.Diamond"] = {
+		uk = "Діамантовий ящик",
+		ru = "Алмазный ящик",
+		en = "Diamond crate",
+	},
+	["loot.found"] = { uk = "Знайдено: %s", ru = "Найдено: %s", en = "Found: %s" },
+	["loot.empty"] = { uk = "Ящик порожній", ru = "Ящик пуст", en = "The crate is empty" },
+
 	["ui.toLobby"] = { uk = "В лобі", ru = "В лобби", en = "Lobby" },
 
 	["ui.weightEach"] = { uk = "вага %d", ru = "вес %d", en = "weight %d" },

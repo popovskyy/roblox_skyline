@@ -15,6 +15,9 @@ local RemoteNames = {
 	ToggleFlashlight = "ToggleFlashlight",
 	SetLanguage = "SetLanguage",
 	ReturnToLobby = "ReturnToLobby",
+	Attack = "Attack",
+	Craft = "Craft",
+	OpenCraft = "OpenCraft",
 }
 
 return RemoteNames

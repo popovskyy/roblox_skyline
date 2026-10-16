@@ -9,6 +9,8 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local BaseUpgradeService = require(script.Parent.BaseUpgradeService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
+local CraftService = require(script.Parent.CraftService)
+local DamageService = require(script.Parent.DamageService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlayerLifecycleService = require(script.Parent.PlayerLifecycleService)
@@ -58,6 +60,12 @@ local handlers: { [string]: Handler } = {
 	Backpack = function(player, target)
 		return PlayerLifecycleService.RecoverBackpack(player, target)
 	end,
+	LootChest = function(player, target)
+		return ResourceService.OpenCrate(player, target)
+	end,
+	Workbench = function(player)
+		return CraftService.Open(player)
+	end,
 }
 
 local function onPromptTriggered(prompt: ProximityPrompt, player: Player)
@@ -66,7 +74,7 @@ local function onPromptTriggered(prompt: ProximityPrompt, player: Player)
 	if not folder or not target or not target:IsA("BasePart") or not target:IsDescendantOf(folder) then
 		return
 	end
-	if not CharacterUtil.GetRoot(player) then
+	if not CharacterUtil.GetRoot(player) or DamageService.IsDowned(player) then
 		return
 	end
 	if not RateLimiter.Allow(player, "Interact", GameConfig.InteractionCooldown) then

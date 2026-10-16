@@ -192,6 +192,12 @@ local function applyPart(d: BasePart, s: { [string]: any })
 		applyRubble(d, s)
 	elseif interactType == "Upgrade" then
 		applyUpgradePad(d, s)
+	elseif interactType == "LootChest" then
+		-- Opened crates stay as a faint outline until the next trip down.
+		local nodeId = d:GetAttribute("NodeId")
+		local opened = type(nodeId) == "string" and s.depletedNodes ~= nil and s.depletedNodes[nodeId] == true
+		setTreeState(d, if opened then "locked" else "normal")
+		setPrompt(d, not opened)
 	elseif interactType == "Storage" then
 		setPrompt(d, s.upgrades ~= nil and s.upgrades.StorageCrate == true)
 	elseif interactType == "Backpack" then
