@@ -41,6 +41,10 @@ local slots: { ItemSlot.Slot } = {}
 local slotItems: { [number]: string } = {}
 local tooltip: TextLabel
 local tooltipToken = 0
+local storagePanel: Frame
+local storageList: Frame
+local storageHeader: TextLabel
+
 local USE_LABELS: { [string]: string } = {
 	Medkit = "Використати",
 	Food = "З'їсти",
@@ -169,7 +173,7 @@ local function buildHotbar(screen: ScreenGui)
 	})
 
 	weightLabel = UIKit.Label({
-		Size = UDim2.new(0, 120, 0, 16),
+		Size = UDim2.fromOffset(120, 16),
 		Text = "Вага 0 / 20",
 		TextSize = 13,
 		TextColor3 = C.muted,
