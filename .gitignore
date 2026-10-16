@@ -10,3 +10,6 @@ sourcemap.json
 roblox.yml
 /SkylineZero.rbxlx
 /SkylineZero_Lobby.rbxlx
+
+# Open Cloud key for rojo upload (never commit)
+/.roblox_api_key
