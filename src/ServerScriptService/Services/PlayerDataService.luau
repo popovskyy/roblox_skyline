@@ -172,6 +172,15 @@ function PlayerDataService.Load(player: Player): boolean
 		saving = false,
 	}
 
+	if not GameConfig.PersistProgress then
+		-- Session mode: every match starts from a clean slate and nothing is written back.
+		sessions[player] = session
+		for _, listener in loadedListeners do
+			task.spawn(listener, player)
+		end
+		return true
+	end
+
 	if store then
 		local activeStore = store :: DataStore
 		for attempt = 1, GameConfig.DataRetryAttempts do

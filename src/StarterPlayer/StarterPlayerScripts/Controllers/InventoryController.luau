@@ -23,7 +23,7 @@ local C = UIKit.Colors
 local remotes: Folder
 
 local SLOT_COUNT = 10
-local SLOT_SIZE = if UserInputService.TouchEnabled then 50 else 60
+local SLOT_SIZE = if UserInputService.TouchEnabled then 64 else 64
 local SLOT_GAP = 6
 local NUMBER_KEYS = {
 	Enum.KeyCode.One,
@@ -78,7 +78,7 @@ local function makeWindow(
 		BackgroundTransparency = 0.05,
 		Parent = screen,
 	})
-	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(size.X.Offset, 520), Parent = panel })
+	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(size.X.Offset, 640), Parent = panel })
 	UIKit.Padding(12).Parent = panel
 	local header = UIKit.Label({
 		Size = UDim2.new(1, -40, 0, 26),
@@ -259,63 +259,91 @@ local function transfer(direction: string, itemId: string, amount: number)
 	(remotes:FindFirstChild(RemoteNames.StorageTransfer) :: RemoteEvent):FireServer(direction, itemId, amount)
 end
 
+local CHEST_SLOT = 76
+
+-- One labelled grid of item slots. Tapping a slot moves the whole stack to the other side.
+local function storageSection(
+	order: number,
+	titleKey: string,
+	emptyKey: string,
+	counts: { [string]: number },
+	onTap: (itemId: string, count: number) -> ()
+)
+	local section = UIKit.New("Frame", {
+		Size = UDim2.new(1, -8, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+		Parent = storageList,
+	})
+	UIKit.New("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = section })
+	UIKit.Label({
+		Size = UDim2.new(1, 0, 0, 26),
+		Text = Lang.T(titleKey),
+		FontFace = Theme.Heading,
+		TextSize = 22,
+		LayoutOrder = 1,
+		Parent = section,
+	})
+	local grid = UIKit.New("Frame", {
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+		Parent = section,
+	})
+	UIKit.New("UIGridLayout", {
+		CellSize = UDim2.fromOffset(CHEST_SLOT, CHEST_SLOT),
+		CellPadding = UDim2.fromOffset(8, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = grid,
+	})
+	local any = false
+	for i, itemId in ItemDefinitions.Order do
+		local def = ItemDefinitions.Items[itemId]
+		local count = counts[itemId] or 0
+		if def.storable and count > 0 then
+			any = true
+			local slot = ItemSlot.New(grid, CHEST_SLOT, i)
+			slot.set(itemId, count, false)
+			slot.frame.Activated:Connect(function()
+				onTap(itemId, count)
+			end)
+		end
+	end
+	if not any then
+		UIKit.Label({
+			Size = UDim2.new(1, 0, 0, 30),
+			Text = Lang.T(emptyKey),
+			TextColor3 = C.muted,
+			LayoutOrder = 3,
+			Parent = section,
+		})
+	end
+end
+
 local function renderStorage(s: { [string]: any })
 	storageHeader.Text =
 		Lang.T("ui.storageHeader", s.storageWeight or 0, s.storageCapacity or 0, s.weight or 0, s.maxWeight or 0)
 	clearRows(storageList)
-	for order, itemId in ItemDefinitions.Order do
-		local def = ItemDefinitions.Items[itemId]
-		if def.storable then
-			local carried = s.inventory and s.inventory[itemId] or 0
-			local stored = s.storage and s.storage[itemId] or 0
-			local row = UIKit.New("Frame", {
-				Size = UDim2.new(1, -8, 0, 48),
-				BackgroundColor3 = C.panelLight,
-				BorderSizePixel = 0,
-				LayoutOrder = order,
-				Parent = storageList,
-			}, { UIKit.Corner(6), UIKit.Padding(6) })
+	UIKit.New(
+		"Frame",
+		{ Size = UDim2.new(1, -8, 0, 24), BackgroundTransparency = 1, LayoutOrder = 0, Parent = storageList },
+		{
 			UIKit.Label({
-				Size = UDim2.new(1, -230, 1, 0),
-				Text = Lang.T("ui.storageRow", def.icon, Lang.T("item." .. def.id .. ".name"), carried, stored),
-				TextSize = 14,
-				Parent = row,
-			})
-			local buttons = {
-				{ text = "→ 1", direction = "Deposit", amount = 1, enabled = carried > 0 },
-				{
-					text = "→ " .. Lang.T("ui.all"),
-					direction = "Deposit",
-					amount = math.max(carried, 1),
-					enabled = carried > 0,
-				},
-				{ text = "← 1", direction = "Withdraw", amount = 1, enabled = stored > 0 },
-				{
-					text = "← " .. Lang.T("ui.all"),
-					direction = "Withdraw",
-					amount = math.max(stored, 1),
-					enabled = stored > 0,
-				},
-			}
-			for i, info in buttons do
-				local button = UIKit.Button({
-					AnchorPoint = Vector2.new(1, 0.5),
-					Position = UDim2.new(1, -(4 - i) * 56, 0.5, 0),
-					Size = UDim2.fromOffset(52, 34),
-					Text = info.text,
-					TextSize = 13,
-					BackgroundColor3 = if info.enabled then C.panelLight else C.panel,
-					TextColor3 = if info.enabled then C.text else C.muted,
-					Parent = row,
-				})
-				button.Activated:Connect(function()
-					if info.enabled then
-						transfer(info.direction, itemId, info.amount)
-					end
-				end)
-			end
-		end
-	end
+				Size = UDim2.fromScale(1, 1),
+				Text = Lang.T("ui.chestHint"),
+				TextColor3 = C.muted,
+				TextSize = 15,
+			}),
+		}
+	)
+	storageSection(1, "ui.backpack", "ui.emptyBackpack", s.inventory or {}, function(itemId, count)
+		transfer("Deposit", itemId, count)
+	end)
+	storageSection(2, "ui.storage", "ui.emptyChest", s.storage or {}, function(itemId, count)
+		transfer("Withdraw", itemId, count)
+	end)
 end
 
 function InventoryController.OpenStorage()
@@ -339,7 +367,7 @@ function InventoryController.Start(remoteFolder: Folder)
 
 	buildHotbar(screen)
 	storagePanel, storageList, storageHeader =
-		makeWindow("Storage", "ui.storage", UDim2.new(0, 470, 0.7, 0), UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
+		makeWindow("Storage", "ui.storage", UDim2.new(0, 560, 0.8, 0), UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then

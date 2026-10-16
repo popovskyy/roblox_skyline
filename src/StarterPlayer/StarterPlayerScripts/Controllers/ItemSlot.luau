@@ -37,8 +37,8 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 	})
 	local emoji = UIKit.Label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromScale(0.62, 0.62),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.fromScale(0.74, 0.74),
 		TextScaled = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,
@@ -47,8 +47,8 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 	})
 	local image = UIKit.New("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromScale(0.62, 0.62),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.fromScale(0.74, 0.74),
 		BackgroundTransparency = 1,
 		Visible = false,
 		ScaleType = Enum.ScaleType.Fit,
@@ -57,10 +57,10 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 	local countLabel = UIKit.Label({
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -5, 1, -3),
-		Size = UDim2.fromOffset(40, 16),
+		Size = UDim2.fromOffset(40, 20),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		FontFace = Theme.Display,
-		TextSize = 14,
+		TextSize = 19,
 		TextStrokeTransparency = 0.4,
 		Text = "",
 		Parent = frame,

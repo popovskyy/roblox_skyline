@@ -179,6 +179,15 @@ local function onPlayerAdded(player: Player)
 	if data and data.language then
 		player:SetAttribute("Language", data.language)
 	end
+	-- Language picked in the lobby travels with the teleport.
+	local joinData = player:GetJoinData()
+	local teleportData = joinData and joinData.TeleportData
+	if type(teleportData) == "table" and type(teleportData.languages) == "table" then
+		local code = teleportData.languages[tostring(player.UserId)]
+		if code == "uk" or code == "ru" or code == "en" then
+			player:SetAttribute("Language", code)
+		end
+	end
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)

@@ -5,18 +5,21 @@
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b4 · 16.10 18:00",
+	Build = "b5 · 16.10 18:30",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
 
 	-- Lifts in the lobby. The first player in a lift is the party leader.
 	Lifts = {
-		{ id = "Solo", capacity = 1, countdown = 5, fullCountdown = 5 },
-		{ id = "GroupA", capacity = 4, countdown = 20, fullCountdown = 5 },
-		{ id = "GroupB", capacity = 4, countdown = 20, fullCountdown = 5 },
-		{ id = "GroupC", capacity = 4, countdown = 20, fullCountdown = 5 },
+		{ id = "Solo", capacity = 1, countdown = 5 },
+		{ id = "Duo", capacity = 2, countdown = 20 },
+		{ id = "Squad4", capacity = 4, countdown = 20 },
+		{ id = "Squad6", capacity = 6, countdown = 20 },
 	},
+
+	-- Once a lift is full the rest of its countdown runs this many times faster.
+	FullLiftSpeedup = 3,
 
 	-- Party hand-off from the lobby to the reserved tower server.
 	PartyMapName = "SkylineZero_Parties",

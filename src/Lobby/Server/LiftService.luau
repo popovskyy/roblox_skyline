@@ -13,7 +13,7 @@ local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
 
 local LiftService = {}
 
-type LiftDef = { id: string, capacity: number, countdown: number, fullCountdown: number }
+type LiftDef = { id: string, capacity: number, countdown: number }
 
 type Lift = {
 	def: LiftDef,
@@ -93,7 +93,8 @@ local function addMember(lift: Lift, player: Player)
 		lift.deadline = now + lift.def.countdown
 	end
 	if #lift.members >= lift.def.capacity and lift.deadline then
-		lift.deadline = math.min(lift.deadline, now + lift.def.fullCountdown)
+		-- Full lift: no reason to keep everyone waiting, run the remaining time three times faster.
+		lift.deadline = now + math.max(0, lift.deadline - now) / PlacesConfig.FullLiftSpeedup
 	end
 	updateStatus(lift)
 end
@@ -180,6 +181,15 @@ local function launch(lift: Lift)
 	end
 	local options = Instance.new("TeleportOptions")
 	options.ReservedServerAccessCode = accessCode
+	-- Carry each rider's language choice over to the tower (cosmetic only, so client-forgeable data is fine).
+	local languages = {}
+	for _, player in travellers do
+		local code = player:GetAttribute("Language")
+		if code == "uk" or code == "ru" or code == "en" then
+			languages[tostring(player.UserId)] = code
+		end
+	end
+	options:SetTeleportData({ languages = languages })
 	local teleported = withRetries(function()
 		TeleportService:TeleportAsync(PlacesConfig.TowerPlaceId, travellers, options)
 	end)

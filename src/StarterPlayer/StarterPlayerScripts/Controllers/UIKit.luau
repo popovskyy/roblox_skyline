@@ -3,6 +3,7 @@
 
 local Theme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Theme"))
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 
 local UIKit = {}
 
@@ -67,7 +68,7 @@ function UIKit.Label(props: { [string]: any }): TextLabel
 		BackgroundTransparency = 1,
 		FontFace = Theme.Body,
 		TextColor3 = UIKit.Colors.text,
-		TextSize = 16,
+		TextSize = 18,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true,
 	}
@@ -83,7 +84,7 @@ function UIKit.Button(props: { [string]: any }): TextButton
 		BorderSizePixel = 0,
 		FontFace = Theme.Bold,
 		TextColor3 = UIKit.Colors.text,
-		TextSize = 16,
+		TextSize = 18,
 		AutoButtonColor = true,
 	}
 	for k, v in props do
@@ -113,7 +114,12 @@ function UIKit.Screen(): ScreenGui
 			return
 		end
 		local viewport = camera.ViewportSize
-		scale.Scale = math.clamp(math.min(viewport.X / 1100, viewport.Y / 620), 0.6, 1)
+		if UserInputService.TouchEnabled then
+			-- Phones and tablets: fingers need big targets, so scale up rather than down.
+			scale.Scale = math.clamp(math.min(viewport.X / 760, viewport.Y / 420), 0.9, 1.35)
+		else
+			scale.Scale = math.clamp(math.min(viewport.X / 1280, viewport.Y / 720), 0.8, 1.2)
+		end
 	end
 	updateScale()
 	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(updateScale)

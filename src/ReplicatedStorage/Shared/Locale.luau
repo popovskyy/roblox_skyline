@@ -477,6 +477,18 @@ local S: { [string]: Entry } = {
 		ru = "%s %s\nс собой %d · в сундуке %d",
 		en = "%s %s\ncarried %d · stored %d",
 	},
+	["ui.chestHint"] = {
+		uk = "Натисни на предмет, щоб перекласти його",
+		ru = "Нажми на предмет, чтобы переложить его",
+		en = "Tap an item to move it across",
+	},
+	["ui.backpack"] = { uk = "Рюкзак", ru = "Рюкзак", en = "Backpack" },
+	["ui.emptyBackpack"] = {
+		uk = "У рюкзаку нічого класти",
+		ru = "В рюкзаке нечего класть",
+		en = "Nothing to put away",
+	},
+	["ui.emptyChest"] = { uk = "Скриня порожня", ru = "Сундук пуст", en = "The chest is empty" },
 	["ui.all"] = { uk = "всі", ru = "все", en = "all" },
 	["ui.close"] = { uk = "Закрити", ru = "Закрыть", en = "Close" },
 	["ui.continue"] = { uk = "Продовжити", ru = "Продолжить", en = "Continue" },

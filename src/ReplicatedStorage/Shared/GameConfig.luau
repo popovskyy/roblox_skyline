@@ -51,7 +51,9 @@ local GameConfig = {
 	TestPrices = false,
 
 	-- Server and saving
-	MaxPlayersPerServer = 4,
+	MaxPlayersPerServer = 6,
+	-- false: every match starts from zero (only the lobby leaderboard survives). true: progress is saved.
+	PersistProgress = false,
 	AutosaveIntervalSeconds = 120,
 	DataStoreName = "SkylineZero_PlayerData_v1",
 	SchemaVersion = 1,
