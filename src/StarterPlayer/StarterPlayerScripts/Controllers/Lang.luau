@@ -38,25 +38,9 @@ function Lang.Bind(instance: Instance, key: string, ...: any)
 	end)
 end
 
-function Lang.Cycle(): Locale.Lang
-	local current = Lang.Get()
-	local list = Locale.Languages
-	local index = table.find(list, current) or 0
-	return list[index % #list + 1]
-end
-
-function Lang.Set(code: Locale.Lang)
-	-- Applied locally right away; the server saves it and sets the same attribute for everyone.
-	player:SetAttribute("Language", code)
-	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-	local remote = remotes and remotes:FindFirstChild("SetLanguage")
-	if remote and remote:IsA("RemoteEvent") then
-		remote:FireServer(code)
-	end
-end
-
 local last = Lang.Get()
-player:GetAttributeChangedSignal("Language"):Connect(function()
+-- Changing the language in the Roblox menu updates LocaleId; redraw everything when it does.
+player:GetPropertyChangedSignal("LocaleId"):Connect(function()
 	local now = Lang.Get()
 	if now == last then
 		return

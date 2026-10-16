@@ -755,12 +755,8 @@ function Locale.UpgradeName(lang: Lang, upgradeId: string): string
 	return raw(lang, "upgrade." .. upgradeId .. ".name")
 end
 
--- The language a player reads in: their saved choice, else their Roblox locale.
+-- The language a player reads in: the one picked in the Roblox menu (Player.LocaleId), English otherwise.
 function Locale.ForPlayer(player: Player): Lang
-	local chosen = player:GetAttribute("Language")
-	if Locale.IsLanguage(chosen) then
-		return chosen :: Lang
-	end
 	return Locale.Resolve(player.LocaleId)
 end
 

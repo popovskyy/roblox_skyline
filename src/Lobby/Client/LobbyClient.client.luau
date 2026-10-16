@@ -9,7 +9,6 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 Shared:WaitForChild("Locale")
-local Locale = require(Shared:WaitForChild("Locale"))
 local MusicConfig = require(Shared:WaitForChild("MusicConfig"))
 local Theme = require(Shared:WaitForChild("Theme"))
 local Lang = require(script.Parent:WaitForChild("Lang"))
@@ -105,23 +104,6 @@ notify.OnClientEvent:Connect(function(message, kind)
 	if text ~= "" then
 		toast(text, if type(kind) == "string" then kind else nil)
 	end
-end)
-
--- Language switch ----------------------------------------------------------------------------------------
-local languageButton = UIKit.Button({
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -12, 0, 8),
-	Size = UDim2.fromOffset(52, 44),
-	Text = string.upper(Lang.Get()),
-	Parent = screen,
-})
-languageButton.Activated:Connect(function()
-	local code = Lang.Cycle()
-	Lang.Set(code)
-	toast(Locale.LanguageNames[code], "info")
-end)
-Lang.Changed:Connect(function(code)
-	languageButton.Text = string.upper(code)
 end)
 
 -- Lift countdown ------------------------------------------------------------------------------------------
@@ -235,7 +217,7 @@ playNext()
 
 local musicButton = UIKit.Button({
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -72, 0, 8),
+	Position = UDim2.new(1, -12, 0, 8),
 	Size = UDim2.fromOffset(44, 44),
 	Text = "♪",
 	TextSize = 22,

@@ -7,7 +7,6 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
-local Locale = require(game:GetService("ReplicatedStorage").Shared.Locale)
 local ClientState = require(script.Parent.ClientState)
 local Lang = require(script.Parent.Lang)
 local UIKit = require(script.Parent.UIKit)
@@ -261,26 +260,6 @@ local function watchCharacter(character: Model)
 	end
 end
 
-local function buildLanguageButton(screen: ScreenGui)
-	local button = UIKit.Button({
-		Name = "LanguageToggle",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -64, 0, 8),
-		Size = UDim2.fromOffset(52, 44),
-		Text = string.upper(Lang.Get()),
-		TextSize = 16,
-		Parent = screen,
-	})
-	button.Activated:Connect(function()
-		local nextLang = Lang.Cycle()
-		Lang.Set(nextLang)
-		HUDController.Toast(Locale.LanguageNames[nextLang], "info")
-	end)
-	Lang.Changed:Connect(function(code)
-		button.Text = string.upper(code)
-	end)
-end
-
 -- Only shown once the lobby place exists (PlacesConfig.LobbyPlaceId).
 local function buildLobbyButton(screen: ScreenGui)
 	local PlacesConfig = require(game:GetService("ReplicatedStorage").Shared.PlacesConfig)
@@ -290,7 +269,7 @@ local function buildLobbyButton(screen: ScreenGui)
 	local button = UIKit.Button({
 		Name = "LobbyButton",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -124, 0, 8),
+		Position = UDim2.new(1, -64, 0, 8),
 		Size = UDim2.fromOffset(84, 44),
 		Text = "",
 		TextSize = 15,
@@ -308,7 +287,6 @@ end
 
 function HUDController.Start()
 	local screen = UIKit.Screen()
-	buildLanguageButton(screen)
 	buildLobbyButton(screen)
 	buildStatusPanel(screen)
 	buildObjective(screen)
