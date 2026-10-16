@@ -648,6 +648,39 @@ local S: { [string]: Entry } = {
 		ru = "Возвращаемся в лобби…",
 		en = "Back to the lobby…",
 	},
+	["intro.kicker"] = { uk = "SKYLINE ZERO", ru = "SKYLINE ZERO", en = "SKYLINE ZERO" },
+	["intro.title"] = { uk = "МІСТО ВПАЛО", ru = "ГОРОД ПАЛ", en = "THE CITY FELL" },
+	["intro.body"] = {
+		uk = "Пів року тому місто накрила катастрофа. Вулиці поглинули зарості й заражені. Ти прокинувся на даху хмарочоса, на останньому безпечному місці. Унизу темно, отруйно й повно зомбі, але лише там є все, щоб вибратися.",
+		ru = "Полгода назад город накрыла катастрофа. Улицы поглотили заросли и заражённые. Ты очнулся на крыше небоскрёба, в последнем безопасном месте. Внизу темно, ядовито и полно зомби, но только там есть всё, чтобы выбраться.",
+		en = "Six months ago the city fell. The streets belong to the overgrowth and the infected now. You woke up on a skyscraper roof, the last safe place. Down below it is dark, toxic and crawling with zombies, but that is where everything you need to escape is.",
+	},
+	["intro.goal1"] = {
+		uk = "Спускайся поверхами й збирай ресурси",
+		ru = "Спускайся по этажам и собирай ресурсы",
+		en = "Go down the floors and scavenge",
+	},
+	["intro.goal2"] = {
+		uk = "Складай знахідки в скриню на даху",
+		ru = "Складывай находки в сундук на крыше",
+		en = "Store your finds in the chest on the roof",
+	},
+	["intro.goal3"] = {
+		uk = "Збудуй генератор, фільтр і міст",
+		ru = "Построй генератор, фильтр и мост",
+		en = "Build the generator, the filter and the bridge",
+	},
+	["intro.goal4"] = {
+		uk = "Перейди мостом на сусідню вежу, і ти вільний",
+		ru = "Перейди по мосту на соседнюю башню, и ты свободен",
+		en = "Cross the bridge to the next tower to escape",
+	},
+	["intro.goal5"] = {
+		uk = "Пораненого піднімає тіммейт з бинтом. Упадуть усі, і гру програно",
+		ru = "Раненого поднимает тиммейт с бинтом. Упадут все, и игра проиграна",
+		en = "A teammate with a bandage can lift you up. If everyone falls, you lose",
+	},
+	["intro.start"] = { uk = "ПОЧАТИ", ru = "НАЧАТЬ", en = "START" },
 	["ui.toLobby"] = { uk = "В лобі", ru = "В лобби", en = "Lobby" },
 
 	["ui.weightEach"] = { uk = "вага %d", ru = "вес %d", en = "weight %d" },

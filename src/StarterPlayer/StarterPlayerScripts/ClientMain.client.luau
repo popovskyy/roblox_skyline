@@ -22,6 +22,7 @@ local InteractionController = require(Controllers:WaitForChild("InteractionContr
 local MusicController = require(Controllers:WaitForChild("MusicController"))
 local ObjectiveMarkerController = require(Controllers:WaitForChild("ObjectiveMarkerController"))
 local CombatController = require(Controllers:WaitForChild("CombatController"))
+local IntroController = require(Controllers:WaitForChild("IntroController"))
 local TutorialController = require(Controllers:WaitForChild("TutorialController"))
 local WorldVisualsController = require(Controllers:WaitForChild("WorldVisualsController"))
 
@@ -38,6 +39,7 @@ WorldVisualsController.Start()
 MusicController.Start()
 ObjectiveMarkerController.Start()
 CombatController.Start(remotes)
+IntroController.Start()
 
 remote(RemoteNames.StateChanged).OnClientEvent:Connect(function(snapshot)
 	if type(snapshot) == "table" then
