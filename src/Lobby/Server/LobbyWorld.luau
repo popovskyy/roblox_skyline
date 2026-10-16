@@ -237,7 +237,10 @@ function LobbyWorld.Build(): Refs
 	-- Title, hint, how to play, leaderboard.
 	local titleGui = board(root, "TitleBoard", Vector2.new(40, 8), CFrame.new(0, 26, 57.5))
 	textLabel(titleGui, "lobby.title", UDim2.fromScale(1, 0.62), UDim2.new()).Font = Enum.Font.GothamBlack
-	textLabel(titleGui, "lobby.hint", UDim2.fromScale(1, 0.34), UDim2.fromScale(0, 0.64))
+	textLabel(titleGui, "lobby.hint", UDim2.fromScale(1, 0.26), UDim2.fromScale(0, 0.64))
+	local build = textLabel(titleGui, nil, UDim2.fromScale(1, 0.08), UDim2.fromScale(0, 0.91))
+	build.Text = ("build %s · tower %d"):format(PlacesConfig.Build, PlacesConfig.TowerPlaceId)
+	build.TextColor3 = Color3.fromRGB(160, 160, 160)
 
 	local howGui =
 		board(root, "HowToPlay", Vector2.new(16, 12), CFrame.new(46, 7, 0) * CFrame.Angles(0, math.pi / 2, 0))

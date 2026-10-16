@@ -4,6 +4,9 @@
 -- and the tower runs every server as solo.
 
 local PlacesConfig = {
+	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
+	Build = "b3 · 16.10 14:55",
+
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
 

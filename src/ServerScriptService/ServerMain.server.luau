@@ -53,4 +53,4 @@ InteractionService.Start()
 PartyService.Start()
 PlayerLifecycleService.Start() -- last: it loads characters, so everything above must be ready
 
-print("[Skyline Zero] Server ready")
+print(("[Skyline Zero] Server ready, build %s"):format(require(ReplicatedStorage.Shared.PlacesConfig).Build))

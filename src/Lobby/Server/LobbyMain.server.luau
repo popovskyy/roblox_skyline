@@ -35,4 +35,5 @@ LiftService.Start(world.lifts, function(player, message, kind)
 end)
 LeaderboardService.Start(world.leaderboardRows)
 
-print("[Skyline Zero] Lobby ready")
+local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
+print(("[Skyline Zero] Lobby ready, build %s, tower place %d"):format(PlacesConfig.Build, PlacesConfig.TowerPlaceId))
