@@ -4,8 +4,8 @@
 -- and the tower runs every server as solo.
 
 local PlacesConfig = {
-	LobbyPlaceId = 0,
-	TowerPlaceId = 0,
+	LobbyPlaceId = 128619231370772,
+	TowerPlaceId = 104145307601846,
 
 	-- Lifts in the lobby. The first player in a lift is the party leader.
 	Lifts = {
