@@ -38,7 +38,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 	local emoji = UIKit.Label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.46),
-		Size = UDim2.fromScale(0.74, 0.74),
+		Size = UDim2.fromScale(0.6, 0.6),
 		TextScaled = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,
@@ -48,7 +48,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 	local image = UIKit.New("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.46),
-		Size = UDim2.fromScale(0.74, 0.74),
+		Size = UDim2.fromScale(0.6, 0.6),
 		BackgroundTransparency = 1,
 		Visible = false,
 		ScaleType = Enum.ScaleType.Fit,
@@ -60,7 +60,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		Size = UDim2.fromOffset(40, 20),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		FontFace = Theme.Display,
-		TextSize = 19,
+		TextSize = 16,
 		TextStrokeTransparency = 0.4,
 		Text = "",
 		Parent = frame,

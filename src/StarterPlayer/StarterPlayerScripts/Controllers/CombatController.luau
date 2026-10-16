@@ -237,16 +237,26 @@ function CombatController.Start(remoteFolder: Folder)
 		local hit = UIKit.Button({
 			Name = "AttackButton",
 			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -150, 1, -40),
-			Size = UDim2.fromOffset(96, 96),
+			-- Left of the jump button, above the hotbar's right end.
+			Position = UDim2.new(1, -118, 1, -16),
+			Size = UDim2.fromOffset(84, 84),
 			Text = "",
 			TextSize = 20,
 			BackgroundColor3 = Color3.fromRGB(150, 60, 50),
 			Parent = screen,
 		})
-		UIKit.New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = hit })
+		-- Round button, only while a weapon is in hand.
+		local corner = hit:FindFirstChildOfClass("UICorner")
+		if corner then
+			corner.CornerRadius = UDim.new(1, 0)
+		end
 		Lang.Bind(hit, "ui.attack")
 		hit.Activated:Connect(attack)
+		local function updateHit()
+			hit.Visible = player:GetAttribute("Equipped") ~= nil
+		end
+		player:GetAttributeChangedSignal("Equipped"):Connect(updateHit)
+		updateHit()
 	end
 
 	ClientState.Changed:Connect(function()

@@ -115,8 +115,8 @@ function UIKit.Screen(): ScreenGui
 		end
 		local viewport = camera.ViewportSize
 		if UserInputService.TouchEnabled then
-			-- Phones and tablets: fingers need big targets, so scale up rather than down.
-			scale.Scale = math.clamp(math.min(viewport.X / 760, viewport.Y / 420), 0.9, 1.35)
+			-- Phones and tablets: keep buttons finger-sized without letting panels cover the screen.
+			scale.Scale = math.clamp(math.min(viewport.X / 900, viewport.Y / 480), 0.65, 1)
 		else
 			scale.Scale = math.clamp(math.min(viewport.X / 1280, viewport.Y / 720), 0.8, 1.2)
 		end

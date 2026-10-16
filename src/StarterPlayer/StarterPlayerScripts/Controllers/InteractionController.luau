@@ -73,8 +73,8 @@ function InteractionController.Start(remotes: Folder)
 		local button = UIKit.Button({
 			Name = "InteractButton",
 			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -24, 1, -180),
-			Size = UDim2.fromOffset(150, 70),
+			Position = UDim2.new(1, -24, 1, -120),
+			Size = UDim2.fromOffset(150, 60),
 			Text = "",
 			TextSize = 18,
 			BackgroundColor3 = Color3.fromRGB(70, 110, 160),
@@ -111,7 +111,7 @@ function InteractionController.Start(remotes: Folder)
 		local flash = UIKit.Button({
 			Name = "FlashlightButton",
 			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -24, 1, -260),
+			Position = UDim2.new(1, -24, 1, -190),
 			Size = UDim2.fromOffset(110, 48),
 			Text = "",
 			Visible = false,

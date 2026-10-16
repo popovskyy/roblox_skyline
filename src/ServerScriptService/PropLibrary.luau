@@ -12,6 +12,7 @@ local PropLibrary = {}
 -- Uploaded model assets (see scripts/upload_model.sh).
 local ASSETS: { [string]: number } = {
 	InteriorProps = 76157686296384,
+	Weapons = 126001413949023,
 }
 
 local PAINTS: { [string]: { color: Color3, material: Enum.Material } } = {
@@ -88,16 +89,8 @@ function PropLibrary.Has(propName: string): boolean
 	return #partsOf(propName) > 0
 end
 
--- Builds a coloured copy of a prop, scaled to fit inside `fit` (studs), standing with its bottom centre
--- at `base` and turned by `yaw` degrees. Returns nil when the prop is not available.
-function PropLibrary.Place(
-	parent: Instance,
-	propName: string,
-	base: Vector3,
-	fit: Vector3,
-	yaw: number?,
-	collide: boolean?
-): Model?
+-- An unscaled, coloured copy of a prop's meshes (anchored, colliding unless told otherwise).
+function PropLibrary.Raw(propName: string, collide: boolean?): Model?
 	local sources = partsOf(propName)
 	if #sources == 0 then
 		return nil
@@ -124,6 +117,23 @@ function PropLibrary.Place(
 			end
 		end
 		part.Parent = model
+	end
+	return model
+end
+
+-- Builds a coloured copy of a prop, scaled to fit inside `fit` (studs), standing with its bottom centre
+-- at `base` and turned by `yaw` degrees. Returns nil when the prop is not available.
+function PropLibrary.Place(
+	parent: Instance,
+	propName: string,
+	base: Vector3,
+	fit: Vector3,
+	yaw: number?,
+	collide: boolean?
+): Model?
+	local model = PropLibrary.Raw(propName, collide)
+	if not model then
+		return nil
 	end
 	local boxCFrame, boxSize = model:GetBoundingBox()
 	local scale = math.min(fit.X / boxSize.X, fit.Y / boxSize.Y, fit.Z / boxSize.Z)

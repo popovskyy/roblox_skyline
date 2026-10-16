@@ -21,7 +21,6 @@ local healthFill: Frame
 local healthText: TextLabel
 local hungerFill: Frame
 local hungerText: TextLabel
-local weightText: TextLabel
 local flashlightText: TextLabel
 local warningText: TextLabel
 local objectiveText: TextLabel
@@ -34,7 +33,8 @@ local function buildStatusPanel(screen: ScreenGui)
 		-- PC/console: bottom-left (chat sits top-left). Touch: top-left, because the thumbstick owns bottom-left.
 		AnchorPoint = if UserInputService.TouchEnabled then Vector2.new(0, 0) else Vector2.new(0, 1),
 		Position = if UserInputService.TouchEnabled then UDim2.fromOffset(12, 56) else UDim2.new(0, 12, 1, -12),
-		Size = UDim2.fromOffset(260, 186),
+		Size = UDim2.fromOffset(230, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = screen,
 	})
 	UIKit.Padding(10).Parent = panel
@@ -84,7 +84,6 @@ local function buildStatusPanel(screen: ScreenGui)
 		ZIndex = 2,
 		Parent = hungerBar,
 	})
-	weightText = UIKit.Label({ Size = UDim2.new(1, 0, 0, 20), Text = "", LayoutOrder = 3, Parent = panel })
 	flashlightText = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 20),
 		Text = "",
@@ -94,7 +93,8 @@ local function buildStatusPanel(screen: ScreenGui)
 		Parent = panel,
 	})
 	warningText = UIKit.Label({
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = "",
 		FontFace = Theme.Bold,
 		TextColor3 = C.warn,
@@ -108,14 +108,16 @@ local function buildObjective(screen: ScreenGui)
 		Name = "Objective",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.fromOffset(520, 56),
+		-- Narrow enough to never reach the buttons in the top-right corner.
+		Size = UDim2.fromScale(0.42, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = screen,
 	})
-	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(520, 80), Parent = panel })
-	panel.Size = UDim2.new(0.6, 0, 0, 56)
+	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(460, 120), Parent = panel })
 	UIKit.Padding(8).Parent = panel
 	objectiveText = UIKit.Label({
-		Size = UDim2.new(1, -90, 1, 0),
+		Size = UDim2.new(1, -78, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = "",
 		TextSize = 15,
 		Parent = panel,
@@ -123,7 +125,7 @@ local function buildObjective(screen: ScreenGui)
 	actsText = UIKit.Label({
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.new(0, 85, 1, 0),
+		Size = UDim2.fromOffset(74, 20),
 		Text = "",
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = C.accent,
@@ -243,8 +245,6 @@ local function updateFlashlight()
 end
 
 local function onState(s: { [string]: any })
-	weightText.Text = Lang.T("hud.weight", s.weight or 0, s.maxWeight or 0)
-	weightText.TextColor3 = if (s.weight or 0) >= (s.maxWeight or 1) then C.warn else C.text
 	if s.tutorial then
 		objectiveText.Text = Lang.T("hud.objective", { ref = s.tutorial.text })
 	end

@@ -23,8 +23,8 @@ local C = UIKit.Colors
 local remotes: Folder
 
 local SLOT_COUNT = 10
-local SLOT_SIZE = if UserInputService.TouchEnabled then 64 else 64
-local SLOT_GAP = 6
+local SLOT_SIZE = if UserInputService.TouchEnabled then 54 else 60
+local SLOT_GAP = if UserInputService.TouchEnabled then 4 else 6
 local NUMBER_KEYS = {
 	Enum.KeyCode.One,
 	Enum.KeyCode.Two,
@@ -132,7 +132,7 @@ local function renderInventory(s: { [string]: any })
 	for i, slot in slots do
 		local itemId = slotItems[i]
 		local count = if itemId and s.inventory then s.inventory[itemId] or 0 else 0
-		slot.set(itemId, count, false)
+		slot.set(itemId, count, itemId ~= nil and itemId == player:GetAttribute("Equipped"))
 	end
 end
 
@@ -162,7 +162,11 @@ local function activateSlot(i: number)
 	local s = ClientState.Get()
 	local count = s and s.inventory and s.inventory[def.id] or 0
 	local useLabel = USE_LABELS[def.id]
-	if useLabel then
+	if def.weapon then
+		-- Weapons: tap to take it in hand, tap again to put it away.
+		(remotes:FindFirstChild(RemoteNames.Equip) :: RemoteEvent):FireServer(def.id)
+		showTooltip(("%s %s"):format(def.icon, Lang.T("item." .. def.id .. ".name")))
+	elseif useLabel then
 		(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(def.id)
 		showTooltip(("%s %s · %s"):format(def.icon, Lang.T("item." .. def.id .. ".name"), Lang.T(useLabel)))
 	else
@@ -388,6 +392,13 @@ function InventoryController.Start(remoteFolder: Folder)
 		end
 	end)
 
+	-- Highlight the slot of the weapon in hand.
+	player:GetAttributeChangedSignal("Equipped"):Connect(function()
+		local s = ClientState.Get()
+		if s then
+			renderInventory(s)
+		end
+	end)
 	ClientState.Changed:Connect(function(s)
 		renderInventory(s)
 		if storagePanel.Visible then
