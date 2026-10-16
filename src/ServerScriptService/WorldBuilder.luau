@@ -1078,28 +1078,80 @@ local function buildNeighbor(parent: Folder)
 		local x = math.cos(angle) * dist
 		local z = math.sin(angle) * dist
 		if math.abs(x - cx) > 60 or math.abs(z) > 60 then
-			block(neighbor, "Skyline", Vector3.new(w, h, w), CFrame.new(x, h / 2, z), COLORS.silhouette).CastShadow =
-				false
+			local building =
+				block(neighbor, "Skyline", Vector3.new(w, h, w), CFrame.new(x, h / 2, z), COLORS.silhouette)
+			building.CastShadow = false
+			-- Every third ruin is still burning: a glowing top and a column of smoke.
+			if i % 3 == 0 then
+				local fire = block(
+					building,
+					"Fire",
+					Vector3.new(w * 0.6, 2, w * 0.6),
+					CFrame.new(x, h + 1, z),
+					Color3.fromRGB(255, 110, 30),
+					Enum.Material.Neon
+				)
+				fire.CanCollide = false
+				local smoke = Instance.new("ParticleEmitter")
+				smoke.Color = ColorSequence.new(Color3.fromRGB(60, 45, 40))
+				smoke.Size = NumberSequence.new(14, 40)
+				smoke.Transparency = NumberSequence.new(0.3, 1)
+				smoke.Lifetime = NumberRange.new(10, 14)
+				smoke.Rate = 4
+				smoke.Speed = NumberRange.new(10, 16)
+				smoke.Acceleration = Vector3.new(6, 0, 0)
+				smoke.EmissionDirection = Enum.NormalId.Top
+				smoke.Parent = fire
+			end
 		end
 	end
 end
 
+-- Apocalyptic sunset: low orange sun, thick rust-coloured haze, warm colour grading.
 local function setupLighting()
-	Lighting.ClockTime = 18.2
-	Lighting.Brightness = 1.6
-	Lighting.Ambient = Color3.fromRGB(28, 28, 32)
-	Lighting.OutdoorAmbient = Color3.fromRGB(105, 100, 110)
+	Lighting.ClockTime = 17.6
+	Lighting.GeographicLatitude = 20
+	Lighting.Brightness = 1.8
+	Lighting.Ambient = Color3.fromRGB(30, 24, 22)
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 95, 65)
+	Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 80)
 	Lighting.EnvironmentDiffuseScale = 0.3
 	Lighting.EnvironmentSpecularScale = 0.3
 	Lighting.GlobalShadows = true
-	if not Lighting:FindFirstChildOfClass("Atmosphere") then
-		local atmosphere = Instance.new("Atmosphere")
-		atmosphere.Density = 0.38
-		atmosphere.Haze = 2.2
-		atmosphere.Color = Color3.fromRGB(190, 170, 150)
-		atmosphere.Decay = Color3.fromRGB(110, 90, 80)
-		atmosphere.Parent = Lighting
+
+	-- Replace whatever the template place shipped with.
+	for _, child in Lighting:GetChildren() do
+		if child:IsA("Atmosphere") or child:IsA("Sky") or child:IsA("PostEffect") then
+			child:Destroy()
+		end
 	end
+
+	local sky = Instance.new("Sky")
+	sky.SunAngularSize = 18
+	sky.MoonAngularSize = 0
+	sky.StarCount = 0
+	sky.Parent = Lighting
+
+	local atmosphere = Instance.new("Atmosphere")
+	atmosphere.Density = 0.42
+	atmosphere.Offset = 0.15
+	atmosphere.Haze = 2.6
+	atmosphere.Glare = 0.6
+	atmosphere.Color = Color3.fromRGB(255, 140, 60)
+	atmosphere.Decay = Color3.fromRGB(140, 55, 25)
+	atmosphere.Parent = Lighting
+
+	local grading = Instance.new("ColorCorrectionEffect")
+	grading.TintColor = Color3.fromRGB(255, 225, 200)
+	grading.Saturation = -0.1
+	grading.Contrast = 0.12
+	grading.Parent = Lighting
+
+	local bloom = Instance.new("BloomEffect")
+	bloom.Intensity = 0.6
+	bloom.Size = 30
+	bloom.Threshold = 1.6
+	bloom.Parent = Lighting
 end
 
 local function collectRefs(root: Folder): WorldRefs
