@@ -26,6 +26,7 @@ local MonetizationConfig = {
 
 	DeveloperProducts = {
 		-- BackpackInsurance = { id = 0, handler = "BackpackInsurance" },
+		-- SelfRevive = { id = 0, handler = "SelfRevive" }, -- get up from downed without a teammate
 		-- Donation100 = { id = 0, handler = "Donation" },
 	} :: { [string]: ProductDef },
 }

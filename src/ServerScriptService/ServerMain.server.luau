@@ -25,6 +25,7 @@ local DamageService = require(Services.DamageService)
 local ZombieService = require(Services.ZombieService)
 local CombatService = require(Services.CombatService)
 local CraftService = require(Services.CraftService)
+local MatchService = require(Services.MatchService)
 
 Net.Init()
 PlayerDataService.Init()
@@ -60,6 +61,7 @@ PartyService.Start()
 DamageService.Start()
 CombatService.Start()
 CraftService.Start()
+MatchService.Start()
 PlayerLifecycleService.Start() -- last: it loads characters, so everything above must be ready
 
 print(("[Skyline Zero] Server ready, build %s"):format(require(ReplicatedStorage.Shared.PlacesConfig).Build))

@@ -468,10 +468,10 @@ local function lootCrate(
 	level: number,
 	nodeId: string,
 	tier: string,
-	x: number,
-	z: number,
+	pos: Vector2,
 	options: { requiresUpgrade: string?, requiresRubble: string? }?
 )
+	local x, z = pos.X, pos.Y
 	local look = CRATE_LOOKS[tier]
 	local crate = onFloor(parent, nodeId, level, x, z, Vector3.new(3.4, 2.2, 2.4), look.body, Enum.Material.WoodPlanks)
 	if tier ~= "Common" then
@@ -521,10 +521,10 @@ local function resourceNode(
 	nodeId: string,
 	itemId: string,
 	amount: number,
-	x: number,
-	z: number,
+	pos: Vector2,
 	options: NodeOptions?
 )
+	local x, z = pos.X, pos.Y
 	local size, color, material, shape = nodeLook(itemId)
 	local part = onFloor(parent, nodeId, level, x, z, size, color, material)
 	part.Shape = shape
@@ -667,6 +667,86 @@ local function pipe(parent: Instance, level: number, x: number, z: number, lengt
 	part.CanCollide = false
 end
 
+-- Random but sensible spots for items on a floor, rolled anew every server so nobody can learn the map.
+-- Zones: "open" (anywhere walkable outside locked rooms), "toxic"/"safe" (east/west halves on floor 3),
+-- "roomPP"/"roomNN" (inside the +x+z / -x-z corner rooms behind rubble).
+local function makePlacer(level: number, floor: Folder, rooms: { string }): (zone: string) -> Vector2
+	local rng = Random.new()
+	local floorY = levelY(level)
+	local edge = World.FloorSize / 2 - 4
+	local taken: { Vector2 } = {}
+	local boxes: { { center: Vector2, half: Vector2 } } = {}
+	for _, d in floor:GetDescendants() do
+		if d:IsA("BasePart") and d.CanCollide and d.Position.Y + d.Size.Y / 2 > floorY + 0.5 then
+			local cf, size = d.CFrame, d.Size
+			local ex = math.abs(cf.RightVector.X) * size.X
+				+ math.abs(cf.UpVector.X) * size.Y
+				+ math.abs(cf.LookVector.X) * size.Z
+			local ez = math.abs(cf.RightVector.Z) * size.X
+				+ math.abs(cf.UpVector.Z) * size.Y
+				+ math.abs(cf.LookVector.Z) * size.Z
+			table.insert(
+				boxes,
+				{ center = Vector2.new(d.Position.X, d.Position.Z), half = Vector2.new(ex / 2, ez / 2) }
+			)
+		end
+	end
+
+	local function inRoom(x: number, z: number, room: string): boolean
+		local sx = if string.sub(room, 5, 5) == "P" then 1 else -1
+		local sz = if string.sub(room, 6, 6) == "P" then 1 else -1
+		return x * sx >= 21 and z * sz >= 21
+	end
+
+	local function fits(x: number, z: number, zone: string): boolean
+		-- Keep the stairwell and its doorway clear.
+		if math.abs(x) < HOLE_X + 3 and z > HOLE_MIN_Z - 6 and z < HOLE_MAX_Z + 3 then
+			return false
+		end
+		if string.sub(zone, 1, 4) == "room" then
+			if not inRoom(x, z, zone) or math.abs(x) > 32 or math.abs(z) > 32 then
+				return false
+			end
+		else
+			for _, room in rooms do
+				if inRoom(x, z, room) then
+					return false
+				end
+			end
+			if zone == "toxic" and x < HOLE_X + 5 then
+				return false
+			elseif zone == "safe" and x > HOLE_X + 1 then
+				return false
+			end
+		end
+		for _, box in boxes do
+			if math.abs(x - box.center.X) < box.half.X + 2.5 and math.abs(z - box.center.Y) < box.half.Y + 2.5 then
+				return false
+			end
+		end
+		for _, other in taken do
+			if (other - Vector2.new(x, z)).Magnitude < 6 then
+				return false
+			end
+		end
+		return true
+	end
+
+	return function(zone: string): Vector2
+		for _ = 1, 400 do
+			local x = rng:NextNumber(-edge, edge)
+			local z = rng:NextNumber(-edge, edge)
+			if fits(x, z, zone) then
+				local spot = Vector2.new(x, z)
+				table.insert(taken, spot)
+				return spot
+			end
+		end
+		warn(("[WorldBuilder] no free spot for %s on floor %d"):format(zone, level))
+		return Vector2.new(0, -30)
+	end
+end
+
 local function buildFloor1(parent: Folder, interactables: Folder)
 	local level = 1
 	local floor = Instance.new("Folder")
@@ -685,17 +765,19 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	pipe(floor, level, 0, -25, 60, true)
 	pipe(floor, level, -28, 0, 60, false)
 
-	resourceNode(interactables, level, "F1_Scrap_1", "Scrap", 2, -28, -28)
-	resourceNode(interactables, level, "F1_Scrap_2", "Scrap", 1, -28, 28)
-	resourceNode(interactables, level, "F1_Scrap_3", "Scrap", 2, 25, -12)
-	resourceNode(interactables, level, "F1_Scrap_4", "Scrap", 1, 10, -30)
-	resourceNode(interactables, level, "F1_Scrap_5", "Scrap", 2, -12, 26)
-	resourceNode(interactables, level, "F1_Scrap_6", "Scrap", 1, 30, 4)
-	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, -30, -2)
-	resourceNode(interactables, level, "F1_Elec_2", "Electronics", 2, 30, 30, { requiresRubble = "F1_Rubble" })
-	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, 25, 33, { requiresRubble = "F1_Rubble" })
-	lootCrate(interactables, level, "F1_Crate_1", "Common", -8, -30)
-	lootCrate(interactables, level, "F1_Crate_2", "Common", 30, -8)
+	-- Items land somewhere new every match.
+	local at = makePlacer(level, floor, { "roomPP" })
+	resourceNode(interactables, level, "F1_Scrap_1", "Scrap", 2, at("open"))
+	resourceNode(interactables, level, "F1_Scrap_2", "Scrap", 1, at("open"))
+	resourceNode(interactables, level, "F1_Scrap_3", "Scrap", 2, at("open"))
+	resourceNode(interactables, level, "F1_Scrap_4", "Scrap", 1, at("open"))
+	resourceNode(interactables, level, "F1_Scrap_5", "Scrap", 2, at("open"))
+	resourceNode(interactables, level, "F1_Scrap_6", "Scrap", 1, at("open"))
+	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, at("open"))
+	resourceNode(interactables, level, "F1_Elec_2", "Electronics", 2, at("roomPP"), { requiresRubble = "F1_Rubble" })
+	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, at("roomPP"), { requiresRubble = "F1_Rubble" })
+	lootCrate(interactables, level, "F1_Crate_1", "Common", at("open"))
+	lootCrate(interactables, level, "F1_Crate_2", "Common", at("open"))
 end
 
 local function buildFloor2(parent: Folder, interactables: Folder)
@@ -717,20 +799,22 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	onFloor(floor, "Sofa", level, 12, 28, Vector3.new(8, 2.5, 3), COLORS.fabric, Enum.Material.Fabric)
 	onFloor(floor, "Table", level, -10, -28, Vector3.new(5, 3, 3), COLORS.wood, Enum.Material.Wood)
 
-	resourceNode(interactables, level, "F2_Food_1", "Food", 1, -30, 30)
-	resourceNode(interactables, level, "F2_Food_2", "Food", 1, -24, 14)
-	resourceNode(interactables, level, "F2_Food_3", "Food", 1, 28, -28)
-	resourceNode(interactables, level, "F2_Food_4", "Food", 1, 30, 25)
-	resourceNode(interactables, level, "F2_Food_5", "Food", 1, -10, -24)
-	resourceNode(interactables, level, "F2_Medkit_1", "Medkit", 1, 25, -22)
-	resourceNode(interactables, level, "F2_Medkit_2", "Medkit", 1, -30, 22)
-	resourceNode(interactables, level, "F2_Scrap_1", "Scrap", 2, 0, 30)
-	resourceNode(interactables, level, "F2_Scrap_2", "Scrap", 1, -15, -30)
-	resourceNode(interactables, level, "F2_Scrap_3", "Scrap", 1, 15, 22)
-	resourceNode(interactables, level, "F2_Flashlight", "Flashlight", 1, 31, -31, { unique = true })
-	lootCrate(interactables, level, "F2_Crate_1", "Common", -12, 30)
-	lootCrate(interactables, level, "F2_Crate_2", "Common", 30, 0)
-	lootCrate(interactables, level, "F2_Crate_3", "Rare", 22, -30)
+	-- Items land somewhere new every match.
+	local at = makePlacer(level, floor, {})
+	resourceNode(interactables, level, "F2_Food_1", "Food", 1, at("open"))
+	resourceNode(interactables, level, "F2_Food_2", "Food", 1, at("open"))
+	resourceNode(interactables, level, "F2_Food_3", "Food", 1, at("open"))
+	resourceNode(interactables, level, "F2_Food_4", "Food", 1, at("open"))
+	resourceNode(interactables, level, "F2_Food_5", "Food", 1, at("open"))
+	resourceNode(interactables, level, "F2_Medkit_1", "Medkit", 1, at("open"))
+	resourceNode(interactables, level, "F2_Medkit_2", "Medkit", 1, at("open"))
+	resourceNode(interactables, level, "F2_Scrap_1", "Scrap", 2, at("open"))
+	resourceNode(interactables, level, "F2_Scrap_2", "Scrap", 1, at("open"))
+	resourceNode(interactables, level, "F2_Scrap_3", "Scrap", 1, at("open"))
+	resourceNode(interactables, level, "F2_Flashlight", "Flashlight", 1, at("open"), { unique = true })
+	lootCrate(interactables, level, "F2_Crate_1", "Common", at("open"))
+	lootCrate(interactables, level, "F2_Crate_2", "Common", at("open"))
+	lootCrate(interactables, level, "F2_Crate_3", "Rare", at("open"))
 end
 
 local function buildFloor3(parent: Folder, interactables: Folder)
@@ -797,16 +881,18 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 		)
 	end
 
-	resourceNode(interactables, level, "F3_Elec_1", "Electronics", 2, 20, -25)
-	resourceNode(interactables, level, "F3_Elec_2", "Electronics", 2, 28, 0)
-	resourceNode(interactables, level, "F3_Elec_3", "Electronics", 2, 20, 26)
-	resourceNode(interactables, level, "F3_Elec_4", "Electronics", 1, -25, -26)
-	resourceNode(interactables, level, "F3_Elec_5", "Electronics", 1, -28, 25)
-	resourceNode(interactables, level, "F3_Scrap_1", "Scrap", 2, -15, -30)
-	resourceNode(interactables, level, "F3_Scrap_2", "Scrap", 2, -30, 0)
-	resourceNode(interactables, level, "F3_Scrap_3", "Scrap", 1, -10, 28)
-	lootCrate(interactables, level, "F3_Crate_1", "Rare", -30, 14)
-	lootCrate(interactables, level, "F3_Crate_2", "Gold", 30, -28)
+	-- Items land somewhere new every match.
+	local at = makePlacer(level, floor, {})
+	resourceNode(interactables, level, "F3_Elec_1", "Electronics", 2, at("toxic"))
+	resourceNode(interactables, level, "F3_Elec_2", "Electronics", 2, at("toxic"))
+	resourceNode(interactables, level, "F3_Elec_3", "Electronics", 2, at("toxic"))
+	resourceNode(interactables, level, "F3_Elec_4", "Electronics", 1, at("safe"))
+	resourceNode(interactables, level, "F3_Elec_5", "Electronics", 1, at("safe"))
+	resourceNode(interactables, level, "F3_Scrap_1", "Scrap", 2, at("safe"))
+	resourceNode(interactables, level, "F3_Scrap_2", "Scrap", 2, at("safe"))
+	resourceNode(interactables, level, "F3_Scrap_3", "Scrap", 1, at("safe"))
+	lootCrate(interactables, level, "F3_Crate_1", "Rare", at("safe"))
+	lootCrate(interactables, level, "F3_Crate_2", "Gold", at("toxic"))
 end
 
 local function buildFloor4(parent: Folder, interactables: Folder)
@@ -859,16 +945,17 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 		false
 
 	local gen = { requiresUpgrade = "Generator" }
-	resourceNode(interactables, level, "F4_Cable_1", "Cable", 2, -28, 22, gen)
-	resourceNode(interactables, level, "F4_Cable_2", "Cable", 2, 28, -24, gen)
+	-- Items land somewhere new every match.
+	local at = makePlacer(level, floor, { "roomNN", "roomPP" })
+	resourceNode(interactables, level, "F4_Cable_1", "Cable", 2, at("open"), gen)
+	resourceNode(interactables, level, "F4_Cable_2", "Cable", 2, at("open"), gen)
 	resourceNode(
 		interactables,
 		level,
 		"F4_Motor_1",
 		"Motor",
 		1,
-		-30,
-		-30,
+		at("roomNN"),
 		{ requiresUpgrade = "Generator", requiresRubble = "F4_Rubble_A" }
 	)
 	resourceNode(
@@ -877,25 +964,23 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 		"F4_Motor_2",
 		"Motor",
 		1,
-		30,
-		30,
+		at("roomPP"),
 		{ requiresUpgrade = "Generator", requiresRubble = "F4_Rubble_B" }
 	)
-	resourceNode(interactables, level, "F4_Scrap_1", "Scrap", 2, 0, -30, gen)
-	resourceNode(interactables, level, "F4_Scrap_2", "Scrap", 2, -12, 30, gen)
-	resourceNode(interactables, level, "F4_Scrap_3", "Scrap", 2, 30, 0, gen)
-	resourceNode(interactables, level, "F4_Scrap_4", "Scrap", 1, -30, 2, gen)
-	resourceNode(interactables, level, "F4_Elec_1", "Electronics", 2, 15, -30, gen)
-	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 1, -16, 14, gen)
-	lootCrate(interactables, level, "F4_Crate_1", "Rare", -30, 30, gen)
-	lootCrate(interactables, level, "F4_Crate_2", "Gold", 20, -12, gen)
+	resourceNode(interactables, level, "F4_Scrap_1", "Scrap", 2, at("open"), gen)
+	resourceNode(interactables, level, "F4_Scrap_2", "Scrap", 2, at("open"), gen)
+	resourceNode(interactables, level, "F4_Scrap_3", "Scrap", 2, at("open"), gen)
+	resourceNode(interactables, level, "F4_Scrap_4", "Scrap", 1, at("open"), gen)
+	resourceNode(interactables, level, "F4_Elec_1", "Electronics", 2, at("open"), gen)
+	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 1, at("open"), gen)
+	lootCrate(interactables, level, "F4_Crate_1", "Rare", at("open"), gen)
+	lootCrate(interactables, level, "F4_Crate_2", "Gold", at("open"), gen)
 	lootCrate(
 		interactables,
 		level,
 		"F4_Crate_3",
 		"Diamond",
-		25,
-		25,
+		at("roomPP"),
 		{ requiresUpgrade = "Generator", requiresRubble = "F4_Rubble_B" }
 	)
 end

@@ -631,6 +631,22 @@ local S: { [string]: Entry } = {
 	["loot.found"] = { uk = "Знайдено: %s", ru = "Найдено: %s", en = "Found: %s" },
 	["loot.empty"] = { uk = "Ящик порожній", ru = "Ящик пуст", en = "The crate is empty" },
 
+	["downed.waitTeam"] = {
+		uk = "Чекай, поки тіммейт підніме тебе бинтом",
+		ru = "Жди, пока тиммейт поднимет тебя бинтом",
+		en = "Wait for a teammate to lift you with a bandage",
+	},
+	["gameover.title"] = { uk = "ВИ ПРОГРАЛИ", ru = "ВЫ ПРОИГРАЛИ", en = "YOU LOST" },
+	["gameover.body"] = {
+		uk = "Ніхто не встояв на ногах. Вежа перемогла цього разу.",
+		ru = "Никто не устоял на ногах. Башня победила в этот раз.",
+		en = "Nobody is left standing. The tower wins this time.",
+	},
+	["gameover.footer"] = {
+		uk = "Повертаємось у лобі…",
+		ru = "Возвращаемся в лобби…",
+		en = "Back to the lobby…",
+	},
 	["ui.toLobby"] = { uk = "В лобі", ru = "В лобби", en = "Lobby" },
 
 	["ui.weightEach"] = { uk = "вага %d", ru = "вес %d", en = "weight %d" },

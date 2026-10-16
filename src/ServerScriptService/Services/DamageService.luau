@@ -1,7 +1,7 @@
 --!strict
 -- All damage to players goes through here. A hit that would kill leaves the player downed instead:
--- they lie on the ground, a teammate holding a Bandage can lift them up, and if nobody does before the
--- bleed-out timer ends they die for real and respawn on the roof (PlayerLifecycleService handles that).
+-- they lie on the ground for as long as it takes until a teammate holding a Bandage lifts them up
+-- (later also a Robux self-revive, see MonetizationConfig). When nobody is left standing the match is lost.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -12,6 +12,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
+local MonetizationService = require(script.Parent.MonetizationService)
 local RateLimiter = require(script.Parent.RateLimiter)
 
 local DamageService = {}
@@ -32,15 +33,6 @@ function DamageService.IsDowned(player: Player): boolean
 	return downed[player] ~= nil
 end
 
-local function othersAlive(player: Player): boolean
-	for _, other in Players:GetPlayers() do
-		if other ~= player and not downed[other] and CharacterUtil.GetHumanoid(other) then
-			return true
-		end
-	end
-	return false
-end
-
 local function clearDowned(player: Player, restore: boolean)
 	local state = downed[player]
 	if not state then
@@ -48,7 +40,6 @@ local function clearDowned(player: Player, restore: boolean)
 	end
 	downed[player] = nil
 	player:SetAttribute("Downed", nil)
-	player:SetAttribute("BleedOut", nil)
 	if state.prompt.Parent then
 		state.prompt:Destroy()
 	end
@@ -60,14 +51,25 @@ local function clearDowned(player: Player, restore: boolean)
 	end
 end
 
-local function bleedOut(player: Player, state: DownedState)
-	if downed[player] ~= state then
+type Listener = () -> ()
+local allDownListeners: { Listener } = {}
+
+-- Fires once when every player in the server is down: the match is lost.
+function DamageService.OnAllDown(listener: Listener)
+	table.insert(allDownListeners, listener)
+end
+
+local function checkAllDown()
+	if #Players:GetPlayers() == 0 then
 		return
 	end
-	clearDowned(player, false)
-	local humanoid = state.character:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		humanoid.Health = 0
+	for _, player in Players:GetPlayers() do
+		if not downed[player] and CharacterUtil.GetHumanoid(player) then
+			return
+		end
+	end
+	for _, listener in allDownListeners do
+		task.spawn(listener)
 	end
 end
 
@@ -103,25 +105,27 @@ local function goDown(player: Player, humanoid: Humanoid)
 	humanoid.JumpHeight = 0
 	humanoid.PlatformStand = true -- the body topples over and lies there
 
-	local seconds = if othersAlive(player) then GameConfig.BleedOutSeconds else GameConfig.SoloBleedOutSeconds
 	player:SetAttribute("Downed", true)
-	player:SetAttribute("BleedOut", seconds)
 	for _, other in Players:GetPlayers() do
 		if other ~= player then
 			Net.Notify(other, { "downed.someone", player.DisplayName }, "warning")
 		end
 	end
-	task.spawn(function()
-		local left = seconds
-		while left > 0 and downed[player] == state do
-			task.wait(1)
-			left -= 1
-			if downed[player] == state then
-				player:SetAttribute("BleedOut", left)
-			end
-		end
-		bleedOut(player, state)
-	end)
+	checkAllDown()
+end
+
+-- Lifts a downed player back up. Used by teammates with a Bandage and by the future Robux self-revive.
+function DamageService.Revive(player: Player): boolean
+	local state = downed[player]
+	if not state then
+		return false
+	end
+	local humanoid = state.character:FindFirstChildOfClass("Humanoid")
+	clearDowned(player, true)
+	if humanoid then
+		humanoid.Health = math.max(humanoid.Health, GameConfig.ReviveHealth)
+	end
+	return true
 end
 
 -- Damage a player. Never kills outright: a lethal hit leaves them downed.
@@ -166,11 +170,7 @@ local function tryRevive(prompt: ProximityPrompt, rescuer: Player)
 		Net.Notify(rescuer, "revive.needBandage", "warning")
 		return
 	end
-	local humanoid = state.character:FindFirstChildOfClass("Humanoid")
-	clearDowned(target, true)
-	if humanoid then
-		humanoid.Health = math.max(humanoid.Health, GameConfig.ReviveHealth)
-	end
+	DamageService.Revive(target)
 	Net.Notify(target, { "revive.revivedBy", rescuer.DisplayName }, "success")
 	Net.Notify(rescuer, { "revive.youRevived", target.DisplayName }, "success")
 end
@@ -184,6 +184,11 @@ function DamageService.Start()
 	ProximityPromptService.PromptTriggered:Connect(tryRevive)
 	Players.PlayerRemoving:Connect(function(player)
 		clearDowned(player, false)
+		-- The last one standing leaving also ends the match for the others.
+		task.defer(checkAllDown)
+	end)
+	MonetizationService.RegisterProductHandler("SelfRevive", function(player)
+		return DamageService.Revive(player)
 	end)
 end
 

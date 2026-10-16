@@ -62,10 +62,10 @@ local GameConfig = {
 		PerFloor = { 2, 3, 3, 5 }, -- floors 1..4; the roof is always safe
 	},
 
-	-- Downed instead of dead: a teammate with a Bandage can lift you back up.
-	BleedOutSeconds = 45,
-	SoloBleedOutSeconds = 4, -- nobody else around to help
+	-- Downed instead of dead: you lie there until a teammate with a Bandage lifts you up.
+	-- Everyone down = the match is lost; after GameOverSeconds the party goes back to the lobby.
 	ReviveHealth = 35,
+	GameOverSeconds = 8,
 	ReviveHoldSeconds = 3,
 
 	-- Loot crates: each roll picks "count" from min..max; "chance" makes the item optional.

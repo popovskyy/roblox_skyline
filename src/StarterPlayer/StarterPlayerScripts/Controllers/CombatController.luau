@@ -96,8 +96,7 @@ end
 local function updateDowned()
 	local down = player:GetAttribute("Downed") == true
 	downedFrame.Visible = down
-	local seconds = player:GetAttribute("BleedOut")
-	downedTimer.Text = Lang.T("downed.wait", if type(seconds) == "number" then seconds else 0)
+	downedTimer.Text = Lang.T("downed.waitTeam")
 end
 
 -- Workbench window ---------------------------------------------------------------------------------------
@@ -219,7 +218,6 @@ function CombatController.Start(remoteFolder: Folder)
 	end
 	player.CharacterAdded:Connect(watchTool)
 	player:GetAttributeChangedSignal("Downed"):Connect(updateDowned)
-	player:GetAttributeChangedSignal("BleedOut"):Connect(updateDowned)
 	updateDowned()
 
 	-- Revive prompts: translate them, and never show players their own.

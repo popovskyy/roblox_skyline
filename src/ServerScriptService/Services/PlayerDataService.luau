@@ -223,6 +223,15 @@ function PlayerDataService.Get(player: Player): PlayerData?
 	return session and session.data
 end
 
+-- Fresh start for a new run in the same server (session mode).
+function PlayerDataService.Reset(player: Player)
+	local session = sessions[player]
+	if session then
+		session.data = PlayerDataService.DefaultData()
+		session.dirty = true
+	end
+end
+
 function PlayerDataService.CanSave(player: Player): boolean
 	local session = sessions[player]
 	return session ~= nil and session.canSave
