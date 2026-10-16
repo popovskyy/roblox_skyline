@@ -27,7 +27,7 @@ local function buildStatusPanel(screen: ScreenGui)
 		Name = "Status",
 		-- Bottom-left: the default chat window lives in the top-left corner.
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 12, 1, -64),
+		Position = UDim2.new(0, 12, 1, -12),
 		Size = UDim2.fromOffset(250, 150),
 		Parent = screen,
 	})

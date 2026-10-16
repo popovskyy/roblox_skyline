@@ -1,5 +1,6 @@
 --!strict
--- Inventory panel (key I or the button) and the storage panel opened from the roof crate.
+-- Always-visible inventory hotbar along the bottom of the screen and the storage panel opened from the roof crate.
+-- Clicking a slot (or pressing its number key) uses Medkit / Food; other items just show their name.
 -- Buttons only send requests; the server decides and the next snapshot redraws the lists.
 
 local Players = game:GetService("Players")
@@ -19,21 +20,27 @@ local C = UIKit.Colors
 local remotes: Folder
 
 local SLOT_COUNT = 10
-local SLOT_SIZE = 72
+local SLOT_SIZE = if UserInputService.TouchEnabled then 50 else 60
+local SLOT_GAP = 6
+local NUMBER_KEYS = {
+	Enum.KeyCode.One,
+	Enum.KeyCode.Two,
+	Enum.KeyCode.Three,
+	Enum.KeyCode.Four,
+	Enum.KeyCode.Five,
+	Enum.KeyCode.Six,
+	Enum.KeyCode.Seven,
+	Enum.KeyCode.Eight,
+	Enum.KeyCode.Nine,
+	Enum.KeyCode.Zero,
+}
 
-local inventoryPanel: Frame
 local weightLabel: TextLabel
 local weightFill: Frame
 local slots: { ItemSlot.Slot } = {}
 local slotItems: { [number]: string } = {}
-local selectedItem: string? = nil
-local detailName: TextLabel
-local detailText: TextLabel
-local useButton: TextButton
-local storagePanel: Frame
-local storageList: Frame
-local storageHeader: TextLabel
-
+local tooltip: TextLabel
+local tooltipToken = 0
 local USE_LABELS: { [string]: string } = {
 	Medkit = "Використати",
 	Food = "З'їсти",
@@ -114,75 +121,68 @@ local function renderInventory(s: { [string]: any })
 			slotItems[index] = itemId
 		end
 	end
-	if selectedItem and not table.find(slotItems, selectedItem) then
-		selectedItem = nil
-	end
 	for i, slot in slots do
 		local itemId = slotItems[i]
 		local count = if itemId and s.inventory then s.inventory[itemId] or 0 else 0
-		slot.set(itemId, count, itemId ~= nil and itemId == selectedItem)
-	end
-
-	local def = if selectedItem then ItemDefinitions.Get(selectedItem) else nil
-	if def then
-		local count = s.inventory and s.inventory[def.id] or 0
-		detailName.Text = ("%s %s  ×%d"):format(def.icon, def.displayName, count)
-		detailText.Text = ("%s\nВага: %d за штуку"):format(def.description, def.weight)
-		local useLabel = USE_LABELS[def.id]
-		useButton.Visible = useLabel ~= nil
-		useButton.Text = useLabel or ""
-	else
-		detailName.Text = if index == 0 then "Рюкзак порожній" else "Вибери предмет"
-		detailText.Text = ""
-		useButton.Visible = false
+		slot.set(itemId, count, false)
 	end
 end
 
-local function buildInventory(screen: ScreenGui)
-	local gridWidth = SLOT_COUNT / 2 * SLOT_SIZE + (SLOT_COUNT / 2 - 1) * 8
-	inventoryPanel = UIKit.Panel({
-		Name = "Inventory",
+local function showTooltip(text: string)
+	tooltipToken += 1
+	local token = tooltipToken
+	tooltip.Text = text
+	tooltip.Visible = true
+	task.delay(2.5, function()
+		if tooltipToken == token then
+			tooltip.Visible = false
+		end
+	end)
+end
+
+local function activateSlot(i: number)
+	local itemId = slotItems[i]
+	local def = if itemId then ItemDefinitions.Get(itemId) else nil
+	if not def then
+		return
+	end
+	local s = ClientState.Get()
+	local count = s and s.inventory and s.inventory[def.id] or 0
+	local useLabel = USE_LABELS[def.id]
+	if useLabel then
+		(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(def.id)
+		showTooltip(("%s %s · %s"):format(def.icon, def.displayName, useLabel))
+	else
+		showTooltip(("%s %s ×%d · %s"):format(def.icon, def.displayName, count, def.description))
+	end
+end
+
+local function buildHotbar(screen: ScreenGui)
+	local width = SLOT_COUNT * SLOT_SIZE + (SLOT_COUNT - 1) * SLOT_GAP
+	local holder = UIKit.New("Frame", {
+		Name = "Hotbar",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.fromOffset(gridWidth + 24, 340),
-		BackgroundTransparency = 0.08,
-		Visible = false,
+		Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.fromOffset(width, SLOT_SIZE + 26),
+		BackgroundTransparency = 1,
 		Parent = screen,
 	})
-	UIKit.Padding(12).Parent = inventoryPanel
-
-	UIKit.Label({
-		Size = UDim2.new(1, -40, 0, 24),
-		Text = "Рюкзак",
-		Font = Enum.Font.GothamBold,
-		TextSize = 18,
-		Parent = inventoryPanel,
-	})
-	local close = UIKit.Button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(30, 30),
-		Text = "✕",
-		Parent = inventoryPanel,
-	})
-	close.Activated:Connect(function()
-		inventoryPanel.Visible = false
-	end)
 
 	weightLabel = UIKit.Label({
-		Position = UDim2.fromOffset(0, 30),
-		Size = UDim2.new(1, 0, 0, 18),
+		Size = UDim2.new(0, 120, 0, 16),
 		Text = "Вага 0 / 20",
-		TextSize = 14,
+		TextSize = 13,
 		TextColor3 = C.muted,
-		Parent = inventoryPanel,
+		TextStrokeTransparency = 0.5,
+		Parent = holder,
 	})
 	local bar = UIKit.New("Frame", {
-		Position = UDim2.fromOffset(0, 50),
-		Size = UDim2.new(1, 0, 0, 6),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 5),
+		Size = UDim2.new(1, -130, 0, 6),
 		BackgroundColor3 = C.panelLight,
 		BorderSizePixel = 0,
-		Parent = inventoryPanel,
+		Parent = holder,
 	}, { UIKit.Corner(3) })
 	weightFill = UIKit.New("Frame", {
 		Size = UDim2.fromScale(0, 1),
@@ -191,63 +191,48 @@ local function buildInventory(screen: ScreenGui)
 		Parent = bar,
 	}, { UIKit.Corner(3) })
 
-	local grid = UIKit.New("Frame", {
-		Position = UDim2.fromOffset(0, 66),
-		Size = UDim2.new(1, 0, 0, SLOT_SIZE * 2 + 8),
+	local row = UIKit.New("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, SLOT_SIZE),
 		BackgroundTransparency = 1,
-		Parent = inventoryPanel,
+		Parent = holder,
 	})
-	UIKit.New("UIGridLayout", {
-		CellSize = UDim2.fromOffset(SLOT_SIZE, SLOT_SIZE),
-		CellPadding = UDim2.fromOffset(8, 8),
+	UIKit.New("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, SLOT_GAP),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Parent = grid,
+		Parent = row,
 	})
 	for i = 1, SLOT_COUNT do
-		local slot = ItemSlot.New(grid, SLOT_SIZE, i)
+		local slot = ItemSlot.New(row, SLOT_SIZE, i)
 		slots[i] = slot
+		if not UserInputService.TouchEnabled then
+			UIKit.Label({
+				Position = UDim2.fromOffset(5, 2),
+				Size = UDim2.fromOffset(14, 14),
+				Text = tostring(i % 10),
+				TextSize = 11,
+				TextColor3 = C.muted,
+				Parent = slot.frame,
+			})
+		end
 		slot.frame.Activated:Connect(function()
-			local itemId = slotItems[i]
-			selectedItem = if itemId == selectedItem then nil else itemId
-			local s = ClientState.Get()
-			if s then
-				renderInventory(s)
-			end
+			activateSlot(i)
 		end)
 	end
 
-	local detailTop = 66 + SLOT_SIZE * 2 + 16
-	detailName = UIKit.Label({
-		Position = UDim2.fromOffset(0, detailTop),
-		Size = UDim2.new(1, -130, 0, 22),
+	tooltip = UIKit.Label({
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -6),
+		Size = UDim2.new(1.4, 0, 0, 22),
+		TextXAlignment = Enum.TextXAlignment.Center,
 		Font = Enum.Font.GothamBold,
-		TextSize = 16,
-		Text = "",
-		Parent = inventoryPanel,
-	})
-	detailText = UIKit.Label({
-		Position = UDim2.fromOffset(0, detailTop + 24),
-		Size = UDim2.new(1, -130, 0, 48),
-		TextSize = 13,
-		TextColor3 = C.muted,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Text = "",
-		Parent = inventoryPanel,
-	})
-	useButton = UIKit.Button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, detailTop + 6),
-		Size = UDim2.fromOffset(120, 40),
-		Text = "",
-		BackgroundColor3 = Color3.fromRGB(60, 100, 60),
+		TextSize = 15,
+		TextStrokeTransparency = 0.3,
 		Visible = false,
-		Parent = inventoryPanel,
+		Parent = holder,
 	})
-	useButton.Activated:Connect(function()
-		if selectedItem then
-			(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(selectedItem)
-		end
-	end)
 end
 
 local function transfer(direction: string, itemId: string, amount: number)
@@ -312,14 +297,6 @@ local function renderStorage(s: { [string]: any })
 	end
 end
 
-function InventoryController.Toggle()
-	inventoryPanel.Visible = not inventoryPanel.Visible
-	local s = ClientState.Get()
-	if inventoryPanel.Visible and s then
-		renderInventory(s)
-	end
-end
-
 function InventoryController.OpenStorage()
 	storagePanel.Visible = true
 	local s = ClientState.Get()
@@ -332,7 +309,7 @@ function InventoryController.Start(remoteFolder: Folder)
 	remotes = remoteFolder
 	local screen = UIKit.Screen()
 
-	buildInventory(screen)
+	buildHotbar(screen)
 	storagePanel, storageList, storageHeader = makeWindow(
 		"Storage",
 		"Сховище",
@@ -341,32 +318,20 @@ function InventoryController.Start(remoteFolder: Folder)
 		Vector2.new(0.5, 0.5)
 	)
 
-	local openButton = UIKit.Button({
-		Name = "InventoryButton",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 12, 1, -12),
-		Size = UDim2.fromOffset(160, 44),
-		Text = if UserInputService.TouchEnabled then "Інвентар" else "Інвентар (I)",
-		Parent = screen,
-	})
-	openButton.Activated:Connect(InventoryController.Toggle)
-
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then
 			return
 		end
-		if input.KeyCode == Enum.KeyCode.I then
-			InventoryController.Toggle()
+		local slotIndex = table.find(NUMBER_KEYS, input.KeyCode)
+		if slotIndex then
+			activateSlot(slotIndex)
 		elseif input.KeyCode == Enum.KeyCode.Escape then
-			inventoryPanel.Visible = false
 			storagePanel.Visible = false
 		end
 	end)
 
 	ClientState.Changed:Connect(function(s)
-		if inventoryPanel.Visible then
-			renderInventory(s)
-		end
+		renderInventory(s)
 		if storagePanel.Visible then
 			renderStorage(s)
 		end
