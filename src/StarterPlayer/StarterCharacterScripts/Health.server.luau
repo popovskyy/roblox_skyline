@@ -1,0 +1,2 @@
+-- Replaces Roblox's default "Health" script, which regenerates 1% health per second.
+-- Skyline Zero heals only through Medkits, so this script is intentionally empty.

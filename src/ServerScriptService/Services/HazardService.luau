@@ -1,0 +1,315 @@
+--!strict
+-- Fall damage, toxic air, hunger and zone/expedition tracking. All health changes happen here on the server.
+-- Live values the HUD needs are published as player attributes: Zone, InToxic, Hungry.
+--
+-- An expedition starts when the player goes well below the roof (eats ExpeditionFoodCost Food)
+-- and ends after the player has stood on the roof for a moment.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+local CharacterUtil = require(script.Parent.CharacterUtil)
+local Net = require(script.Parent.Net)
+local InventoryService = require(script.Parent.InventoryService)
+local PlayerDataService = require(script.Parent.PlayerDataService)
+
+local HazardService = {}
+
+type Tracker = {
+	spawnedAt: number,
+	airborne: boolean,
+	minVelocityY: number,
+	toxicTime: number,
+	warnedToxic: boolean,
+	zone: string,
+	onExpedition: boolean,
+	roofTime: number,
+	fed: boolean,
+	hungerTime: number,
+	warnedHungry: boolean,
+}
+
+local trackers: { [Player]: Tracker } = {}
+local toxicZones: { BasePart } = {}
+local victoryZone: BasePart? = nil
+
+type ZoneListener = (player: Player, newZone: string, oldZone: string) -> ()
+local zoneListeners: { ZoneListener } = {}
+type PlayerListener = (player: Player) -> ()
+local roofReturnListeners: { PlayerListener } = {}
+
+local FALL_START_VELOCITY = -30
+local FALL_END_VELOCITY = -3
+local EXPEDITION_DEPTH = 8 -- studs below the roof surface that count as leaving the base
+local ROOF_RETURN_SECONDS = 2
+
+local World = GameConfig.World
+
+function HazardService.SetToxicZones(zones: { BasePart })
+	toxicZones = zones
+end
+
+function HazardService.SetVictoryZone(zone: BasePart)
+	victoryZone = zone
+end
+
+function HazardService.OnZoneChanged(listener: ZoneListener)
+	table.insert(zoneListeners, listener)
+end
+
+-- Fires when an expedition ends back on the roof.
+function HazardService.OnReturnedToRoof(listener: PlayerListener)
+	table.insert(roofReturnListeners, listener)
+end
+
+function HazardService.IsOnExpedition(player: Player): boolean
+	local t = trackers[player]
+	return t ~= nil and t.onExpedition
+end
+
+function HazardService.GetZone(player: Player): string
+	local t = trackers[player]
+	return t and t.zone or "Roof"
+end
+
+function HazardService.ResetCharacter(player: Player)
+	trackers[player] = {
+		spawnedAt = os.clock(),
+		airborne = false,
+		minVelocityY = 0,
+		toxicTime = 0,
+		warnedToxic = false,
+		zone = "Roof",
+		onExpedition = false,
+		roofTime = 0,
+		fed = true,
+		hungerTime = 0,
+		warnedHungry = false,
+	}
+	player:SetAttribute("InToxic", false)
+	player:SetAttribute("Hungry", false)
+	player:SetAttribute("Zone", "Roof")
+end
+
+-- Eating mid-expedition. Returns false when the player is not hungry, so no food is wasted.
+function HazardService.Feed(player: Player): boolean
+	local t = trackers[player]
+	if not t or not t.onExpedition or t.fed then
+		return false
+	end
+	t.fed = true
+	t.hungerTime = 0
+	t.warnedHungry = false
+	player:SetAttribute("Hungry", false)
+	return true
+end
+
+local function isInside(part: BasePart, position: Vector3): boolean
+	local localPos = part.CFrame:PointToObjectSpace(position)
+	local half = part.Size / 2
+	return math.abs(localPos.X) <= half.X and math.abs(localPos.Y) <= half.Y and math.abs(localPos.Z) <= half.Z
+end
+
+-- Zone names: "Roof", "Floor01".."Floor04", "Outside" (neighbour tower, falling, etc).
+local function zoneFor(position: Vector3): string
+	if victoryZone and isInside(victoryZone, position) then
+		return "NeighborRoof"
+	end
+	local half = World.RoofSize / 2 + 2
+	if math.abs(position.X) > half or math.abs(position.Z) > half then
+		return "Outside"
+	end
+	if position.Y >= World.RoofY - 1 then
+		return "Roof"
+	end
+	for level = 1, World.FloorCount do
+		local floorY = World.RoofY - level * World.FloorSpacing
+		if position.Y >= floorY - 1 then
+			return ("Floor%02d"):format(level)
+		end
+	end
+	return "Outside"
+end
+
+local function setZone(player: Player, t: Tracker, zone: string)
+	if zone == t.zone then
+		return
+	end
+	local old = t.zone
+	t.zone = zone
+	player:SetAttribute("Zone", zone)
+	for _, listener in zoneListeners do
+		task.spawn(listener, player, zone, old)
+	end
+end
+
+local function updateFall(player: Player, t: Tracker, root: BasePart, humanoid: Humanoid)
+	if os.clock() - t.spawnedAt < 1.5 then
+		t.airborne = false
+		t.minVelocityY = 0
+		return
+	end
+	-- Uses only the replicated velocity: FloorMaterial is not reliable on the server.
+	-- A fall starts once the player drops faster than any ramp walk and ends when the drop stops.
+	local vy = root.AssemblyLinearVelocity.Y
+	if vy < FALL_START_VELOCITY then
+		t.airborne = true
+		t.minVelocityY = math.min(t.minVelocityY, vy)
+		return
+	end
+	if t.airborne and vy > FALL_END_VELOCITY then
+		t.airborne = false
+		-- Height equivalent of the impact speed: v^2 / 2g. Walking down ramps never gets near the threshold.
+		local impact = -math.min(t.minVelocityY, vy)
+		t.minVelocityY = 0
+		if impact > 0 then
+			local height = impact * impact / (2 * workspace.Gravity)
+			local over = height - GameConfig.FallDamageThreshold
+			if over > 0 then
+				local damage = math.floor(over * GameConfig.FallDamagePerStud)
+				if damage > 0 then
+					humanoid:TakeDamage(damage)
+					Net.Notify(player, ("Невдале падіння: -%d здоров'я"):format(damage), "warning")
+				end
+			end
+		end
+	end
+end
+
+local function updateToxic(player: Player, t: Tracker, root: BasePart, humanoid: Humanoid, dt: number)
+	local inside = false
+	for _, zone in toxicZones do
+		if isInside(zone, root.Position) then
+			inside = true
+			break
+		end
+	end
+	if not inside then
+		if t.toxicTime > 0 then
+			t.toxicTime = 0
+			t.warnedToxic = false
+			player:SetAttribute("InToxic", false)
+		end
+		return
+	end
+	if t.toxicTime == 0 then
+		player:SetAttribute("InToxic", true)
+	end
+	t.toxicTime += dt
+	if not t.warnedToxic then
+		t.warnedToxic = true
+		Net.Notify(
+			player,
+			"ТОКСИЧНЕ ПОВІТРЯ! Виходь із зони або збудуй фільтр",
+			"warning"
+		)
+	end
+	if t.toxicTime < GameConfig.ToxicGraceSeconds then
+		return
+	end
+	local data = PlayerDataService.Get(player)
+	local multiplier = 1
+	if data and data.upgrades.AirFilter then
+		multiplier = 1 - GameConfig.AirFilterToxicReduction
+	end
+	humanoid:TakeDamage(GameConfig.ToxicDamagePerSecond * multiplier * dt)
+end
+
+local function startExpedition(player: Player, t: Tracker)
+	t.onExpedition = true
+	t.roofTime = 0
+	t.hungerTime = 0
+	t.warnedHungry = false
+	local cost = GameConfig.ExpeditionFoodCost
+	if cost <= 0 then
+		t.fed = true
+	elseif InventoryService.Remove(player, "Food", cost) then
+		t.fed = true
+		Net.Notify(player, ("Спуск почався: -%d їжа"):format(cost), "info")
+	else
+		t.fed = false
+		local minutes = math.floor(GameConfig.HungerGraceSeconds / 60)
+		Net.Notify(
+			player,
+			("Немає їжі! Через %d хв почнеш слабшати"):format(minutes),
+			"warning"
+		)
+	end
+end
+
+local function updateExpedition(player: Player, t: Tracker, root: BasePart, humanoid: Humanoid, dt: number)
+	if not t.onExpedition then
+		if t.zone ~= "Roof" and t.zone ~= "NeighborRoof" and root.Position.Y < World.RoofY - EXPEDITION_DEPTH then
+			startExpedition(player, t)
+		end
+		return
+	end
+
+	if t.zone == "Roof" then
+		t.roofTime += dt
+		if t.roofTime >= ROOF_RETURN_SECONDS then
+			t.onExpedition = false
+			t.fed = true
+			player:SetAttribute("Hungry", false)
+			for _, listener in roofReturnListeners do
+				task.spawn(listener, player)
+			end
+		end
+		return
+	end
+	t.roofTime = 0
+
+	if t.fed then
+		return
+	end
+	t.hungerTime += dt
+	if t.hungerTime < GameConfig.HungerGraceSeconds then
+		return
+	end
+	if not t.warnedHungry then
+		t.warnedHungry = true
+		player:SetAttribute("Hungry", true)
+		Net.Notify(
+			player,
+			"Ти голодний і слабшаєш. З'їж їжу або повертайся на дах",
+			"error"
+		)
+	end
+	humanoid:TakeDamage(GameConfig.HungerDamagePerSecond * dt)
+end
+
+function HazardService.Start()
+	local accumulator = 0
+	RunService.Heartbeat:Connect(function(dt)
+		accumulator += dt
+		local slowTick = accumulator >= GameConfig.HazardTickSeconds
+		local slowDt = accumulator
+		if slowTick then
+			accumulator = 0
+		end
+		for player, t in trackers do
+			local root = CharacterUtil.GetRoot(player)
+			local humanoid = CharacterUtil.GetHumanoid(player)
+			if root and humanoid then
+				updateFall(player, t, root, humanoid)
+				if slowTick then
+					setZone(player, t, zoneFor(root.Position))
+					updateToxic(player, t, root, humanoid, slowDt)
+					updateExpedition(player, t, root, humanoid, slowDt)
+				end
+			end
+		end
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		trackers[player] = nil
+	end)
+end
+
+function HazardService.StopTracking(player: Player)
+	trackers[player] = nil
+end
+
+return HazardService

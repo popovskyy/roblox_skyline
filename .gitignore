@@ -1,0 +1,10 @@
+# Project place file
+/Roblox.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+sourcemap.json
+*.rbxl
+roblox.yml
