@@ -1,0 +1,51 @@
+{
+  "name": "SkylineZeroLobby",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/ReplicatedStorage/Shared"
+      }
+    },
+
+    "ServerScriptService": {
+      "$path": "src/Lobby/Server",
+      "Atmosphere": {
+        "$path": "src/ServerScriptService/Atmosphere.luau"
+      }
+    },
+
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "$path": "src/Lobby/Client",
+        "UIKit": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/Controllers/UIKit.luau"
+        },
+        "Lang": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/Controllers/Lang.luau"
+        }
+      }
+    },
+
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true,
+        "StreamingEnabled": false
+      }
+    },
+
+    "Lighting": {
+      "$properties": {
+        "Technology": "ShadowMap",
+        "GlobalShadows": true
+      }
+    },
+
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    }
+  }
+}

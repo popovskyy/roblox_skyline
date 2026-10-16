@@ -2,8 +2,10 @@
 -- Tutorial objectives, the emergency terminal note and the tower ending.
 -- Each step checks the player's current state, so a step can never get stuck when the action was done earlier.
 
+local DataStoreService = game:GetService("DataStoreService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
@@ -126,6 +128,19 @@ function TutorialService.ReadTerminal(player: Player)
 	StateSyncService.Request(player)
 end
 
+-- Lobby leaderboard: towers completed per player (one tower for now, so the value is 1).
+local function recordCompletion(player: Player)
+	local ok, err = pcall(function()
+		local store = DataStoreService:GetOrderedDataStore(PlacesConfig.LeaderboardStoreName)
+		store:UpdateAsync(tostring(player.UserId), function(old)
+			return math.max(tonumber(old) or 0, 1)
+		end)
+	end)
+	if not ok then
+		warn("[Tutorial] leaderboard update failed:", err)
+	end
+end
+
 -- Crossing the finished bridge onto the neighbour roof ends the tower.
 local function onZoneChanged(player: Player, newZone: string)
 	if newZone ~= "NeighborRoof" then
@@ -141,6 +156,7 @@ local function onZoneChanged(player: Player, newZone: string)
 	StateSyncService.Request(player)
 	if firstTime then
 		task.spawn(PlayerDataService.Save, player)
+		task.spawn(recordCompletion, player)
 	end
 	Net.Get(RemoteNames.ShowNote):FireClient(player, {
 		kind = "ending",

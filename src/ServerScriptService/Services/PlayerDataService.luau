@@ -25,6 +25,12 @@ type Session = {
 local PlayerDataService = {}
 
 local sessions: { [Player]: Session } = {}
+local loadedListeners: { (player: Player) -> () } = {}
+
+-- Called after a player's data is ready (loaded, or defaults when loading failed).
+function PlayerDataService.OnLoaded(listener: (player: Player) -> ())
+	table.insert(loadedListeners, listener)
+end
 local store: DataStore? = nil
 local storeError: string? = nil
 
@@ -197,6 +203,9 @@ function PlayerDataService.Load(player: Player): boolean
 		return false
 	end
 	sessions[player] = session
+	for _, listener in loadedListeners do
+		task.spawn(listener, player)
+	end
 	return session.canSave
 end
 

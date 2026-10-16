@@ -14,6 +14,7 @@ local RemoteNames = {
 	UseItem = "UseItem",
 	ToggleFlashlight = "ToggleFlashlight",
 	SetLanguage = "SetLanguage",
+	ReturnToLobby = "ReturnToLobby",
 }
 
 return RemoteNames

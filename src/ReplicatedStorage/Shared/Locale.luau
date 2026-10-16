@@ -480,6 +480,66 @@ local S: { [string]: Entry } = {
 	["ui.all"] = { uk = "всі", ru = "все", en = "all" },
 	["ui.close"] = { uk = "Закрити", ru = "Закрыть", en = "Close" },
 	["ui.continue"] = { uk = "Продовжити", ru = "Продолжить", en = "Continue" },
+	-- Lobby and party
+	["lobby.title"] = { uk = "SKYLINE ZERO", ru = "SKYLINE ZERO", en = "SKYLINE ZERO" },
+	["lobby.liftSolo"] = { uk = "ЛІФТ · СОЛО", ru = "ЛИФТ · СОЛО", en = "LIFT · SOLO" },
+	["lobby.liftGroup"] = {
+		uk = "ЛІФТ · ГРУПА ДО 4",
+		ru = "ЛИФТ · ГРУППА ДО 4",
+		en = "LIFT · PARTY OF 4",
+	},
+	["lobby.hint"] = {
+		uk = "Зайди в ліфт, щоб піднятися на дах. Разом з друзями — у груповий ліфт.",
+		ru = "Зайди в лифт, чтобы подняться на крышу. С друзьями — в групповой лифт.",
+		en = "Step into a lift to go up to the roof. Bring friends into a party lift.",
+	},
+	["lobby.howTitle"] = { uk = "ЯК ГРАТИ", ru = "КАК ИГРАТЬ", en = "HOW TO PLAY" },
+	["lobby.howBody"] = {
+		uk = "1. Спускайся з даху на поверхи й збирай ресурси.\n2. Повертайся на дах і будуй поліпшення.\n3. Генератор, фільтр і міст — три кроки до втечі.\n4. Бережи себе: падіння, отрута й голод небезпечні.",
+		ru = "1. Спускайся с крыши на этажи и собирай ресурсы.\n2. Возвращайся на крышу и строй улучшения.\n3. Генератор, фильтр и мост — три шага к побегу.\n4. Береги себя: падения, яд и голод опасны.",
+		en = "1. Go down from the roof and collect resources.\n2. Bring them back up and build upgrades.\n3. Generator, filter and bridge: three steps to escape.\n4. Stay alive: falls, toxic air and hunger hurt.",
+	},
+	["lobby.leaders"] = {
+		uk = "ВЕЖІ ПРОЙДЕНО",
+		ru = "БАШНИ ПРОЙДЕНЫ",
+		en = "TOWERS COMPLETED",
+	},
+	["lobby.leadersEmpty"] = { uk = "Поки що ніхто", ru = "Пока никто", en = "Nobody yet" },
+	["lobby.joined"] = {
+		uk = "Ти в ліфті. Старт за %d с",
+		ru = "Ты в лифте. Старт через %d с",
+		en = "You are in the lift. Starting in %d s",
+	},
+	["lobby.left"] = {
+		uk = "Ти вийшов з ліфта",
+		ru = "Ты вышел из лифта",
+		en = "You left the lift",
+	},
+	["lobby.full"] = {
+		uk = "Ліфт заповнений",
+		ru = "Лифт заполнен",
+		en = "This lift is full",
+	},
+	["lobby.starting"] = { uk = "Їдемо нагору!", ru = "Поехали наверх!", en = "Going up!" },
+	["lobby.notPublished"] = {
+		uk = "Гру ще не опубліковано, тому ліфт не працює. Опублікуй обидва place і впиши PlaceId",
+		ru = "Игра ещё не опубликована, поэтому лифт не работает. Опубликуй оба place и впиши PlaceId",
+		en = "The game is not published yet, so lifts are off. Publish both places and set the PlaceIds",
+	},
+	["lobby.studio"] = {
+		uk = "У Studio телепорт не працює. Перевір ліфти в опублікованій грі",
+		ru = "В Studio телепорт не работает. Проверь лифты в опубликованной игре",
+		en = "Teleports do not work in Studio. Test the lifts in the published game",
+	},
+	["lobby.failed"] = {
+		uk = "Не вдалося запустити гру. Спробуй ще раз",
+		ru = "Не удалось запустить игру. Попробуй ещё раз",
+		en = "Could not start the game. Please try again",
+	},
+	["party.built"] = { uk = "%s збудував: %s", ru = "%s построил: %s", en = "%s built: %s" },
+	["party.leader"] = { uk = "Лідер групи: %s", ru = "Лидер группы: %s", en = "Party leader: %s" },
+	["ui.toLobby"] = { uk = "В лобі", ru = "В лобби", en = "Lobby" },
+
 	["ui.weightEach"] = { uk = "вага %d", ru = "вес %d", en = "weight %d" },
 }
 

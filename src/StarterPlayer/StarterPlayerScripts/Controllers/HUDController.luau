@@ -248,9 +248,35 @@ local function buildLanguageButton(screen: ScreenGui)
 	end)
 end
 
+-- Only shown once the lobby place exists (PlacesConfig.LobbyPlaceId).
+local function buildLobbyButton(screen: ScreenGui)
+	local PlacesConfig = require(game:GetService("ReplicatedStorage").Shared.PlacesConfig)
+	if PlacesConfig.LobbyPlaceId == 0 then
+		return
+	end
+	local button = UIKit.Button({
+		Name = "LobbyButton",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -124, 0, 8),
+		Size = UDim2.fromOffset(84, 44),
+		Text = "",
+		TextSize = 15,
+		Parent = screen,
+	})
+	Lang.Bind(button, "ui.toLobby")
+	button.Activated:Connect(function()
+		local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+		local remote = remotes and remotes:FindFirstChild("ReturnToLobby")
+		if remote and remote:IsA("RemoteEvent") then
+			remote:FireServer()
+		end
+	end)
+end
+
 function HUDController.Start()
 	local screen = UIKit.Screen()
 	buildLanguageButton(screen)
+	buildLobbyButton(screen)
 	buildStatusPanel(screen)
 	buildObjective(screen)
 	buildToasts(screen)

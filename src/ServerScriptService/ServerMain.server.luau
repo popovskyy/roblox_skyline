@@ -20,6 +20,7 @@ local HazardService = require(Services.HazardService)
 local TutorialService = require(Services.TutorialService)
 local PlayerLifecycleService = require(Services.PlayerLifecycleService)
 local InteractionService = require(Services.InteractionService)
+local PartyService = require(Services.PartyService)
 
 Net.Init()
 PlayerDataService.Init()
@@ -49,6 +50,7 @@ FlashlightService.Start()
 HazardService.Start()
 TutorialService.Start()
 InteractionService.Start()
+PartyService.Start()
 PlayerLifecycleService.Start() -- last: it loads characters, so everything above must be ready
 
 print("[Skyline Zero] Server ready")

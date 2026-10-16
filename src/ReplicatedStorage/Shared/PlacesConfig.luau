@@ -1,0 +1,29 @@
+--!strict
+-- Place ids of the experience. Fill these in after publishing both places
+-- (Creator Dashboard > your experience > Places). 0 = not published yet: teleports are disabled
+-- and the tower runs every server as solo.
+
+local PlacesConfig = {
+	LobbyPlaceId = 0,
+	TowerPlaceId = 0,
+
+	-- Lifts in the lobby. The first player in a lift is the party leader.
+	Lifts = {
+		{ id = "Solo", capacity = 1, countdown = 5, fullCountdown = 5 },
+		{ id = "GroupA", capacity = 4, countdown = 20, fullCountdown = 5 },
+		{ id = "GroupB", capacity = 4, countdown = 20, fullCountdown = 5 },
+		{ id = "GroupC", capacity = 4, countdown = 20, fullCountdown = 5 },
+	},
+
+	-- Party hand-off from the lobby to the reserved tower server.
+	PartyMapName = "SkylineZero_Parties",
+	PartyTtlSeconds = 600,
+	TeleportRetries = 3,
+
+	-- Leaderboard shown in the lobby: towers completed per player.
+	LeaderboardStoreName = "SkylineZero_TowersCompleted",
+	LeaderboardSize = 10,
+	LeaderboardRefreshSeconds = 60,
+}
+
+return PlacesConfig
