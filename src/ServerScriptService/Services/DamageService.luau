@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Locale = require(ReplicatedStorage.Shared.Locale)
+local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
@@ -137,6 +138,9 @@ function DamageService.Damage(player: Player, amount: number)
 	if not humanoid then
 		return
 	end
+	if amount >= 5 then
+		SfxService.PlayAtPlayer("Hurt", player, 0.7)
+	end
 	if humanoid.Health - amount > 1 then
 		humanoid:TakeDamage(amount)
 	else
@@ -171,6 +175,7 @@ local function tryRevive(prompt: ProximityPrompt, rescuer: Player)
 		return
 	end
 	DamageService.Revive(target)
+	SfxService.PlayAtPlayer("Bandage", target)
 	Net.Notify(target, { "revive.revivedBy", rescuer.DisplayName }, "success")
 	Net.Notify(rescuer, { "revive.youRevived", target.DisplayName }, "success")
 end

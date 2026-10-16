@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
+local SfxService = require(script.Parent.SfxService)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
@@ -99,6 +100,7 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 		getState(player).depleted[nodeId] = true
 	end
 	InventoryService.Add(player, id, count)
+	SfxService.Play("Pickup", node.Position, 0.8)
 	StateSyncService.Request(player)
 	Net.Notify(player, { "res.collected", Locale.Item(id), count }, "success")
 	return true, nil
@@ -123,6 +125,7 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 	end
 
 	s.cleared[rubbleId] = true
+	SfxService.Play("Rubble", rubble.Position)
 	local reward = rubble:GetAttribute("RewardItem")
 	if ItemDefinitions.IsValid(reward) and InventoryService.GetCount(player, reward :: string) == 0 then
 		-- The reward is a tool the player needs, so it ignores the weight limit.
@@ -178,6 +181,7 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 		return false, "res.full"
 	end
 	s.depleted[nodeId] = true
+	SfxService.Play("CrateOpen", crate.Position)
 	for id, amount in loot do
 		InventoryService.ForceAdd(player, id, amount)
 	end

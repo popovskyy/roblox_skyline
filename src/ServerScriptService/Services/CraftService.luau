@@ -7,6 +7,7 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
+local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
@@ -52,6 +53,7 @@ local function craft(player: Player, recipeId: any): (boolean, any)
 		return false, { "upgrade.notEnough", Locale.Cost(recipe.cost) }
 	end
 	InventoryService.ForceAdd(player, recipe.id, 1)
+	SfxService.PlayAtPlayer("Build", player, 0.8)
 	Net.Notify(player, { "craft.done", Locale.Item(recipe.id) }, "success")
 	return true, nil
 end

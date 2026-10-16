@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local DamageService = require(script.Parent.DamageService)
 
@@ -220,12 +221,17 @@ local function think(z: Zombie, now: number)
 		return
 	end
 	local target, targetRoot = findTarget(z)
+	-- The occasional groan, more often while chasing someone.
+	if math.random() < (if target then 0.04 else 0.012) then
+		SfxService.Play("ZombieGroan", z.root, 0.8)
+	end
 	if target and targetRoot then
 		local distance = (targetRoot.Position - z.root.Position).Magnitude
 		if distance <= Z.AttackRange then
 			z.humanoid:MoveTo(z.root.Position)
 			if now - z.lastAttack >= Z.AttackCooldown then
 				z.lastAttack = now
+				SfxService.Play("ZombieAttack", z.root, 0.9)
 				DamageService.Damage(target, Z.Damage)
 			end
 		elseif hasLineOfSight(z, targetRoot) then

@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
+local SfxService = require(script.Parent.SfxService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local StateSyncService = require(script.Parent.StateSyncService)
@@ -50,6 +51,7 @@ function BaseUpgradeService.Purchase(player: Player, upgradeId: any): (boolean, 
 	PlayerDataService.MarkDirty(player)
 	StateSyncService.Request(player)
 	Net.Notify(player, { "upgrade.built", Locale.Upgrade(def.id) }, "success")
+	SfxService.PlayAtPlayer(if def.id == "Generator" then "GeneratorStart" else "Build", player)
 	for _, listener in listeners do
 		task.spawn(listener, player, def.id)
 	end

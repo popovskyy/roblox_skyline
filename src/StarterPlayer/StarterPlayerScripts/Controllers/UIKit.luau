@@ -78,6 +78,27 @@ function UIKit.Label(props: { [string]: any }): TextLabel
 	return UIKit.New("TextLabel", merged)
 end
 
+-- A soft click for every button, played locally.
+local clickSound: Sound? = nil
+local function playClick()
+	if not clickSound then
+		local ok, config = pcall(function()
+			return require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("SoundConfig"))
+		end)
+		if not ok then
+			return
+		end
+		local sound = Instance.new("Sound")
+		sound.SoundId = "rbxassetid://" .. tostring(config.Sounds.Click[1])
+		sound.Volume = 0.35
+		sound.Parent = game:GetService("SoundService")
+		clickSound = sound
+	end
+	if clickSound then
+		clickSound:Play()
+	end
+end
+
 function UIKit.Button(props: { [string]: any }): TextButton
 	local merged = {
 		BackgroundColor3 = UIKit.Colors.panelLight,
@@ -90,7 +111,9 @@ function UIKit.Button(props: { [string]: any }): TextButton
 	for k, v in props do
 		merged[k] = v
 	end
-	return UIKit.New("TextButton", merged, { UIKit.Corner(8) })
+	local button = UIKit.New("TextButton", merged, { UIKit.Corner(8) })
+	button.Activated:Connect(playClick)
+	return button
 end
 
 -- Single ScreenGui shared by all controllers.

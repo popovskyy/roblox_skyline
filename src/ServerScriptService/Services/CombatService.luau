@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
+local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local DamageService = require(script.Parent.DamageService)
 local Net = require(script.Parent.Net)
@@ -186,6 +187,7 @@ local function swing(player: Player)
 		end)
 	end
 
+	SfxService.Play("Swing", root, 0.8)
 	local look = root.CFrame.LookVector
 	for _, z in ZombieService.All() do
 		if z.humanoid.Health > 0 then
@@ -195,6 +197,7 @@ local function swing(player: Player)
 				local facing = if flat.Magnitude > 0.1 then look:Dot(flat.Unit) else 1
 				if facing > 0.2 then
 					z.humanoid:TakeDamage(weapon.damage)
+					SfxService.Play("HitBlunt", z.root)
 					-- A little shove so hits feel solid.
 					z.root.AssemblyLinearVelocity += flat.Unit * 25 + Vector3.new(0, 8, 0)
 				end

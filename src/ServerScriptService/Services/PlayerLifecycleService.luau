@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
+local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local CombatService = require(script.Parent.CombatService)
 local DamageService = require(script.Parent.DamageService)
@@ -226,6 +227,7 @@ local function useItem(player: Player, itemId: any)
 			return
 		end
 		humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + GameConfig.MedkitHeal)
+		SfxService.PlayAtPlayer("Bandage", player)
 		Net.Notify(player, { "medkit.used", GameConfig.MedkitHeal }, "success")
 	elseif itemId == "Food" then
 		if not InventoryService.Has(player, "Food", 1) then
@@ -237,6 +239,7 @@ local function useItem(player: Player, itemId: any)
 			return
 		end
 		InventoryService.Remove(player, "Food", 1)
+		SfxService.PlayAtPlayer("Eat", player)
 		Net.Notify(player, "food.eaten", "success")
 	end
 end
