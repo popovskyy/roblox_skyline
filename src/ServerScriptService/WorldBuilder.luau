@@ -752,6 +752,79 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 1, -16, 14, gen)
 end
 
+-- Colour and material for Blender props, picked from the "<Prop>_<Part>_<Paint>" name suffix.
+local PROP_PAINTS: { [string]: { color: Color3, material: Enum.Material } } = {
+	Wood = { color = Color3.fromRGB(120, 80, 48), material = Enum.Material.WoodPlanks },
+	Metal = { color = Color3.fromRGB(120, 124, 130), material = Enum.Material.Metal },
+	Dark = { color = Color3.fromRGB(38, 40, 45), material = Enum.Material.Metal },
+	Rust = { color = Color3.fromRGB(125, 65, 35), material = Enum.Material.CorrodedMetal },
+	Yellow = { color = Color3.fromRGB(215, 160, 40), material = Enum.Material.Metal },
+	Glow = { color = Color3.fromRGB(255, 150, 60), material = Enum.Material.Neon },
+	Teal = { color = Color3.fromRGB(60, 130, 140), material = Enum.Material.Metal },
+	Red = { color = Color3.fromRGB(180, 40, 35), material = Enum.Material.Metal },
+}
+
+-- Imported Blender models live in ReplicatedStorage.Models (see blender/README.md).
+local function findPropModel(upgradeId: string): Instance?
+	local models = ReplicatedStorage:FindFirstChild("Models")
+	if not models then
+		return nil
+	end
+	local found = models:FindFirstChild(upgradeId, true)
+	if found and found:FindFirstChildWhichIsA("BasePart", true) then
+		return found
+	end
+	return nil
+end
+
+-- Replaces the grey box with the Blender model when one has been imported.
+-- The box stays as an invisible hitbox, so prompts and server checks do not change.
+local function attachPropModel(visual: BasePart, upgradeId: string)
+	local source = findPropModel(upgradeId)
+	if not source then
+		return
+	end
+	local model = Instance.new("Model")
+	model.Name = upgradeId .. "_Model"
+	for _, d in source:GetDescendants() do
+		if d:IsA("BasePart") then
+			local part = d:Clone()
+			for _, child in part:GetChildren() do
+				if not child:IsA("SpecialMesh") and not child:IsA("SurfaceAppearance") then
+					child:Destroy()
+				end
+			end
+			part.Anchored = true
+			part.CanCollide = false
+			part.CastShadow = true
+			local paintName = string.match(d.Name, "_(%a+)$")
+			local paint = paintName and PROP_PAINTS[paintName]
+			if paint then
+				part.Color = paint.color
+				part.Material = paint.material
+			end
+			part:SetAttribute("UpgradeVisual", upgradeId)
+			part:SetAttribute("VisualMode", "Show")
+			part.Parent = model
+		end
+	end
+	if not model:FindFirstChildWhichIsA("BasePart") then
+		return
+	end
+	-- Fit the model into the hitbox footprint and stand it on the pad.
+	local boxCFrame, boxSize = model:GetBoundingBox()
+	local scale = math.min(visual.Size.X / boxSize.X, visual.Size.Y / boxSize.Y, visual.Size.Z / boxSize.Z)
+	if scale > 0 and scale < math.huge then
+		model.WorldPivot = boxCFrame
+		model:ScaleTo(scale)
+	end
+	local _, fitted = model:GetBoundingBox()
+	local bottom = visual.Position - Vector3.new(0, visual.Size.Y / 2, 0)
+	model:PivotTo(CFrame.new(bottom + Vector3.new(0, fitted.Y / 2, 0)))
+	model.Parent = visual
+	visual.Transparency = 1
+end
+
 local function upgradePad(
 	interactables: Folder,
 	visuals: Folder,
@@ -783,6 +856,7 @@ local function upgradePad(
 	)
 	visual:SetAttribute("UpgradeVisual", upgradeId)
 	visual:SetAttribute("VisualMode", "Show")
+	attachPropModel(visual, upgradeId)
 	sign(
 		visuals,
 		def.displayName,
