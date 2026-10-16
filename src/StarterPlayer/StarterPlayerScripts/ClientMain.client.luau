@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Make sure the shared modules have replicated before anything requires them.
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-for _, name in { "GameConfig", "ItemDefinitions", "UpgradeDefinitions", "RemoteNames", "Types" } do
+for _, name in { "GameConfig", "ItemDefinitions", "UpgradeDefinitions", "RemoteNames", "Types", "MusicConfig" } do
 	Shared:WaitForChild(name)
 end
 
@@ -16,6 +16,7 @@ local ClientState = require(Controllers:WaitForChild("ClientState"))
 local HUDController = require(Controllers:WaitForChild("HUDController"))
 local InventoryController = require(Controllers:WaitForChild("InventoryController"))
 local InteractionController = require(Controllers:WaitForChild("InteractionController"))
+local MusicController = require(Controllers:WaitForChild("MusicController"))
 local TutorialController = require(Controllers:WaitForChild("TutorialController"))
 local WorldVisualsController = require(Controllers:WaitForChild("WorldVisualsController"))
 
@@ -29,6 +30,7 @@ InventoryController.Start(remotes)
 InteractionController.Start(remotes)
 TutorialController.Start()
 WorldVisualsController.Start()
+MusicController.Start()
 
 remote(RemoteNames.StateChanged).OnClientEvent:Connect(function(snapshot)
 	if type(snapshot) == "table" then

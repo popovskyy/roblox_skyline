@@ -13,14 +13,20 @@ local ClientState = require(script.Parent.ClientState)
 local WorldVisualsController = {}
 
 local player = Players.LocalPlayer
-local GHOST_TRANSPARENCY = 0.82
+local GHOST_TRANSPARENCY = 0.55
+local GHOST_COLOR = Color3.fromRGB(90, 200, 255)
 
 -- Original look of every part we touch, so it can be restored.
-local originals: { [BasePart]: { transparency: number, collide: boolean } } = {}
+local originals: { [BasePart]: { transparency: number, collide: boolean, material: Enum.Material, color: Color3 } } = {}
 
 local function remember(part: BasePart)
 	if not originals[part] then
-		originals[part] = { transparency = part.Transparency, collide = part.CanCollide }
+		originals[part] = {
+			transparency = part.Transparency,
+			collide = part.CanCollide,
+			material = part.Material,
+			color = part.Color,
+		}
 	end
 end
 
@@ -30,9 +36,14 @@ local function setPartState(part: BasePart, mode: "normal" | "ghost" | "hidden")
 	if mode == "normal" then
 		part.Transparency = original.transparency
 		part.CanCollide = original.collide
+		part.Material = original.material
+		part.Color = original.color
 	elseif mode == "ghost" then
+		-- Not built yet: a see-through blue hologram of what will stand here.
 		part.Transparency = math.max(original.transparency, GHOST_TRANSPARENCY)
 		part.CanCollide = false
+		part.Material = Enum.Material.ForceField
+		part.Color = GHOST_COLOR
 	else
 		part.Transparency = 1
 		part.CanCollide = false

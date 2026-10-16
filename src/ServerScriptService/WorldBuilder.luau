@@ -864,6 +864,77 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	spawn.Duration = 0
 	spawn.Parent = roof
 
+	-- Translucent windbreak around the spawn and a hologram title above it.
+	local glassColor = Color3.fromRGB(170, 210, 230)
+	for _, panel in
+		{
+			{ CFrame.new(-6, roofY + 3.5, -44), Vector3.new(8, 7, 0.4) },
+			{ CFrame.new(6, roofY + 3.5, -44), Vector3.new(8, 7, 0.4) },
+			{ CFrame.new(-10.5, roofY + 3.5, -39) * CFrame.Angles(0, math.rad(70), 0), Vector3.new(8, 7, 0.4) },
+			{ CFrame.new(10.5, roofY + 3.5, -39) * CFrame.Angles(0, math.rad(-70), 0), Vector3.new(8, 7, 0.4) },
+		}
+	do
+		local glass = block(roof, "Windbreak", panel[2], panel[1], glassColor, Enum.Material.Glass)
+		glass.Transparency = 0.6
+		glass.CastShadow = false
+		block(
+			roof,
+			"WindbreakFrame",
+			Vector3.new(panel[2].X, 0.4, 0.6),
+			panel[1] * CFrame.new(0, 3.5, 0),
+			COLORS.metal,
+			Enum.Material.Metal
+		)
+	end
+
+	local holo = block(
+		roof,
+		"HoloTitle",
+		Vector3.new(14, 3.5, 0.1),
+		CFrame.new(0, roofY + 9, -42),
+		Color3.fromRGB(90, 200, 255),
+		Enum.Material.ForceField
+	)
+	holo.Transparency = 0.5
+	holo.CanCollide = false
+	holo.CastShadow = false
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.LightInfluence = 0
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.Parent = holo
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBlack
+		label.TextColor3 = Color3.fromRGB(150, 230, 255)
+		label.TextTransparency = 0.15
+		label.Text = "SKYLINE ZERO"
+		label.Parent = gui
+	end
+	pointLight(holo, Color3.fromRGB(90, 200, 255), 16, 1, true)
+
+	-- Hologram markers floating over each build spot so new players see where to go.
+	for _, marker in
+		{ Vector3.new(-32, 0, -15), Vector3.new(32, 0, -24), Vector3.new(32, 0, 18), Vector3.new(42, 0, -12) }
+	do
+		local ring = block(
+			roof,
+			"HoloMarker",
+			Vector3.new(0.2, 9, 9),
+			CFrame.new(marker.X, roofY + 0.3, marker.Z) * CFrame.Angles(0, 0, math.pi / 2),
+			Color3.fromRGB(90, 200, 255),
+			Enum.Material.ForceField
+		)
+		ring.Shape = Enum.PartType.Cylinder
+		ring.Transparency = 0.4
+		ring.CanCollide = false
+		ring.CastShadow = false
+	end
+
 	local terminal = block(
 		interactables,
 		"EmergencyTerminal",
