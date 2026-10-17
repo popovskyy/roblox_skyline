@@ -413,6 +413,7 @@ local function renderCraft()
 			Text = Lang.T("item." .. recipe.id .. ".name"),
 			FontFace = Theme.Heading,
 			TextSize = 22,
+			TextColor3 = if def.rarity then Theme.Rarity[def.rarity] else C.text,
 			Parent = row,
 		})
 		UIKit.Label({

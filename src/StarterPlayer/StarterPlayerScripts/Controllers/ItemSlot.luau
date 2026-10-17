@@ -82,13 +82,23 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 			countLabel.Text = ""
 			return
 		end
-		frame.BackgroundColor3 = FILLED_COLOR
-		-- The item in hand gets a bright amber edge; the rest a faint cream one.
-		stroke.Color = if selected then C.accent else CREAM
-		stroke.Transparency = if selected then 0 else 0.6
-		stroke.Thickness = if selected then 2.5 else 1.5
+		local rarityColor = if def.rarity then Theme.Rarity[def.rarity] else nil
+		if rarityColor then
+			-- Weapons always wear their rarity colour; in hand the edge thickens and the slot takes its tint.
+			frame.BackgroundColor3 = if selected then FILLED_COLOR:Lerp(rarityColor, 0.22) else FILLED_COLOR
+			stroke.Color = rarityColor
+			stroke.Transparency = if selected then 0 else 0.15
+			stroke.Thickness = if selected then 3 else 2
+		else
+			frame.BackgroundColor3 = FILLED_COLOR
+			-- The item in hand gets a bright amber edge; the rest a faint cream one.
+			stroke.Color = if selected then C.accent else CREAM
+			stroke.Transparency = if selected then 0 else 0.6
+			stroke.Thickness = if selected then 2.5 else 1.5
+		end
 		if def.iconImage then
 			image.Image = def.iconImage
+			image.ImageColor3 = def.iconTint or Color3.new(1, 1, 1)
 			image.Visible = true
 			emoji.Text = ""
 		else

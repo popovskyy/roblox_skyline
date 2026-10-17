@@ -30,12 +30,7 @@ local LootFxController = {}
 local player = Players.LocalPlayer
 local Loot = GameConfig.Loot
 
-local TIER_COLORS: { [string]: Color3 } = {
-	Common = Color3.fromRGB(225, 210, 180),
-	Rare = Color3.fromRGB(90, 160, 255),
-	Gold = Color3.fromRGB(255, 196, 60),
-	Diamond = Color3.fromRGB(110, 240, 255),
-}
+local TIER_COLORS = Theme.Rarity
 local DIAMOND_TOP = Color3.fromRGB(190, 120, 255)
 local SPARKLES = "rbxasset://textures/particles/sparkles_main.dds"
 local SHAKE_STRENGTH: { [string]: number } = { Common = 0.15, Rare = 0.2, Gold = 0.45, Diamond = 0.7 }
@@ -335,6 +330,7 @@ local function iconFor(parent: Instance, def: ItemDefinitions.ItemDef): GuiObjec
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
 			Image = def.iconImage,
+			ImageColor3 = def.iconTint or Color3.new(1, 1, 1),
 			Parent = parent,
 		})
 	end
@@ -404,7 +400,7 @@ local function fountainItem(crate: BasePart, def: ItemDefinitions.ItemDef, amoun
 		})
 		UIKit.Label({
 			Size = UDim2.fromScale(1, 1),
-			Text = (if amount > 1 then ("%d× "):format(amount) else "") .. Lang.T("item." .. def.id .. ".name"),
+			Text = (if amount > 1 then ("%d× "):format(amount) else "") .. Lang.ItemWithRarity(def.id),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			FontFace = Theme.Display,
 			TextSize = 20,

@@ -32,6 +32,14 @@ local Theme = {
 		Toxic = Color3.fromHex("2F6F64"),
 		ToxicFog = Color3.fromHex("6FB3A6"),
 	},
+
+	-- Rarity colours, shared by loot crates and weapon slots.
+	Rarity = {
+		Common = Color3.fromRGB(225, 210, 180),
+		Rare = Color3.fromRGB(90, 160, 255),
+		Gold = Color3.fromRGB(255, 196, 60),
+		Diamond = Color3.fromRGB(110, 240, 255),
+	} :: { [string]: Color3 },
 }
 
 return Theme

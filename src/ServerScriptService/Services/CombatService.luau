@@ -27,8 +27,20 @@ local lastSwing: { [Player]: number } = {}
 local held: { [Player]: string } = {}
 local equipped: { [Player]: string } = {}
 
-local MESHES: { [string]: { prop: string, length: number } } = {
+-- repaint: overrides by paint name ("<Prop>_<Part>_<Paint>"), for a weapon that reuses another one's mesh.
+type MeshInfo = {
+	prop: string,
+	length: number,
+	repaint: { [string]: { color: Color3, material: Enum.Material } }?,
+}
+local MESHES: { [string]: MeshInfo } = {
 	Club = { prop = "WeaponClub", length = 3.4 },
+	-- No Bat mesh yet: the nail club, longer, with an aluminium barrel.
+	Bat = {
+		prop = "WeaponClub",
+		length = 3.8,
+		repaint = { Wood = { color = Color3.fromRGB(95, 120, 150), material = Enum.Material.Metal } },
+	},
 	Pipe = { prop = "WeaponPipe", length = 3.7 },
 	Machete = { prop = "WeaponMachete", length = 3.4 },
 }
@@ -53,6 +65,7 @@ local LOOKS: { [string]: { size: Vector3, color: Color3, material: Enum.Material
 	},
 	Crowbar = { size = Vector3.new(0.2, 0.2, 3.2), color = Color3.fromRGB(150, 45, 40), material = Enum.Material.Metal },
 	Club = { size = Vector3.new(0.5, 0.5, 3.4), color = Color3.fromRGB(120, 84, 52), material = Enum.Material.Wood },
+	Bat = { size = Vector3.new(0.5, 0.5, 3.8), color = Color3.fromRGB(95, 120, 150), material = Enum.Material.Metal },
 	Pipe = { size = Vector3.new(0.4, 0.4, 3.8), color = Color3.fromRGB(130, 135, 140), material = Enum.Material.Metal },
 	Machete = {
 		size = Vector3.new(0.15, 0.7, 3.6),
@@ -124,6 +137,12 @@ local function attachMesh(tool: Tool, handle: BasePart, weaponId: string): boole
 			part.CanQuery = false
 			if part == grip then
 				part.Transparency = 1
+			end
+			local paintName = string.match(part.Name, "_(%a+)$")
+			local paint = info.repaint and paintName and info.repaint[paintName]
+			if paint then
+				part.Color = paint.color
+				part.Material = paint.material
 			end
 			local weld = Instance.new("WeldConstraint")
 			weld.Part0 = handle

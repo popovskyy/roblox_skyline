@@ -57,6 +57,7 @@ local function makeBundle(itemId: string, amount: number, position: Vector3): Ba
 	image.Size = UDim2.fromScale(1, 1)
 	image.BackgroundTransparency = 1
 	image.Image = def.iconImage or ""
+	image.ImageColor3 = def.iconTint or Color3.new(1, 1, 1)
 	image.Parent = billboard
 
 	local prompt = Instance.new("ProximityPrompt")

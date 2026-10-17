@@ -3,7 +3,7 @@
 --
 -- The server never sends finished sentences: it sends a message (a key, or { key, args... }) and every
 -- client renders it in its own language. Arguments can be plain values or references:
---   Locale.Item("Scrap")      -> the item's name
+--   Locale.Item("Scrap")      -> the item's name (weapons add their rarity: "Bat · Rare weapon")
 --   Locale.Upgrade("Bridge")  -> the upgrade's name
 --   Locale.Cost({ Scrap = 8 }) -> "8 Scrap + ..."
 -- Adding a language: add its code to Languages and a column to every entry below.
@@ -78,6 +78,12 @@ local S: { [string]: Entry } = {
 		ru = "Старая добрая дубина. Бьёт слабо, но всегда с тобой.",
 		en = "A trusty club. Weak, but always with you.",
 	},
+	["item.Bat.name"] = { uk = "Бита", ru = "Бита", en = "Bat" },
+	["item.Bat.desc"] = {
+		uk = "Алюмінієва бита з цвяхами. Б'є сильніше за дубину.",
+		ru = "Алюминиевая бита с гвоздями. Бьёт сильнее дубины.",
+		en = "An aluminium bat with nails. Hits harder than the club.",
+	},
 	["item.Pipe.name"] = { uk = "Труба", ru = "Труба", en = "Pipe" },
 	["item.Pipe.desc"] = {
 		uk = "Важка сталева труба. Б'є майже вдвічі сильніше за дубину.",
@@ -89,6 +95,15 @@ local S: { [string]: Entry } = {
 		uk = "Швидке й гостре. Найкраща зброя проти зомбі.",
 		ru = "Быстрое и острое. Лучшее оружие против зомби.",
 		en = "Fast and sharp. The best tool against zombies.",
+	},
+	-- Weapon rarity, shown next to the weapon's name (gender-free on purpose: "Мачете · Діамантова зброя").
+	["rarity.Common"] = { uk = "Звичайна зброя", ru = "Обычное оружие", en = "Common weapon" },
+	["rarity.Rare"] = { uk = "Рідкісна зброя", ru = "Редкое оружие", en = "Rare weapon" },
+	["rarity.Gold"] = { uk = "Золота зброя", ru = "Золотое оружие", en = "Gold weapon" },
+	["rarity.Diamond"] = {
+		uk = "Діамантова зброя",
+		ru = "Алмазное оружие",
+		en = "Diamond weapon",
 	},
 	["item.Bandage.name"] = { uk = "Бинт", ru = "Бинт", en = "Bandage" },
 	["item.Bandage.desc"] = {
@@ -967,7 +982,8 @@ end
 
 -- Argument references, resolved in the reader's language.
 function Locale.Item(itemId: string): { [string]: any }
-	return { ref = "item." .. itemId .. ".name" }
+	local def = ItemDefinitions.Get(itemId)
+	return { ref = "item." .. itemId .. ".name", rarity = def and def.rarity }
 end
 
 function Locale.Upgrade(upgradeId: string): { [string]: any }
@@ -991,6 +1007,9 @@ local function resolveArg(lang: Lang, arg: any): any
 		return arg
 	end
 	if type(arg.ref) == "string" then
+		if type(arg.rarity) == "string" then
+			return ("%s · %s"):format(raw(lang, arg.ref), raw(lang, "rarity." .. arg.rarity))
+		end
 		return raw(lang, arg.ref)
 	end
 	if type(arg.cost) == "table" then
@@ -1033,6 +1052,11 @@ end
 
 function Locale.ItemName(lang: Lang, itemId: string): string
 	return raw(lang, "item." .. itemId .. ".name")
+end
+
+-- "Bat · Rare weapon" for weapons, the plain name for everything else.
+function Locale.ItemWithRarity(lang: Lang, itemId: string): string
+	return resolveArg(lang, Locale.Item(itemId))
 end
 
 function Locale.ItemDesc(lang: Lang, itemId: string): string

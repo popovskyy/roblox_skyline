@@ -24,6 +24,10 @@ function Lang.T(key: string, ...: any): string
 	return Locale.T(Lang.Get(), key, ...)
 end
 
+function Lang.ItemWithRarity(itemId: string): string
+	return Locale.ItemWithRarity(Lang.Get(), itemId)
+end
+
 function Lang.Format(message: any): string
 	return Locale.Format(Lang.Get(), message)
 end

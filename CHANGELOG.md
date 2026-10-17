@@ -12,6 +12,17 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
   slot on page 1. L1 / R1 on a gamepad skip empty slots.
 - Lobby: "Records" (leaderboard up close) and "?" (how to play) buttons; on a gamepad X / Y open them,
   B closes.
+- Weapon rarity: Club (common, cream) → Bat (rare, blue) → Pipe (gold) → Machete (diamond, teal). The
+  hotbar slot of a weapon is framed in its rarity colour (same colours as the loot crates); in hand the
+  frame thickens and the slot takes the tint. The name above the slot, pickup / craft messages and the
+  name over crate loot say the rarity ("Бита · Рідкісна зброя"); workbench names are coloured too.
+- New weapon: the Bat, 16 damage (club 12, pipe 22, machete 34), 4 hits per zombie instead of the club's
+  5. Workbench: 2 scrap. Also in common crates (8%) and rare crates (30%). The pipe and the machete are
+  found and crafted exactly as before. The Bat has no model of its own yet: it is the club's model, longer,
+  with a blue-grey metal barrel, and the club icon tinted blue.
+- Check in game: slot colours of all four weapons on PC, phone and PS5 (in hand and not); the Bat in the
+  hand (grip and swing look right) and its icon; crafting a Bat; the Fighter still hits harder; the name
+  over the slot in uk / ru / en.
 - Check in game: swing and punch animations on phone and tablet, and whether zombies take damage from
   taps; keys on floors 3 and 4, carrying two keys, the diamond crate, a key into the chest; the hotbar
   after crafting a Pipe / Machete on a 5-slot phone; the lobby buttons on PC, phone and PS5.

@@ -309,11 +309,12 @@ local function renderInventory(s: { [string]: any })
 	end
 end
 
--- The name of what was just taken in hand, above its slot, for 1.5 s.
-local function showTooltip(text: string, slotIndex: number?)
+-- The name of what was just taken in hand, above its slot, for 1.5 s (weapons in their rarity colour).
+local function showTooltip(text: string, slotIndex: number?, color: Color3?)
 	tooltipToken += 1
 	local token = tooltipToken
 	tooltip.Text = text
+	tooltip.TextColor3 = color or T.AmberText
 	local index = slotIndex or math.ceil(SLOT_COUNT / 2)
 	local x = (index - 0.5) * SLOT_SIZE + (index - 1) * SLOT_GAP
 	tooltip.Position = UDim2.fromOffset(x, if touch then -42 else -48)
@@ -322,6 +323,7 @@ local function showTooltip(text: string, slotIndex: number?)
 	local stroke = tooltip:FindFirstChildOfClass("UIStroke")
 	if stroke then
 		stroke.Transparency = 0
+		stroke.Color = color or T.Amber
 	end
 	tooltip.Visible = true
 	task.delay(1.5, function()
@@ -361,7 +363,7 @@ local function activateSlot(i: number)
 	if useLabel then
 		showTooltip(("%s · %s"):format(name, Lang.T(useLabel)), i)
 	elseif def.weapon then
-		showTooltip(name, i)
+		showTooltip(Lang.ItemWithRarity(def.id), i, if def.rarity then Theme.Rarity[def.rarity] else nil)
 	else
 		showTooltip(if count > 1 then ("%s ×%d"):format(name, count) else name, i)
 	end

@@ -1,6 +1,10 @@
 --!strict
 -- Every item the game knows about. Unknown IDs are rejected everywhere.
 
+local GameConfig = require(script.Parent.GameConfig)
+
+export type Rarity = "Common" | "Rare" | "Gold" | "Diamond"
+
 export type ItemDef = {
 	id: string,
 	displayName: string,
@@ -10,8 +14,10 @@ export type ItemDef = {
 	storable: boolean, -- tools stay with the player and never go into storage
 	icon: string, -- emoji placeholder until real icons are drawn
 	iconImage: string?, -- rbxassetid://... once an icon is uploaded; wins over the emoji
+	iconTint: Color3?, -- ImageColor3 for an icon shared with another item
 	color: Color3, -- slot accent colour
-	weapon: WeaponStats?, -- melee weapons: tapping with one in hand swings it
+	weapon: WeaponStats?, -- melee weapons: tapping with one in hand swings it (stats in GameConfig.Weapons)
+	rarity: Rarity?, -- weapons: hotbar frame colour (Theme.Rarity) and the rarity name next to the item name
 	resource: boolean?, -- building materials: counted in the pouch, never shown in the hotbar
 	use: string?, -- what tapping with it in hand does: "heal", "eat" or "light"
 }
@@ -34,7 +40,23 @@ local Items: { [string]: ItemDef } = {
 		startAmount = 1,
 		description = "",
 		storable = false,
-		weapon = { damage = 12, cooldown = 0.7, range = 6, rank = 1 },
+		weapon = GameConfig.Weapons.Club,
+		rarity = "Common",
+	},
+	-- No own mesh or icon yet: the Club's, recoloured (CombatService.MESHES, iconTint).
+	Bat = {
+		id = "Bat",
+		iconImage = "rbxassetid://92584142342300",
+		iconTint = Color3.fromRGB(150, 190, 255),
+		icon = "🏏",
+		color = Color3.fromRGB(95, 120, 150),
+		displayName = "Бита",
+		weight = 1,
+		startAmount = 0,
+		description = "",
+		storable = false,
+		weapon = GameConfig.Weapons.Bat,
+		rarity = "Rare",
 	},
 	Pipe = {
 		id = "Pipe",
@@ -46,7 +68,8 @@ local Items: { [string]: ItemDef } = {
 		startAmount = 0,
 		description = "",
 		storable = false,
-		weapon = { damage = 22, cooldown = 0.75, range = 6.5, rank = 2 },
+		weapon = GameConfig.Weapons.Pipe,
+		rarity = "Gold",
 	},
 	Machete = {
 		id = "Machete",
@@ -58,7 +81,8 @@ local Items: { [string]: ItemDef } = {
 		startAmount = 0,
 		description = "",
 		storable = false,
-		weapon = { damage = 34, cooldown = 0.6, range = 7, rank = 3 },
+		weapon = GameConfig.Weapons.Machete,
+		rarity = "Diamond",
 	},
 	Bandage = {
 		id = "Bandage",
@@ -182,6 +206,7 @@ local Items: { [string]: ItemDef } = {
 -- Display order in the UI.
 local Order = {
 	"Club",
+	"Bat",
 	"Pipe",
 	"Machete",
 	"Scrap",

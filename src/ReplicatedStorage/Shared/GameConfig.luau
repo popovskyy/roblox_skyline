@@ -47,6 +47,7 @@ local GameConfig = {
 		Crowbar = true,
 		Flashlight = true,
 		Club = true,
+		Bat = true,
 		Pipe = true,
 		Machete = true,
 	} :: { [string]: boolean },
@@ -77,12 +78,14 @@ local GameConfig = {
 			{ item = "Scrap", min = 1, max = 3 },
 			{ item = "Food", min = 1, max = 2, chance = 0.7 },
 			{ item = "Bandage", min = 1, max = 1, chance = 0.25 },
+			{ item = "Bat", min = 1, max = 1, chance = 0.08 },
 		},
 		Rare = {
 			{ item = "Scrap", min = 2, max = 4 },
 			{ item = "Electronics", min = 1, max = 2 },
 			{ item = "Bandage", min = 1, max = 1, chance = 0.5 },
 			{ item = "Medkit", min = 1, max = 1, chance = 0.3 },
+			{ item = "Bat", min = 1, max = 1, chance = 0.3 },
 			{ item = "Pipe", min = 1, max = 1, chance = 0.2 },
 		},
 		Gold = {
@@ -126,6 +129,16 @@ local GameConfig = {
 	-- Bare hands, when nothing is held: weak but always there.
 	Fists = { damage = 6, cooldown = 0.55, range = 4.5 },
 
+	-- Melee weapons, weakest to strongest (rarity Common / Rare / Gold / Diamond). Damage only goes up
+	-- with rarity; a zombie (60 HP) takes 5 / 4 / 3 / 2 hits. The Fighter class multiplies the damage.
+	-- rank: higher wins when several are carried.
+	Weapons = {
+		Club = { damage = 12, cooldown = 0.7, range = 6, rank = 1 },
+		Bat = { damage = 16, cooldown = 0.7, range = 6.3, rank = 2 },
+		Pipe = { damage = 22, cooldown = 0.75, range = 6.5, rank = 3 },
+		Machete = { damage = 34, cooldown = 0.6, range = 7, rank = 4 },
+	} :: { [string]: { damage: number, cooldown: number, range: number, rank: number } },
+
 	-- Tokens earned in a match (kept even when the match is lost; doubled for a win).
 	Tokens = {
 		-- About 25-35 for a typical lost match, double for a win: enough to feel earned, not to flood.
@@ -142,6 +155,7 @@ local GameConfig = {
 		{ id = "Bandage", cost = { Food = 1, Scrap = 1 } },
 		-- Medkits are rare in the floors; two bandages and a can make one.
 		{ id = "Medkit", cost = { Bandage = 2, Food = 1 } },
+		{ id = "Bat", cost = { Scrap = 2 } },
 		{ id = "Pipe", cost = { Scrap = 4 } },
 		{ id = "Machete", cost = { Scrap = 5, Electronics = 2 } },
 	} :: { { id: string, cost: { [string]: number } } },

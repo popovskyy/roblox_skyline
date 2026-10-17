@@ -12,6 +12,7 @@ The owner tests on PC, phone, tablet and PS5. Open questions for that pass:
 - b26: hotbar after crafting a Pipe / Machete on a 5-slot phone (items stay in their slots, nothing
   hidden on page 2).
 - b26: lobby "Records" and "?" buttons on PC, phone and PS5 (X / Y open, B closes).
+- b26: weapon rarity frames on the hotbar (PC, phone, PS5), the Bat in hand and at the workbench.
 - Lift: solo lift plus three group lifts; the first player in a group lift picks 2–6 on the lift card.
 - Team chest and buildings shared, rubble cleared for everyone, hold-to-drop items, downed marker.
 - Lighting: no flicker entering a floor; roof gloomier; rain and night readable.
@@ -25,13 +26,13 @@ Questions for the owner:
 ## Next (in this order)
 
 1. **Bugs from the b24–b26 test pass.** Always first.
-2. **Weapon rarity** (common club → rare bat → gold pipe → diamond machete): slot frame colour = rarity.
-3. **Horde on the roof**: every 8–10 minutes a siren, 6–10 zombies come up the stairs; barricades as a
+2. **Horde on the roof**: every 8–10 minutes a siren, 6–10 zombies come up the stairs; barricades as a
    new upgrade.
-4. **One mid-floor event** (blackout or fire door), from the brainstorm list.
-5. **Polish**: idle nudge on the roof, toast throttling, hunger paused during the first steps,
-   low-health heartbeat sound, better Blender models for props and weapons.
-6. **Launch**: store icon and thumbnails (`docs/design/store-visual-brief.md`), description
+3. **One mid-floor event** (blackout or fire door), from the brainstorm list.
+4. **Polish**: idle nudge on the roof, toast throttling, hunger paused during the first steps,
+   low-health heartbeat sound, better Blender models for props and weapons (the Bat still borrows the
+   club's model and icon).
+5. **Launch**: store icon and thumbnails (`docs/design/store-visual-brief.md`), description
    (`marketing-draft.md`), make the experience public.
 
 ## Rules that stay
