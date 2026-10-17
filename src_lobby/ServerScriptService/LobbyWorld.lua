@@ -136,22 +136,14 @@ local function buildLift(parent: Instance, def: { id: string }, x: number, z: nu
 		cable.CanCollide = false
 	end
 
-	-- Tall roomy trigger so standing anywhere in the cabin counts (R15 root ~3 studs up).
-	local zone = block(folder, "Zone", Vector3.new(10, 12, 10), CFrame.new(x, 6, z), accent)
+	-- Zone must stay CanCollide=false and inside the open cabin (same as pre-b17 — entry was fine).
+	-- Do NOT enlarge past the doorway: an oversized zone opens the modal while the player is still
+	-- outside, and a fullscreen Active GUI then eats mobile touch controls so they can't walk in.
+	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
 	zone.Transparency = 1
 	zone.CanCollide = false
 	zone.CanQuery = false
 	zone.CanTouch = false
-
-	-- Backup interact if zone edge-cases miss a step-in (mobile especially).
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "LiftEnterPrompt"
-	prompt.ActionText = "ЛІФТ"
-	prompt.ObjectText = "Skyline Zero"
-	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 10
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = zone
 
 	-- Head count only (e.g. "2 / 4"); no Solo/2/4/6 capacity signs on the cabin.
 	local billboard = Instance.new("BillboardGui")

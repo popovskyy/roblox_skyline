@@ -5,7 +5,6 @@
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
-local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
@@ -419,28 +418,6 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 			end
 		end
 		clearRider(player)
-	end)
-
-	-- ProximityPrompt on each cabin zone: opens the size modal if the lift still needs a leader pick.
-	ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
-		if prompt.Name ~= "LiftEnterPrompt" then
-			return
-		end
-		for _, lift in lifts do
-			if prompt:IsDescendantOf(lift.zone) or prompt.Parent == lift.zone then
-				if lift.launching or lift.blocked[player] then
-					return
-				end
-				if lift.capacity == nil and (lift.pendingLeader == nil or lift.pendingLeader == player) then
-					beginPick(lift, player)
-				elseif lift.capacity and not liftOf(player) and #lift.members < (lift.capacity :: number) then
-					addMember(lift, player)
-				elseif lift.capacity and #lift.members >= (lift.capacity :: number) then
-					notify(player, "lobby.full", "warning")
-				end
-				return
-			end
-		end
 	end)
 end
 

@@ -132,26 +132,35 @@ task.spawn(function()
 	end)
 end)
 
--- Party size modal (1–6): big, center, mobile-safe. Opened by attribute AND remote.
+-- Party size modal (1–6). Opened AFTER physics entry into the cabin zone (attribute + remote).
+-- Critical for mobile: NEVER cover the full screen with an Active GuiObject — that steals the
+-- thumbstick/jump and makes it feel like you "cannot enter" the lift.
 local dimmer = UIKit.New("Frame", {
 	Name = "LiftPickDimmer",
-	Size = UDim2.fromScale(1, 1),
+	-- Soft vignette only behind the panel area (not the bottom touch controls).
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.42),
+	Size = UDim2.fromOffset(420, 360),
 	BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-	BackgroundTransparency = 0.45,
+	BackgroundTransparency = 0.55,
+	BorderSizePixel = 0,
 	Visible = false,
+	Active = false, -- must stay false so world touch movement keeps working
 	ZIndex = 10,
 	Parent = screen,
-})
+}, { UIKit.Corner(16) })
 
 local pickPanel = UIKit.New("Frame", {
 	Name = "LiftSizePick",
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.52),
+	-- Upper-mid so jump / thumbstick at the bottom stay free on phones.
+	Position = UDim2.fromScale(0.5, 0.42),
 	Size = UDim2.fromOffset(340, 280),
 	BackgroundColor3 = Color3.fromRGB(28, 26, 24),
 	BackgroundTransparency = 0.02,
 	BorderSizePixel = 0,
 	Visible = false,
+	Active = true,
 	ZIndex = 11,
 	Parent = screen,
 }, {

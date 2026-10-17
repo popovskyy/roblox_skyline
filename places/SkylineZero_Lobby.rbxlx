@@ -998,7 +998,7 @@ return MusicConfig
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b17 · elevator-solo-modal",
+	Build = "b18 · elevator-entry-restore",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
@@ -1300,7 +1300,6 @@ return LeaderboardService
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
-local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
@@ -1715,28 +1714,6 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 		end
 		clearRider(player)
 	end)
-
-	-- ProximityPrompt on each cabin zone: opens the size modal if the lift still needs a leader pick.
-	ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
-		if prompt.Name ~= "LiftEnterPrompt" then
-			return
-		end
-		for _, lift in lifts do
-			if prompt:IsDescendantOf(lift.zone) or prompt.Parent == lift.zone then
-				if lift.launching or lift.blocked[player] then
-					return
-				end
-				if lift.capacity == nil and (lift.pendingLeader == nil or lift.pendingLeader == player) then
-					beginPick(lift, player)
-				elseif lift.capacity and not liftOf(player) and #lift.members &lt; (lift.capacity :: number) then
-					addMember(lift, player)
-				elseif lift.capacity and #lift.members &gt;= (lift.capacity :: number) then
-					notify(player, "lobby.full", "warning")
-				end
-				return
-			end
-		end
-	end)
 end
 
 return LiftService
@@ -1936,22 +1913,14 @@ local function buildLift(parent: Instance, def: { id: string }, x: number, z: nu
 		cable.CanCollide = false
 	end
 
-	-- Tall roomy trigger so standing anywhere in the cabin counts (R15 root ~3 studs up).
-	local zone = block(folder, "Zone", Vector3.new(10, 12, 10), CFrame.new(x, 6, z), accent)
+	-- Zone must stay CanCollide=false and inside the open cabin (same as pre-b17 — entry was fine).
+	-- Do NOT enlarge past the doorway: an oversized zone opens the modal while the player is still
+	-- outside, and a fullscreen Active GUI then eats mobile touch controls so they can't walk in.
+	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
 	zone.Transparency = 1
 	zone.CanCollide = false
 	zone.CanQuery = false
 	zone.CanTouch = false
-
-	-- Backup interact if zone edge-cases miss a step-in (mobile especially).
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "LiftEnterPrompt"
-	prompt.ActionText = "ЛІФТ"
-	prompt.ObjectText = "Skyline Zero"
-	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 10
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = zone
 
 	-- Head count only (e.g. "2 / 4"); no Solo/2/4/6 capacity signs on the cabin.
 	local billboard = Instance.new("BillboardGui")
@@ -2668,26 +2637,35 @@ task.spawn(function()
 	end)
 end)
 
--- Party size modal (1–6): big, center, mobile-safe. Opened by attribute AND remote.
+-- Party size modal (1–6). Opened AFTER physics entry into the cabin zone (attribute + remote).
+-- Critical for mobile: NEVER cover the full screen with an Active GuiObject — that steals the
+-- thumbstick/jump and makes it feel like you "cannot enter" the lift.
 local dimmer = UIKit.New("Frame", {
 	Name = "LiftPickDimmer",
-	Size = UDim2.fromScale(1, 1),
+	-- Soft vignette only behind the panel area (not the bottom touch controls).
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.42),
+	Size = UDim2.fromOffset(420, 360),
 	BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-	BackgroundTransparency = 0.45,
+	BackgroundTransparency = 0.55,
+	BorderSizePixel = 0,
 	Visible = false,
+	Active = false, -- must stay false so world touch movement keeps working
 	ZIndex = 10,
 	Parent = screen,
-})
+}, { UIKit.Corner(16) })
 
 local pickPanel = UIKit.New("Frame", {
 	Name = "LiftSizePick",
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.52),
+	-- Upper-mid so jump / thumbstick at the bottom stay free on phones.
+	Position = UDim2.fromScale(0.5, 0.42),
 	Size = UDim2.fromOffset(340, 280),
 	BackgroundColor3 = Color3.fromRGB(28, 26, 24),
 	BackgroundTransparency = 0.02,
 	BorderSizePixel = 0,
 	Visible = false,
+	Active = true,
 	ZIndex = 11,
 	Parent = screen,
 }, {
