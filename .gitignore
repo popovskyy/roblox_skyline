@@ -1,0 +1,8 @@
+.secrets/
+*.rbxl
+*.rbxm
+*.rbxmx
+--sourcemap.json
+sourcemap.json
+node_modules/
+.DS_Store

@@ -1,0 +1,3013 @@
+<?xml version='1.0' encoding='utf-8'?>
+<roblox version="4">
+  <Item class="Lighting" referent="0">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <bool name="GlobalShadows">true</bool>
+      <token name="Technology">3</token>
+    </Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="1">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="Folder" referent="2">
+      <Properties>
+        <string name="Name">Shared</string>
+      </Properties>
+      <Item class="ModuleScript" referent="3">
+        <Properties>
+          <string name="Name">GameConfig</string>
+          <string name="Source">--!strict
+-- Balance and shared settings. Every tunable number lives here.
+
+local GameConfig = {
+	-- Inventory and storage
+	MaxInventoryWeight = 20,
+	StorageCapacity = 60,
+
+	-- Health
+	StartingHealth = 100,
+	MedkitHeal = 35,
+
+	-- Hazards
+	FallDamageThreshold = 18,
+	FallDamagePerStud = 2,
+	ToxicDamagePerSecond = 8,
+	ToxicGraceSeconds = 2,
+	AirFilterToxicReduction = 0.75,
+	HazardTickSeconds = 0.25,
+
+	-- Food and hunger: each descent below the roof eats ExpeditionFoodCost Food.
+	-- Without food, after HungerGraceSeconds below the roof health slowly drops.
+	ExpeditionFoodCost = 1,
+	HungerGraceSeconds = 180,
+	HungerDamagePerSecond = 1,
+
+	-- Flashlight: battery drains while switched on, charges next to a built Generator.
+	FlashlightBatterySeconds = 240,
+	FlashlightChargePerSecond = 20,
+	FlashlightChargeRadius = 16,
+
+	-- Interaction
+	InteractionDistance = 12,
+	InteractionCooldown = 0.35,
+	PromptActivationDistance = 10,
+
+	-- Resource nodes. Per player; normal nodes refill when the player returns to the roof.
+	-- Unique nodes (Crowbar, Flashlight, notes) never refill.
+	ResourceRespawnSeconds = 0,
+	ResetNodesOnRoofReturn = true,
+
+	-- Death: carried items except protected ones drop as a personal backpack at the death spot.
+	DeathProtectedItems = {
+		Crowbar = true,
+		Flashlight = true,
+	} :: { [string]: boolean },
+	BackpackDropLifetimeSeconds = 900,
+	RespawnDelaySeconds = 3,
+
+	-- Testing: every upgrade costs 1 of each listed item. Never ship with this on.
+	TestPrices = false,
+
+	-- Server and saving
+	MaxPlayersPerServer = 4,
+	AutosaveIntervalSeconds = 120,
+	DataStoreName = "SkylineZero_PlayerData_v1",
+	SchemaVersion = 1,
+	DataRetryAttempts = 3,
+	DataRetryDelaySeconds = 2,
+
+	-- World layout (studs). The building is lifted high so a default baseplate never overlaps it.
+	World = {
+		Mode = "Generated" :: "Generated" | "Manual",
+		FolderName = "GeneratedWorld",
+		RoofY = 396, -- top surface of the roof slab
+		FloorSpacing = 24,
+		FloorCount = 4,
+		RoofSize = 100,
+		FloorSize = 70,
+		SlabThickness = 2,
+		NeighborOffsetX = 150, -- centre of the neighbour tower roof
+	},
+}
+
+return GameConfig
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="4">
+        <Properties>
+          <string name="Name">ItemDefinitions</string>
+          <string name="Source">--!strict
+-- Every item the game knows about. Unknown IDs are rejected everywhere.
+
+export type ItemDef = {
+	id: string,
+	displayName: string,
+	weight: number,
+	startAmount: number,
+	description: string,
+	storable: boolean, -- tools stay with the player and never go into storage
+	icon: string, -- emoji placeholder until real icons are drawn
+	iconImage: string?, -- rbxassetid://... once an icon is uploaded; wins over the emoji
+	color: Color3, -- slot accent colour
+}
+
+local Items: { [string]: ItemDef } = {
+	Scrap = {
+		id = "Scrap",
+		icon = "🔩",
+		color = Color3.fromRGB(150, 110, 80),
+		displayName = "Металобрухт",
+		weight = 1,
+		startAmount = 0,
+		description = "Основа для будь-якого поліпшення.",
+		storable = true,
+	},
+	Electronics = {
+		id = "Electronics",
+		icon = "💾",
+		color = Color3.fromRGB(70, 170, 110),
+		displayName = "Електронні деталі",
+		weight = 1,
+		startAmount = 0,
+		description = "Потрібні для генератора й фільтра.",
+		storable = true,
+	},
+	Food = {
+		id = "Food",
+		icon = "🥫",
+		color = Color3.fromRGB(220, 140, 50),
+		displayName = "Їжа",
+		weight = 1,
+		startAmount = 2,
+		description = "Кожен спуск з'їдає 1 їжу. Без неї через 3 хв почнеш слабшати.",
+		storable = true,
+	},
+	Medkit = {
+		id = "Medkit",
+		icon = "🩹",
+		color = Color3.fromRGB(220, 70, 70),
+		displayName = "Аптечка",
+		weight = 2,
+		startAmount = 1,
+		description = "Відновлює 35 здоров'я.",
+		storable = true,
+	},
+	Cable = {
+		id = "Cable",
+		icon = "🧵",
+		color = Color3.fromRGB(90, 90, 100),
+		displayName = "Кабель",
+		weight = 2,
+		startAmount = 0,
+		description = "Рідкісний. Лежить у руїнах 4 поверху. Потрібен для мосту.",
+		storable = true,
+	},
+	Motor = {
+		id = "Motor",
+		icon = "⚙️",
+		color = Color3.fromRGB(100, 130, 170),
+		displayName = "Мотор",
+		weight = 3,
+		startAmount = 0,
+		description = "Рідкісний. Захований за завалами 4 поверху. Потрібен для мосту.",
+		storable = true,
+	},
+	Crowbar = {
+		id = "Crowbar",
+		icon = "🔧",
+		color = Color3.fromRGB(180, 60, 50),
+		displayName = "Лом",
+		weight = 3,
+		startAmount = 0,
+		description = "Розбирає завали з позначкою «Лом».",
+		storable = false,
+	},
+	Flashlight = {
+		id = "Flashlight",
+		icon = "🔦",
+		color = Color3.fromRGB(230, 200, 60),
+		displayName = "Ліхтарик",
+		weight = 1,
+		startAmount = 0,
+		description = "Клавіша F. Заряджається біля генератора.",
+		storable = false,
+	},
+}
+
+-- Display order in the UI.
+local Order = { "Scrap", "Electronics", "Food", "Medkit", "Cable", "Motor", "Crowbar", "Flashlight" }
+
+local ItemDefinitions = {
+	Items = Items,
+	Order = Order,
+}
+
+function ItemDefinitions.Get(id: string): ItemDef?
+	return Items[id]
+end
+
+function ItemDefinitions.IsValid(id: any): boolean
+	return type(id) == "string" and Items[id] ~= nil
+end
+
+return ItemDefinitions
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="5">
+        <Properties>
+          <string name="Name">Locale</string>
+          <string name="Source">--!strict
+-- All player-facing text in Ukrainian, Russian and English.
+--
+-- The server never sends finished sentences: it sends a message (a key, or { key, args... }) and every
+-- client renders it in its own language. Arguments can be plain values or references:
+--   Locale.Item("Scrap")      -&gt; the item's name
+--   Locale.Upgrade("Bridge")  -&gt; the upgrade's name
+--   Locale.Cost({ Scrap = 8 }) -&gt; "8 Scrap + ..."
+-- Adding a language: add its code to Languages and a column to every entry below.
+
+local ItemDefinitions = require(script.Parent.ItemDefinitions)
+
+export type Lang = "uk" | "ru" | "en"
+export type Message = string | { any }
+
+local Locale = {}
+
+Locale.Languages = { "uk", "ru", "en" } :: { Lang }
+Locale.Default = "en" :: Lang
+Locale.LanguageNames = { uk = "Українська", ru = "Русский", en = "English" }
+
+type Entry = { uk: string, ru: string, en: string }
+
+local S: { [string]: Entry } = {
+	-- Items
+	["item.Scrap.name"] = { uk = "Металобрухт", ru = "Металлолом", en = "Scrap" },
+	["item.Scrap.desc"] = {
+		uk = "Основа для будь-якого поліпшення.",
+		ru = "Основа для любого улучшения.",
+		en = "The base of every upgrade.",
+	},
+	["item.Electronics.name"] = { uk = "Електроніка", ru = "Электроника", en = "Electronics" },
+	["item.Electronics.desc"] = {
+		uk = "Потрібна для генератора й фільтра.",
+		ru = "Нужна для генератора и фильтра.",
+		en = "Needed for the generator and the filter.",
+	},
+	["item.Food.name"] = { uk = "Їжа", ru = "Еда", en = "Food" },
+	["item.Food.desc"] = {
+		uk = "Кожен спуск з'їдає 1 їжу. Без неї через 3 хв почнеш слабшати.",
+		ru = "Каждый спуск съедает 1 еду. Без неё через 3 мин начнёшь слабеть.",
+		en = "Each descent uses 1 food. Without it you start to weaken after 3 min.",
+	},
+	["item.Medkit.name"] = { uk = "Аптечка", ru = "Аптечка", en = "Medkit" },
+	["item.Medkit.desc"] = {
+		uk = "Відновлює 35 здоров'я.",
+		ru = "Восстанавливает 35 здоровья.",
+		en = "Restores 35 health.",
+	},
+	["item.Cable.name"] = { uk = "Кабель", ru = "Кабель", en = "Cable" },
+	["item.Cable.desc"] = {
+		uk = "Рідкісний. Лежить у руїнах 4 поверху. Потрібен для мосту.",
+		ru = "Редкий. Лежит в руинах 4 этажа. Нужен для моста.",
+		en = "Rare. Found in the ruins of floor 4. Needed for the bridge.",
+	},
+	["item.Motor.name"] = { uk = "Мотор", ru = "Мотор", en = "Motor" },
+	["item.Motor.desc"] = {
+		uk = "Рідкісний. Захований за завалами 4 поверху. Потрібен для мосту.",
+		ru = "Редкий. Спрятан за завалами 4 этажа. Нужен для моста.",
+		en = "Rare. Hidden behind the rubble on floor 4. Needed for the bridge.",
+	},
+	["item.Crowbar.name"] = { uk = "Лом", ru = "Лом", en = "Crowbar" },
+	["item.Crowbar.desc"] = {
+		uk = "Розбирає завали з позначкою «Лом».",
+		ru = "Разбирает завалы с пометкой «Лом».",
+		en = "Clears rubble marked CROWBAR.",
+	},
+	["item.Flashlight.name"] = { uk = "Ліхтарик", ru = "Фонарик", en = "Flashlight" },
+	["item.Flashlight.desc"] = {
+		uk = "Вмикається клавішею F. Заряджається біля генератора.",
+		ru = "Включается клавишей F. Заряжается у генератора.",
+		en = "Toggle with F. Charges next to the generator.",
+	},
+
+	-- Upgrades
+	["upgrade.StorageCrate.name"] = { uk = "Скриня", ru = "Сундук", en = "Chest" },
+	["upgrade.Generator.name"] = { uk = "Генератор", ru = "Генератор", en = "Generator" },
+	["upgrade.AirFilter.name"] = {
+		uk = "Фільтр повітря",
+		ru = "Фильтр воздуха",
+		en = "Air filter",
+	},
+	["upgrade.Bridge.name"] = { uk = "Міст", ru = "Мост", en = "Bridge" },
+
+	-- Generic server replies
+	["err.notLoaded"] = {
+		uk = "Дані ще не завантажені",
+		ru = "Данные ещё не загружены",
+		en = "Data is still loading",
+	},
+	["err.unknownUpgrade"] = {
+		uk = "Невідоме поліпшення",
+		ru = "Неизвестное улучшение",
+		en = "Unknown upgrade",
+	},
+	["err.tooFar"] = { uk = "Занадто далеко", ru = "Слишком далеко", en = "Too far away" },
+
+	["upgrade.alreadyBuilt"] = {
+		uk = "%s уже збудовано",
+		ru = "%s уже построено",
+		en = "%s is already built",
+	},
+	["upgrade.requires"] = {
+		uk = "Спершу потрібно: %s",
+		ru = "Сначала нужно: %s",
+		en = "Build this first: %s",
+	},
+	["upgrade.notEnough"] = {
+		uk = "Недостатньо ресурсів. Потрібно: %s",
+		ru = "Не хватает ресурсов. Нужно: %s",
+		en = "Not enough resources. Needed: %s",
+	},
+	["upgrade.built"] = { uk = "Збудовано: %s", ru = "Построено: %s", en = "Built: %s" },
+
+	["flash.none"] = {
+		uk = "У тебе немає ліхтарика",
+		ru = "У тебя нет фонарика",
+		en = "You have no flashlight",
+	},
+	["flash.empty"] = {
+		uk = "Батарея розряджена. Заряди ліхтарик біля генератора",
+		ru = "Батарея села. Заряди фонарик у генератора",
+		en = "Battery is empty. Charge it next to the generator",
+	},
+	["flash.drained"] = {
+		uk = "Ліхтарик розрядився",
+		ru = "Фонарик разрядился",
+		en = "Flashlight ran out",
+	},
+	["flash.full"] = {
+		uk = "Ліхтарик повністю заряджено",
+		ru = "Фонарик полностью заряжен",
+		en = "Flashlight fully charged",
+	},
+
+	["hazard.fall"] = {
+		uk = "Невдале падіння: -%d здоров'я",
+		ru = "Неудачное падение: -%d здоровья",
+		en = "Hard landing: -%d health",
+	},
+	["hazard.toxic"] = {
+		uk = "ТОКСИЧНЕ ПОВІТРЯ! Виходь із зони або збудуй фільтр",
+		ru = "ТОКСИЧНЫЙ ВОЗДУХ! Уходи из зоны или построй фильтр",
+		en = "TOXIC AIR! Leave the area or build a filter",
+	},
+	["hazard.descent"] = {
+		uk = "Спуск почався: -%d їжа",
+		ru = "Спуск начался: -%d еда",
+		en = "Descent started: -%d food",
+	},
+	["hazard.noFood"] = {
+		uk = "Немає їжі! Через %d хв почнеш слабшати",
+		ru = "Нет еды! Через %d мин начнёшь слабеть",
+		en = "No food! You will start to weaken in %d min",
+	},
+	["hazard.hungry"] = {
+		uk = "Ти голодний і слабшаєш. З'їж їжу або повертайся на дах",
+		ru = "Ты голоден и слабеешь. Съешь еду или возвращайся на крышу",
+		en = "You are starving. Eat something or go back to the roof",
+	},
+
+	["interact.noStorage"] = {
+		uk = "Скрині ще немає. Збудуй її за 8 металобрухту",
+		ru = "Сундука ещё нет. Построй его за 8 металлолома",
+		en = "No chest yet. Build it for 8 scrap",
+	},
+	["interact.gateLocked"] = {
+		uk = "Двері заблоковано. Потрібен генератор на даху",
+		ru = "Дверь заблокирована. Нужен генератор на крыше",
+		en = "The door is locked. It needs the generator on the roof",
+	},
+
+	["backpack.action"] = {
+		uk = "Забрати рюкзак",
+		ru = "Забрать рюкзак",
+		en = "Take backpack",
+	},
+	["backpack.object"] = { uk = "Твій рюкзак", ru = "Твой рюкзак", en = "Your backpack" },
+	["backpack.lost"] = {
+		uk = "Твій рюкзак загубився",
+		ru = "Твой рюкзак потерялся",
+		en = "Your backpack is gone",
+	},
+	["backpack.notYours"] = {
+		uk = "Це не твій рюкзак",
+		ru = "Это не твой рюкзак",
+		en = "That is not your backpack",
+	},
+	["backpack.recovered"] = {
+		uk = "Рюкзак повернуто",
+		ru = "Рюкзак возвращён",
+		en = "Backpack recovered",
+	},
+	["death.message"] = {
+		uk = "Ти загинув. Рюкзак лишився там, де ти впав",
+		ru = "Ты погиб. Рюкзак остался там, где ты упал",
+		en = "You died. Your backpack stayed where you fell",
+	},
+	["save.failed"] = {
+		uk = "Прогрес не завантажився, тому в цій сесії він не збережеться",
+		ru = "Прогресс не загрузился, поэтому в этой сессии он не сохранится",
+		en = "Progress failed to load, so it will not be saved this session",
+	},
+
+	["medkit.full"] = {
+		uk = "Здоров'я вже повне",
+		ru = "Здоровье уже полное",
+		en = "Health is already full",
+	},
+	["medkit.none"] = { uk = "Немає аптечки", ru = "Нет аптечки", en = "No medkit" },
+	["medkit.used"] = {
+		uk = "Аптечка: +%d здоров'я",
+		ru = "Аптечка: +%d здоровья",
+		en = "Medkit: +%d health",
+	},
+	["food.none"] = { uk = "Немає їжі", ru = "Нет еды", en = "No food" },
+	["food.notHungry"] = {
+		uk = "Ти не голодний",
+		ru = "Ты не голоден",
+		en = "You are not hungry",
+	},
+	["food.eaten"] = {
+		uk = "Ти поїв. Голод минув",
+		ru = "Ты поел. Голод прошёл",
+		en = "You ate. No longer hungry",
+	},
+
+	["res.zoneLocked"] = {
+		uk = "Ця зона відкриється після поліпшення бази",
+		ru = "Эта зона откроется после улучшения базы",
+		en = "This area opens after a base upgrade",
+	},
+	["res.blocked"] = {
+		uk = "Прохід завалено",
+		ru = "Проход завален",
+		en = "The way is blocked",
+	},
+	["res.empty"] = {
+		uk = "Тут уже порожньо",
+		ru = "Здесь уже пусто",
+		en = "Nothing left here",
+	},
+	["res.alreadyHave"] = {
+		uk = "У тебе вже є цей предмет",
+		ru = "У тебя уже есть этот предмет",
+		en = "You already have this",
+	},
+	["res.full"] = {
+		uk = "Рюкзак переповнений. Віднеси знахідки на дах",
+		ru = "Рюкзак переполнен. Отнеси находки на крышу",
+		en = "Backpack is full. Take your finds to the roof",
+	},
+	["res.collected"] = { uk = "Зібрано: %s +%d", ru = "Собрано: %s +%d", en = "Collected: %s +%d" },
+	["rubble.needCrowbar"] = {
+		uk = "Потрібен лом. Розбери перший завал на технічному поверсі",
+		ru = "Нужен лом. Разбери первый завал на техническом этаже",
+		en = "You need a crowbar. Clear the first rubble on the technical floor",
+	},
+	["rubble.found"] = {
+		uk = "Під завалом знайдено: %s",
+		ru = "Под завалом найдено: %s",
+		en = "Found under the rubble: %s",
+	},
+	["rubble.cleared"] = {
+		uk = "Завал розібрано",
+		ru = "Завал разобран",
+		en = "Rubble cleared",
+	},
+
+	["storage.invalid"] = {
+		uk = "Невідома дія",
+		ru = "Неизвестное действие",
+		en = "Unknown action",
+	},
+	["storage.notStorable"] = {
+		uk = "Цей предмет не можна покласти в скриню",
+		ru = "Этот предмет нельзя положить в сундук",
+		en = "This item cannot be stored",
+	},
+	["storage.badAmount"] = {
+		uk = "Неправильна кількість",
+		ru = "Неверное количество",
+		en = "Invalid amount",
+	},
+	["storage.buildFirst"] = {
+		uk = "Спершу збудуй скриню",
+		ru = "Сначала построй сундук",
+		en = "Build the chest first",
+	},
+	["storage.tooFar"] = {
+		uk = "Підійди ближче до скрині",
+		ru = "Подойди ближе к сундуку",
+		en = "Move closer to the chest",
+	},
+	["storage.nothing"] = {
+		uk = "Немає що класти",
+		ru = "Нечего класть",
+		en = "Nothing to put in",
+	},
+	["storage.full"] = {
+		uk = "Скриня заповнена",
+		ru = "Сундук заполнен",
+		en = "The chest is full",
+	},
+	["storage.notInStorage"] = {
+		uk = "У скрині цього немає",
+		ru = "В сундуке этого нет",
+		en = "Not in the chest",
+	},
+	["storage.invFull"] = {
+		uk = "Рюкзак переповнений",
+		ru = "Рюкзак переполнен",
+		en = "Backpack is full",
+	},
+
+	-- Tutorial
+	["tutorial.1"] = {
+		uk = "Знайди аварійний термінал на даху",
+		ru = "Найди аварийный терминал на крыше",
+		en = "Find the emergency terminal on the roof",
+	},
+	["tutorial.2"] = {
+		uk = "Спустись сходами й збери 3 металобрухту на технічному поверсі",
+		ru = "Спустись по лестнице и собери 3 металлолома на техническом этаже",
+		en = "Take the stairs down and collect 3 scrap on the technical floor",
+	},
+	["tutorial.3"] = {
+		uk = "Повернись на дах",
+		ru = "Вернись на крышу",
+		en = "Return to the roof",
+	},
+	["tutorial.4"] = {
+		uk = "Збудуй скриню на даху (8 металобрухту)",
+		ru = "Построй сундук на крыше (8 металлолома)",
+		en = "Build the chest on the roof (8 scrap)",
+	},
+	["tutorial.5"] = {
+		uk = "Знайди 4 електроніки",
+		ru = "Найди 4 электроники",
+		en = "Find 4 electronics",
+	},
+	["tutorial.6"] = {
+		uk = "Увімкни генератор на даху",
+		ru = "Запусти генератор на крыше",
+		en = "Start the generator on the roof",
+	},
+	["tutorial.7"] = {
+		uk = "Знайди кабель і мотор на 4 поверсі, полагодь міст і перейди на сусідню вежу",
+		ru = "Найди кабель и мотор на 4 этаже, почини мост и перейди на соседнюю башню",
+		en = "Find cable and motors on floor 4, repair the bridge and cross to the next tower",
+	},
+	["tutorial.done"] = {
+		uk = "Вежу пройдено. Можеш і далі досліджувати поверхи",
+		ru = "Башня пройдена. Можешь и дальше исследовать этажи",
+		en = "Tower complete. Keep exploring if you like",
+	},
+	["tutorial.new"] = { uk = "Нова ціль: %s", ru = "Новая цель: %s", en = "New objective: %s" },
+
+	-- Notes
+	["note.terminal.title"] = {
+		uk = "Аварійний термінал",
+		ru = "Аварийный терминал",
+		en = "Emergency terminal",
+	},
+	["note.terminal.body"] = {
+		uk = "«Якщо ти це читаєш, дах ще тримається. Генератор не працює, а вентиляція нижче забита. Не спускайся без ліхтаря. Ми пробували дістатися до сусідньої вежі, але міст обвалився. Знайди деталі — можливо, зможеш повернути світло».",
+		ru = "«Если ты это читаешь, крыша ещё держится. Генератор не работает, а вентиляция ниже забита. Не спускайся без фонаря. Мы пытались добраться до соседней башни, но мост рухнул. Найди детали — может, сумеешь вернуть свет».",
+		en = '"If you are reading this, the roof still holds. The generator is dead and the vents below are clogged. Don\'t go down without a light. We tried to reach the next tower, but the bridge collapsed. Find parts — maybe you can bring the power back."',
+	},
+	["note.terminal.footer"] = {
+		uk = "Відновлено систем: %d / 3   (світло, повітря, міст)",
+		ru = "Восстановлено систем: %d / 3   (свет, воздух, мост)",
+		en = "Systems restored: %d / 3   (power, air, bridge)",
+	},
+	["ending.title"] = {
+		uk = "Вежу 1 пройдено!",
+		ru = "Башня 1 пройдена!",
+		en = "Tower 1 complete!",
+	},
+	["ending.body"] = {
+		uk = "Ти повернув світло, очистив повітря й полагодив міст. Попереду нова вежа і нові поверхи.",
+		ru = "Ты вернул свет, очистил воздух и починил мост. Впереди новая башня и новые этажи.",
+		en = "You restored the power, cleared the air and fixed the bridge. A new tower and new floors lie ahead.",
+	},
+	["ending.footer"] = {
+		uk = "Skyline Zero · прототип · Дякуємо за гру!",
+		ru = "Skyline Zero · прототип · Спасибо за игру!",
+		en = "Skyline Zero · prototype · Thanks for playing!",
+	},
+
+	-- World signs and prompts
+	["sign.floor"] = { uk = "%d ПОВЕРХ", ru = "%d ЭТАЖ", en = "FLOOR %d" },
+	["sign.floor4"] = { uk = "4 ПОВЕРХ · РУЇНИ", ru = "4 ЭТАЖ · РУИНЫ", en = "FLOOR 4 · RUINS" },
+	["sign.stairsDown"] = {
+		uk = "СХОДИ ВНИЗ ↓",
+		ru = "ЛЕСТНИЦА ВНИЗ ↓",
+		en = "STAIRS DOWN ↓",
+	},
+	["sign.crowbar"] = { uk = "ЛОМ", ru = "ЛОМ", en = "CROWBAR" },
+	["sign.toxic"] = {
+		uk = "⚠ ТОКСИЧНЕ ПОВІТРЯ",
+		ru = "⚠ ТОКСИЧНЫЙ ВОЗДУХ",
+		en = "⚠ TOXIC AIR",
+	},
+	["sign.gate"] = {
+		uk = "ПОТРІБНЕ ЖИВЛЕННЯ · ГЕНЕРАТОР",
+		ru = "НУЖНО ПИТАНИЕ · ГЕНЕРАТОР",
+		en = "POWER REQUIRED · GENERATOR",
+	},
+	["sign.bridgeBroken"] = {
+		uk = "МІСТ ЗРУЙНОВАНО",
+		ru = "МОСТ РАЗРУШЕН",
+		en = "BRIDGE DESTROYED",
+	},
+	["sign.tower2"] = { uk = "ВЕЖА 2", ru = "БАШНЯ 2", en = "TOWER 2" },
+
+	["prompt.collect"] = { uk = "Зібрати", ru = "Собрать", en = "Collect" },
+	["prompt.itemAmount"] = { uk = "%s ×%d", ru = "%s ×%d", en = "%s ×%d" },
+	["prompt.clear"] = { uk = "Розібрати", ru = "Разобрать", en = "Clear" },
+	["prompt.clearCrowbar"] = {
+		uk = "Розібрати ломом",
+		ru = "Разобрать ломом",
+		en = "Pry with crowbar",
+	},
+	["prompt.rubble"] = { uk = "Завал", ru = "Завал", en = "Rubble" },
+	["prompt.open"] = { uk = "Відкрити", ru = "Открыть", en = "Open" },
+	["prompt.gate"] = {
+		uk = "Двері на 4 поверх",
+		ru = "Дверь на 4 этаж",
+		en = "Door to floor 4",
+	},
+	["prompt.build"] = { uk = "Збудувати", ru = "Построить", en = "Build" },
+	["prompt.needs"] = { uk = "Потрібно: %s", ru = "Нужно: %s", en = "Needs: %s" },
+	["prompt.read"] = { uk = "Прочитати", ru = "Прочитать", en = "Read" },
+	["prompt.terminal"] = {
+		uk = "Аварійний термінал",
+		ru = "Аварийный терминал",
+		en = "Emergency terminal",
+	},
+	["prompt.costLine"] = { uk = "%s: %s", ru = "%s: %s", en = "%s: %s" },
+
+	-- HUD and menus
+	["hud.health"] = { uk = "Здоров'я %d / %d", ru = "Здоровье %d / %d", en = "Health %d / %d" },
+	["hud.weight"] = { uk = "Вага %d / %d", ru = "Вес %d / %d", en = "Weight %d / %d" },
+	["hud.objective"] = { uk = "Ціль: %s", ru = "Цель: %s", en = "Objective: %s" },
+	["hud.systems"] = { uk = "Системи %d/3", ru = "Системы %d/3", en = "Systems %d/3" },
+	["hud.toxic"] = {
+		uk = "⚠ ТОКСИЧНЕ ПОВІТРЯ",
+		ru = "⚠ ТОКСИЧНЫЙ ВОЗДУХ",
+		en = "⚠ TOXIC AIR",
+	},
+	["hud.hungry"] = {
+		uk = "⚠ ГОЛОД: з'їж їжу",
+		ru = "⚠ ГОЛОД: съешь еду",
+		en = "⚠ STARVING: eat food",
+	},
+	["hud.flashlight"] = {
+		uk = "Ліхтарик %s · %d с",
+		ru = "Фонарик %s · %d с",
+		en = "Flashlight %s · %ds",
+	},
+	["hud.on"] = { uk = "увімк.", ru = "вкл.", en = "on" },
+	["hud.off"] = { uk = "вимк.", ru = "выкл.", en = "off" },
+
+	["ui.interact"] = { uk = "Взаємодія", ru = "Действие", en = "Interact" },
+	["ui.flashlight"] = { uk = "Ліхтарик", ru = "Фонарик", en = "Flashlight" },
+	["ui.use"] = { uk = "Використати", ru = "Использовать", en = "Use" },
+	["ui.eat"] = { uk = "З'їсти", ru = "Съесть", en = "Eat" },
+	["ui.storage"] = { uk = "Скриня", ru = "Сундук", en = "Chest" },
+	["ui.storageHeader"] = {
+		uk = "Скриня %d / %d   ·   рюкзак %d / %d",
+		ru = "Сундук %d / %d   ·   рюкзак %d / %d",
+		en = "Chest %d / %d   ·   backpack %d / %d",
+	},
+	["ui.storageRow"] = {
+		uk = "%s %s\nз собою %d · у скрині %d",
+		ru = "%s %s\nс собой %d · в сундуке %d",
+		en = "%s %s\ncarried %d · stored %d",
+	},
+	["ui.all"] = { uk = "всі", ru = "все", en = "all" },
+	["ui.close"] = { uk = "Закрити", ru = "Закрыть", en = "Close" },
+	["ui.continue"] = { uk = "Продовжити", ru = "Продолжить", en = "Continue" },
+	-- Lobby and party
+	["lobby.title"] = { uk = "SKYLINE ZERO", ru = "SKYLINE ZERO", en = "SKYLINE ZERO" },
+	-- Kept for older clients; boarding no longer uses fixed Solo/2/4/6 signs.
+	["lobby.liftSolo"] = { uk = "ЛІФТ", ru = "ЛИФТ", en = "LIFT" },
+	["lobby.liftGroup"] = { uk = "ЛІФТ", ru = "ЛИФТ", en = "LIFT" },
+	["lobby.hint"] = {
+		uk = "Зайди в ліфт і обери розмір групи (2–6), щоб піднятися на дах.",
+		ru = "Зайди в лифт и выбери размер группы (2–6), чтобы подняться на крышу.",
+		en = "Step into a lift and pick a party size (2–6) to go up to the roof.",
+	},
+	["lobby.pickSizeTitle"] = {
+		uk = "Скільки гравців?",
+		ru = "Сколько игроков?",
+		en = "How many players?",
+	},
+	["lobby.pickSizeBody"] = {
+		uk = "Обери максимум місць у ліфті. Старт, коли таймер закінчиться.",
+		ru = "Выбери максимум мест в лифте. Старт, когда таймер закончится.",
+		en = "Choose how many seats to hold. The lift leaves when the timer ends.",
+	},
+	["lobby.pickSizeHint"] = {
+		uk = "Обери розмір групи 2–6",
+		ru = "Выбери размер группы 2–6",
+		en = "Pick a party size from 2 to 6",
+	},
+	["lobby.sizeChosen"] = {
+		uk = "Група до %d. Чекаємо гравців…",
+		ru = "Группа до %d. Ждём игроков…",
+		en = "Party of up to %d. Waiting for players…",
+	},
+	["lobby.badSize"] = {
+		uk = "Обери від 2 до 6 гравців",
+		ru = "Выбери от 2 до 6 игроков",
+		en = "Pick between 2 and 6 players",
+	},
+	["lobby.howTitle"] = { uk = "ЯК ГРАТИ", ru = "КАК ИГРАТЬ", en = "HOW TO PLAY" },
+	["lobby.howBody"] = {
+		uk = "1. Спускайся з даху на поверхи й збирай ресурси.\n2. Повертайся на дах і будуй поліпшення.\n3. Генератор, фільтр і міст — три кроки до втечі.\n4. Бережи себе: падіння, отрута й голод небезпечні.",
+		ru = "1. Спускайся с крыши на этажи и собирай ресурсы.\n2. Возвращайся на крышу и строй улучшения.\n3. Генератор, фильтр и мост — три шага к побегу.\n4. Береги себя: падения, яд и голод опасны.",
+		en = "1. Go down from the roof and collect resources.\n2. Bring them back up and build upgrades.\n3. Generator, filter and bridge: three steps to escape.\n4. Stay alive: falls, toxic air and hunger hurt.",
+	},
+	["lobby.leaders"] = {
+		uk = "ВЕЖІ ПРОЙДЕНО",
+		ru = "БАШНИ ПРОЙДЕНЫ",
+		en = "TOWERS COMPLETED",
+	},
+	["lobby.leadersEmpty"] = { uk = "Поки що ніхто", ru = "Пока никто", en = "Nobody yet" },
+	["lobby.joined"] = {
+		uk = "Ти в ліфті. Старт за %d с",
+		ru = "Ты в лифте. Старт через %d с",
+		en = "You are in the lift. Starting in %d s",
+	},
+	["lobby.left"] = {
+		uk = "Ти вийшов з ліфта",
+		ru = "Ты вышел из лифта",
+		en = "You left the lift",
+	},
+	["lobby.full"] = {
+		uk = "Ліфт заповнений",
+		ru = "Лифт заполнен",
+		en = "This lift is full",
+	},
+	["lobby.starting"] = { uk = "Їдемо нагору!", ru = "Поехали наверх!", en = "Going up!" },
+	["lobby.notPublished"] = {
+		uk = "Гру ще не опубліковано, тому ліфт не працює. Опублікуй обидва place і впиши PlaceId",
+		ru = "Игра ещё не опубликована, поэтому лифт не работает. Опубликуй оба place и впиши PlaceId",
+		en = "The game is not published yet, so lifts are off. Publish both places and set the PlaceIds",
+	},
+	["lobby.studio"] = {
+		uk = "У Studio телепорт не працює. Перевір ліфти в опублікованій грі",
+		ru = "В Studio телепорт не работает. Проверь лифты в опубликованной игре",
+		en = "Teleports do not work in Studio. Test the lifts in the published game",
+	},
+	["lobby.failed"] = {
+		uk = "Не вдалося запустити гру. Спробуй ще раз",
+		ru = "Не удалось запустить игру. Попробуй ещё раз",
+		en = "Could not start the game. Please try again",
+	},
+	["lobby.countdown"] = { uk = "Старт через %d", ru = "Старт через %d", en = "Starting in %d" },
+	["lobby.riders"] = { uk = "У ліфті %d / %d", ru = "В лифте %d / %d", en = "In the lift %d / %d" },
+	["lobby.teleporting"] = {
+		uk = "Піднімаємось на дах…",
+		ru = "Поднимаемся на крышу…",
+		en = "Going up to the roof…",
+	},
+	["party.built"] = { uk = "%s збудував: %s", ru = "%s построил: %s", en = "%s built: %s" },
+	["party.leader"] = { uk = "Лідер групи: %s", ru = "Лидер группы: %s", en = "Party leader: %s" },
+	["marker.here"] = { uk = "Сюди · %d м", ru = "Сюда · %d м", en = "Here · %d m" },
+	["prompt.locked"] = { uk = "🔒 Спершу: %s", ru = "🔒 Сначала: %s", en = "🔒 First: %s" },
+	["ui.toLobby"] = { uk = "В лобі", ru = "В лобби", en = "Lobby" },
+
+	["ui.weightEach"] = { uk = "вага %d", ru = "вес %d", en = "weight %d" },
+}
+
+local function entry(key: string): Entry?
+	return S[key]
+end
+
+function Locale.Has(key: string): boolean
+	return S[key] ~= nil
+end
+
+-- Normalises a Roblox LocaleId ("uk-ua", "ru-ru", "en-us") or a saved code to one of our languages.
+function Locale.Resolve(code: any): Lang
+	if type(code) ~= "string" then
+		return Locale.Default
+	end
+	local prefix = string.lower(string.sub(code, 1, 2))
+	if prefix == "uk" or prefix == "ru" or prefix == "en" then
+		return prefix :: Lang
+	end
+	return Locale.Default
+end
+
+function Locale.IsLanguage(code: any): boolean
+	return code == "uk" or code == "ru" or code == "en"
+end
+
+-- Argument references, resolved in the reader's language.
+function Locale.Item(itemId: string): { [string]: any }
+	return { ref = "item." .. itemId .. ".name" }
+end
+
+function Locale.Upgrade(upgradeId: string): { [string]: any }
+	return { ref = "upgrade." .. upgradeId .. ".name" }
+end
+
+function Locale.Cost(cost: { [string]: number }): { [string]: any }
+	return { cost = cost }
+end
+
+local function raw(lang: Lang, key: string): string
+	local e = entry(key)
+	if not e then
+		return key
+	end
+	return (e :: any)[lang] or e.en
+end
+
+local function resolveArg(lang: Lang, arg: any): any
+	if type(arg) ~= "table" then
+		return arg
+	end
+	if type(arg.ref) == "string" then
+		return raw(lang, arg.ref)
+	end
+	if type(arg.cost) == "table" then
+		local parts = {}
+		for _, itemId in ItemDefinitions.Order do
+			local amount = arg.cost[itemId]
+			if type(amount) == "number" then
+				table.insert(parts, ("%d %s"):format(amount, raw(lang, "item." .. itemId .. ".name")))
+			end
+		end
+		return table.concat(parts, " + ")
+	end
+	return ""
+end
+
+function Locale.T(lang: Lang, key: string, ...: any): string
+	local text = raw(lang, key)
+	local count = select("#", ...)
+	if count == 0 then
+		return text
+	end
+	local args = table.pack(...)
+	for i = 1, count do
+		args[i] = resolveArg(lang, args[i])
+	end
+	local ok, result = pcall(string.format, text, table.unpack(args, 1, count))
+	return if ok then result else text
+end
+
+-- Renders a message sent by the server: a key, or { key, arg1, arg2, ... }.
+function Locale.Format(lang: Lang, message: any): string
+	if type(message) == "string" then
+		return Locale.T(lang, message)
+	end
+	if type(message) == "table" and type(message[1]) == "string" then
+		return Locale.T(lang, message[1], table.unpack(message, 2))
+	end
+	return ""
+end
+
+function Locale.ItemName(lang: Lang, itemId: string): string
+	return raw(lang, "item." .. itemId .. ".name")
+end
+
+function Locale.ItemDesc(lang: Lang, itemId: string): string
+	return raw(lang, "item." .. itemId .. ".desc")
+end
+
+function Locale.UpgradeName(lang: Lang, upgradeId: string): string
+	return raw(lang, "upgrade." .. upgradeId .. ".name")
+end
+
+-- The language a player reads in: their saved choice, else their Roblox locale.
+function Locale.ForPlayer(player: Player): Lang
+	local chosen = player:GetAttribute("Language")
+	if Locale.IsLanguage(chosen) then
+		return chosen :: Lang
+	end
+	return Locale.Resolve(player.LocaleId)
+end
+
+return Locale
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="6">
+        <Properties>
+          <string name="Name">MonetizationConfig</string>
+          <string name="Source">--!strict
+-- Monetization is OFF for the MVP. This file is the single place to switch it on later.
+-- Planned direction (not final): cosmetic / light-convenience Game Passes and a
+-- "backpack insurance" Developer Product. No paid resources and no paid floor skips.
+
+export type PassDef = {
+	id: number, -- Game Pass asset id from the Creator Dashboard (0 = not created yet)
+	-- Effects the game understands. Leave a field nil for no effect.
+	inventoryBonus: number?,
+	cosmetic: string?,
+}
+
+export type ProductDef = {
+	id: number, -- Developer Product id (0 = not created yet)
+	-- Name of a handler registered in MonetizationService.RegisterProductHandler.
+	handler: string,
+}
+
+local MonetizationConfig = {
+	Enabled = false,
+
+	GamePasses = {
+		-- BiggerBackpack = { id = 0, inventoryBonus = 5 },
+		-- LanternColors = { id = 0, cosmetic = "LanternColors" },
+	} :: { [string]: PassDef },
+
+	DeveloperProducts = {
+		-- BackpackInsurance = { id = 0, handler = "BackpackInsurance" },
+		-- Donation100 = { id = 0, handler = "Donation" },
+	} :: { [string]: ProductDef },
+}
+
+return MonetizationConfig
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="7">
+        <Properties>
+          <string name="Name">MusicConfig</string>
+          <string name="Source">--!strict
+-- Background music. All tracks are free licensed audio from the Roblox Creator Store
+-- (uploaded by the verified DistroKid / APM accounts), so they play in any experience.
+-- Swap ids here to change the soundtrack.
+
+local MusicConfig = {
+	Volume = 0.12, -- quiet background so sound effects stay clear
+	FadeSeconds = 3,
+
+	-- Calm, melancholic tracks for the roof base and the neighbour tower.
+	Roof = {
+		124181322816807, -- Deserted Embers
+		123927270887272, -- Fading World Strings
+		71882714223295, -- Silent Ruins Motif
+		103760117708996, -- Post Apocalyptic Lullaby
+	},
+
+	-- Tense drones for the floors below.
+	Below = {
+		106752035160966, -- Siberian Wasteland Underscore (Ambient Only)
+		139935905572584, -- Corroded Industrial Drone
+		140252461454906, -- Subterranean Steel Drones
+	},
+}
+
+return MusicConfig
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="8">
+        <Properties>
+          <string name="Name">PlacesConfig</string>
+          <string name="Source">--!strict
+-- Place ids of the experience. Fill these in after publishing both places
+-- (Creator Dashboard &gt; your experience &gt; Places). 0 = not published yet: teleports are disabled
+-- and the tower runs every server as solo.
+
+local PlacesConfig = {
+	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
+	Build = "b14 · elevators-party-size",
+
+	LobbyPlaceId = 128619231370772,
+	TowerPlaceId = 104145307601846,
+
+	-- Identical boarding lifts. Capacity is chosen in-dialog (MinPartySize..MaxPartySize), not by signs.
+	Lifts = {
+		{ id = "LiftA", countdown = 20, fullCountdown = 5 },
+		{ id = "LiftB", countdown = 20, fullCountdown = 5 },
+	},
+	MinPartySize = 2,
+	MaxPartySize = 6,
+
+	-- Party hand-off from the lobby to the reserved tower server.
+	PartyMapName = "SkylineZero_Parties",
+	PartyTtlSeconds = 600,
+	TeleportRetries = 3,
+
+	-- Leaderboard shown in the lobby: towers completed per player.
+	LeaderboardStoreName = "SkylineZero_TowersCompleted",
+	LeaderboardSize = 10,
+	LeaderboardRefreshSeconds = 60,
+}
+
+return PlacesConfig
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="9">
+        <Properties>
+          <string name="Name">RemoteNames</string>
+          <string name="Source">--!strict
+-- Names of every RemoteEvent. The server creates them in ReplicatedStorage.Remotes.
+
+local RemoteNames = {
+	-- Server -&gt; client
+	StateChanged = "StateChanged",
+	Notify = "Notify",
+	ShowNote = "ShowNote",
+	OpenStorage = "OpenStorage",
+
+	-- Client -&gt; server
+	RequestState = "RequestState",
+	StorageTransfer = "StorageTransfer",
+	UseItem = "UseItem",
+	ToggleFlashlight = "ToggleFlashlight",
+	SetLanguage = "SetLanguage",
+	ReturnToLobby = "ReturnToLobby",
+}
+
+return RemoteNames
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="10">
+        <Properties>
+          <string name="Name">Theme</string>
+          <string name="Source">--!strict
+-- Fonts used across both places. Oswald for headings and big numbers, Montserrat for everything else.
+-- Both families include Cyrillic, so Ukrainian and Russian text keeps the same look.
+
+local function family(name: string, weight: Enum.FontWeight): Font
+	return Font.new("rbxasset://fonts/families/" .. name .. ".json", weight)
+end
+
+local Theme = {
+	Display = family("Oswald", Enum.FontWeight.Bold), -- titles, signs, counters
+	Heading = family("Oswald", Enum.FontWeight.Medium),
+	Bold = family("Montserrat", Enum.FontWeight.Bold), -- buttons, labels that must stand out
+	Body = family("Montserrat", Enum.FontWeight.Medium), -- regular text
+}
+
+return Theme
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="11">
+        <Properties>
+          <string name="Name">Types</string>
+          <string name="Source">--!strict
+-- Shared data shapes for server data and the state snapshot sent to clients.
+
+export type ItemCounts = { [string]: number }
+
+export type PlayerData = {
+	schemaVersion: number,
+	inventory: ItemCounts,
+	storage: ItemCounts,
+	upgrades: { [string]: boolean },
+	flashlightCharge: number, -- seconds of battery left
+	uniqueNodesTaken: { [string]: boolean },
+	towerCompleted: boolean,
+	tutorialStep: number,
+	discoveredNotes: { [string]: boolean },
+	language: string?, -- "uk" | "ru" | "en"; nil = follow the Roblox locale
+	-- Monetization stubs, unused while MonetizationConfig.Enabled = false.
+	ownedPasses: { [string]: boolean },
+	processedReceipts: { [string]: boolean },
+}
+
+export type TutorialView = {
+	step: number,
+	total: number,
+	text: string,
+	done: boolean,
+}
+
+export type StateSnapshot = {
+	inventory: ItemCounts,
+	storage: ItemCounts,
+	upgrades: { [string]: boolean },
+	costs: { [string]: { [string]: number } },
+	weight: number,
+	maxWeight: number,
+	storageWeight: number,
+	storageCapacity: number,
+	flashlightCharge: number,
+	flashlightMax: number,
+	depletedNodes: { [string]: boolean },
+	clearedRubble: { [string]: boolean },
+	uniqueNodesTaken: { [string]: boolean },
+	backpack: Vector3?,
+	tutorial: TutorialView?,
+	acts: number,
+	saveEnabled: boolean,
+	towerCompleted: boolean,
+}
+
+return {}
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="12">
+        <Properties>
+          <string name="Name">UpgradeDefinitions</string>
+          <string name="Source">--!strict
+-- Base upgrades. Prices are read only from here; the client never sends a price.
+
+local GameConfig = require(script.Parent.GameConfig)
+
+export type UpgradeDef = {
+	id: string,
+	displayName: string,
+	description: string,
+	cost: { [string]: number },
+	requires: { string }, -- upgrades that must be built first
+	act: number?, -- story act this upgrade completes (terminal shows acts 0/3)
+	order: number,
+}
+
+local Upgrades: { [string]: UpgradeDef } = {
+	StorageCrate = {
+		id = "StorageCrate",
+		displayName = "Сховище",
+		description = "Ящик на даху на 60 одиниць ваги.",
+		cost = { Scrap = 8 },
+		requires = {},
+		order = 1,
+	},
+	Generator = {
+		id = "Generator",
+		displayName = "Генератор",
+		description = "Вмикає світло бази, заряджає ліхтарик і відкриває двері на 4 поверх.",
+		cost = { Scrap = 6, Electronics = 4 },
+		requires = { "StorageCrate" },
+		act = 1,
+		order = 2,
+	},
+	AirFilter = {
+		id = "AirFilter",
+		displayName = "Фільтр повітря",
+		description = "Зменшує шкоду від токсичного повітря на 75%.",
+		cost = { Scrap = 5, Electronics = 5 },
+		requires = { "Generator" },
+		act = 2,
+		order = 3,
+	},
+	Bridge = {
+		id = "Bridge",
+		displayName = "Міст до сусідньої вежі",
+		description = "Полагодь міст і вибирайся з вежі.",
+		cost = { Scrap = 10, Cable = 4, Motor = 2 },
+		requires = { "Generator" },
+		act = 3,
+		order = 4,
+	},
+}
+
+local Order = { "StorageCrate", "Generator", "AirFilter", "Bridge" }
+
+local UpgradeDefinitions = {
+	Upgrades = Upgrades,
+	Order = Order,
+}
+
+function UpgradeDefinitions.Get(id: string): UpgradeDef?
+	return Upgrades[id]
+end
+
+-- Price actually charged. GameConfig.TestPrices makes every listed item cost 1.
+function UpgradeDefinitions.GetCost(def: UpgradeDef): { [string]: number }
+	if not GameConfig.TestPrices then
+		return def.cost
+	end
+	local cheap = {}
+	for itemId in def.cost do
+		cheap[itemId] = 1
+	end
+	return cheap
+end
+
+function UpgradeDefinitions.IsValid(id: any): boolean
+	return type(id) == "string" and Upgrades[id] ~= nil
+end
+
+return UpgradeDefinitions
+</string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="13">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="ModuleScript" referent="14">
+      <Properties>
+        <string name="Name">LeaderboardService</string>
+        <string name="Source">--!strict
+-- "Towers completed" board in the lobby, read from the OrderedDataStore the tower writes on a first completion.
+
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
+
+local LeaderboardService = {}
+
+local names: { [number]: string } = {}
+
+local function nameOf(userId: number): string
+	if names[userId] then
+		return names[userId]
+	end
+	local ok, name = pcall(function()
+		return Players:GetNameFromUserIdAsync(userId)
+	end)
+	local result = if ok and type(name) == "string" then name else ("#" .. tostring(userId))
+	names[userId] = result
+	return result
+end
+
+local function refresh(rows: { TextLabel })
+	local ok, pages = pcall(function()
+		local store = DataStoreService:GetOrderedDataStore(PlacesConfig.LeaderboardStoreName)
+		return store:GetSortedAsync(false, PlacesConfig.LeaderboardSize)
+	end)
+	local entries = if ok and pages then pages:GetCurrentPage() else {}
+	for i, row in rows do
+		local entry = entries[i]
+		if entry then
+			row:SetAttribute("TextKey", nil)
+			row.Text = ("%d.  %s  —  %d"):format(i, nameOf(tonumber(entry.key) or 0), entry.value)
+		elseif i == 1 then
+			-- The client translates it.
+			row:SetAttribute("TextKey", "lobby.leadersEmpty")
+			row.Text = "—"
+		else
+			row:SetAttribute("TextKey", nil)
+			row.Text = ""
+		end
+	end
+	if not ok then
+		warn("[Leaderboard] could not read the board:", pages)
+	end
+end
+
+function LeaderboardService.Start(rows: { TextLabel })
+	task.spawn(function()
+		while true do
+			refresh(rows)
+			task.wait(PlacesConfig.LeaderboardRefreshSeconds)
+		end
+	end)
+end
+
+return LeaderboardService
+</string>
+      </Properties>
+    </Item>
+    <Item class="ModuleScript" referent="15">
+      <Properties>
+        <string name="Name">LiftService</string>
+        <string name="Source">--!strict
+-- Lobby lifts. Standing inside a lift's zone joins it; walking out leaves it. The first player in is the leader
+-- and must pick a party size (2–6) before the countdown starts. When the countdown ends the server
+-- reserves a private tower server, stores the party in MemoryStore and teleports everyone together.
+
+local MemoryStoreService = game:GetService("MemoryStoreService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+
+local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
+
+local LiftService = {}
+
+type LiftDef = { id: string, countdown: number, fullCountdown: number }
+
+type Lift = {
+	def: LiftDef,
+	zone: BasePart,
+	statusLabel: TextLabel,
+	members: { Player }, -- join order; members[1] is the leader
+	capacity: number?, -- set by the leader via ChooseLiftSize
+	deadline: number?,
+	launching: boolean,
+	blocked: { [Player]: boolean }, -- after a failed start: must step out before rejoining
+	pendingLeader: Player?, -- inside the empty lift, waiting to pick a size
+}
+
+type Notify = (player: Player, message: any, kind: string?) -&gt; ()
+
+local lifts: { Lift } = {}
+local notify: Notify = function(_player, _message, _kind) end
+local TICK = 0.25
+local chooseRemote: RemoteEvent? = nil
+
+local function isInside(part: BasePart, position: Vector3): boolean
+	local p = part.CFrame:PointToObjectSpace(position)
+	local half = part.Size / 2
+	return math.abs(p.X) &lt;= half.X and math.abs(p.Y) &lt;= half.Y and math.abs(p.Z) &lt;= half.Z
+end
+
+local function rootOf(player: Player): BasePart?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		return root
+	end
+	return nil
+end
+
+local function liftOf(player: Player): Lift?
+	for _, lift in lifts do
+		if table.find(lift.members, player) then
+			return lift
+		end
+	end
+	return nil
+end
+
+local function clearPickPrompt(player: Player)
+	player:SetAttribute("LiftPickOpen", nil)
+	player:SetAttribute("LiftPickId", nil)
+end
+
+local function clearRider(player: Player)
+	player:SetAttribute("LiftSeconds", nil)
+	player:SetAttribute("LiftCount", nil)
+	player:SetAttribute("LiftCapacity", nil)
+	clearPickPrompt(player)
+end
+
+local function updateStatus(lift: Lift)
+	local count = #lift.members
+	local capacity = lift.capacity
+	if capacity then
+		lift.statusLabel.Text = ("%d / %d"):format(count, capacity)
+	else
+		lift.statusLabel.Text = "—"
+	end
+	local seconds = if lift.deadline then math.max(0, math.ceil(lift.deadline - os.clock())) else nil
+	for _, player in lift.members do
+		player:SetAttribute("LiftSeconds", if lift.launching then 0 else seconds)
+		player:SetAttribute("LiftCount", count)
+		player:SetAttribute("LiftCapacity", capacity)
+	end
+	if lift.pendingLeader and lift.pendingLeader.Parent == Players then
+		lift.pendingLeader:SetAttribute("LiftPickOpen", true)
+		lift.pendingLeader:SetAttribute("LiftPickId", lift.def.id)
+	end
+end
+
+local function clearPending(lift: Lift)
+	local pending = lift.pendingLeader
+	lift.pendingLeader = nil
+	if pending and pending.Parent == Players and not liftOf(pending) then
+		clearPickPrompt(pending)
+	end
+end
+
+local function removeMember(lift: Lift, player: Player)
+	local index = table.find(lift.members, player)
+	if not index then
+		return
+	end
+	table.remove(lift.members, index)
+	clearRider(player)
+	if #lift.members == 0 then
+		lift.deadline = nil
+		lift.capacity = nil
+	end
+	updateStatus(lift)
+end
+
+local function addMember(lift: Lift, player: Player)
+	table.insert(lift.members, player)
+	clearPickPrompt(player)
+	local capacity = lift.capacity
+	local now = os.clock()
+	if #lift.members == 1 and capacity then
+		lift.deadline = now + lift.def.countdown
+	end
+	if capacity and #lift.members &gt;= capacity and lift.deadline then
+		lift.deadline = math.min(lift.deadline, now + lift.def.fullCountdown)
+	end
+	updateStatus(lift)
+end
+
+local function withRetries(fn: () -&gt; any): (boolean, any)
+	local lastError = nil
+	for attempt = 1, PlacesConfig.TeleportRetries do
+		local ok, result = pcall(fn)
+		if ok then
+			return true, result
+		end
+		lastError = result
+		warn(("[Lift] attempt %d failed: %s"):format(attempt, tostring(result)))
+		task.wait(attempt)
+	end
+	return false, lastError
+end
+
+local function launch(lift: Lift)
+	local party = table.clone(lift.members)
+	lift.launching = true
+	lift.deadline = nil
+
+	local function fail(message: string)
+		for _, player in party do
+			if player.Parent then
+				notify(player, message, "warning")
+			end
+		end
+		lift.launching = false
+		for _, player in lift.members do
+			lift.blocked[player] = true
+			clearRider(player)
+		end
+		table.clear(lift.members)
+		lift.capacity = nil
+		clearPending(lift)
+		updateStatus(lift)
+	end
+
+	if PlacesConfig.TowerPlaceId == 0 then
+		fail("lobby.notPublished")
+		return
+	end
+	if RunService:IsStudio() then
+		fail("lobby.studio")
+		return
+	end
+	for _, player in party do
+		notify(player, "lobby.starting", "success")
+	end
+
+	local reserved, result = withRetries(function()
+		local code, serverId = TeleportService:ReserveServer(PlacesConfig.TowerPlaceId)
+		return { code = code, serverId = serverId }
+	end)
+	if not reserved then
+		fail("lobby.failed")
+		return
+	end
+	local accessCode: string = result.code
+	local privateServerId: string = result.serverId
+
+	local userIds = {}
+	for _, player in party do
+		table.insert(userIds, player.UserId)
+	end
+	local partyMap = MemoryStoreService:GetHashMap(PlacesConfig.PartyMapName)
+	local stored = withRetries(function()
+		partyMap:SetAsync(privateServerId, {
+			leaderUserId = userIds[1],
+			partyUserIds = userIds,
+		}, PlacesConfig.PartyTtlSeconds)
+	end)
+	if not stored then
+		fail("lobby.failed")
+		return
+	end
+
+	-- Only players still in the lobby can travel.
+	local travellers = {}
+	for _, player in party do
+		if player.Parent == Players then
+			table.insert(travellers, player)
+		end
+	end
+	local options = Instance.new("TeleportOptions")
+	options.ReservedServerAccessCode = accessCode
+	local teleported = withRetries(function()
+		TeleportService:TeleportAsync(PlacesConfig.TowerPlaceId, travellers, options)
+	end)
+	if not teleported then
+		fail("lobby.failed")
+		return
+	end
+	-- Teleporting players stay in the lift until they disappear, so nobody else can take their slot.
+	task.delay(15, function()
+		lift.launching = false
+		for _, player in lift.members do
+			if player.Parent then
+				clearRider(player)
+			end
+		end
+		table.clear(lift.members)
+		lift.capacity = nil
+		clearPending(lift)
+		updateStatus(lift)
+	end)
+end
+
+local function beginPick(lift: Lift, player: Player)
+	if lift.pendingLeader and lift.pendingLeader ~= player then
+		return
+	end
+	lift.pendingLeader = player
+	player:SetAttribute("LiftPickOpen", true)
+	player:SetAttribute("LiftPickId", lift.def.id)
+	notify(player, "lobby.pickSizeHint", "info")
+	updateStatus(lift)
+end
+
+function LiftService.ChooseSize(player: Player, size: any)
+	if type(size) ~= "number" or size ~= size or size % 1 ~= 0 then
+		return
+	end
+	local minSize = PlacesConfig.MinPartySize
+	local maxSize = PlacesConfig.MaxPartySize
+	if size &lt; minSize or size &gt; maxSize then
+		notify(player, "lobby.badSize", "warning")
+		return
+	end
+	local liftId = player:GetAttribute("LiftPickId")
+	if type(liftId) ~= "string" then
+		return
+	end
+	local lift: Lift? = nil
+	for _, candidate in lifts do
+		if candidate.def.id == liftId then
+			lift = candidate
+			break
+		end
+	end
+	if not lift or lift.launching or lift.capacity ~= nil then
+		return
+	end
+	if lift.pendingLeader ~= player then
+		return
+	end
+	local root = rootOf(player)
+	if not root or not isInside(lift.zone, root.Position) then
+		clearPending(lift)
+		clearPickPrompt(player)
+		return
+	end
+	lift.capacity = size
+	lift.pendingLeader = nil
+	addMember(lift, player)
+	notify(player, { "lobby.sizeChosen", size }, "success")
+end
+
+local function tick()
+	local now = os.clock()
+	for _, lift in lifts do
+		if not lift.launching then
+			-- Leave: anyone no longer inside the zone.
+			for i = #lift.members, 1, -1 do
+				local player = lift.members[i]
+				local root = rootOf(player)
+				if player.Parent ~= Players or not root or not isInside(lift.zone, root.Position) then
+					removeMember(lift, player)
+					if player.Parent == Players then
+						notify(player, "lobby.left", "info")
+					end
+				end
+			end
+			-- Pending leader left before picking a size.
+			if lift.pendingLeader then
+				local pending = lift.pendingLeader
+				local root = rootOf(pending)
+				if pending.Parent ~= Players or not root or not isInside(lift.zone, root.Position) then
+					clearPending(lift)
+					if pending.Parent == Players then
+						clearPickPrompt(pending)
+						notify(pending, "lobby.left", "info")
+					end
+				end
+			end
+			-- Join / start size pick.
+			for _, player in Players:GetPlayers() do
+				local root = rootOf(player)
+				local inside = root ~= nil and isInside(lift.zone, root.Position)
+				if not inside then
+					lift.blocked[player] = nil
+				elseif not lift.blocked[player] and not liftOf(player) then
+					if lift.capacity == nil then
+						if lift.pendingLeader == nil then
+							beginPick(lift, player)
+						end
+					elseif #lift.members &lt; (lift.capacity :: number) then
+						addMember(lift, player)
+					elseif not liftOf(player) then
+						-- Full: only toast once per stay via blocked flag after notify.
+						if not lift.blocked[player] then
+							notify(player, "lobby.full", "warning")
+							lift.blocked[player] = true
+						end
+					end
+				end
+			end
+			if lift.deadline and now &gt;= lift.deadline and #lift.members &gt; 0 then
+				task.spawn(launch, lift)
+			else
+				updateStatus(lift)
+			end
+		end
+	end
+end
+
+-- zones[id] = { zone = part, statusLabel = label } from LobbyWorld.
+function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: TextLabel } }, notifyFn: Notify)
+	notify = notifyFn
+	for _, def in PlacesConfig.Lifts do
+		local refs = zones[def.id]
+		if refs then
+			local lift: Lift = {
+				def = def,
+				zone = refs.zone,
+				statusLabel = refs.statusLabel,
+				members = {},
+				capacity = nil,
+				deadline = nil,
+				launching = false,
+				blocked = {},
+				pendingLeader = nil,
+			}
+			table.insert(lifts, lift)
+			updateStatus(lift)
+		end
+	end
+
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	if remotes then
+		local existing = remotes:FindFirstChild("ChooseLiftSize")
+		if existing and existing:IsA("RemoteEvent") then
+			chooseRemote = existing
+		else
+			local remote = Instance.new("RemoteEvent")
+			remote.Name = "ChooseLiftSize"
+			remote.Parent = remotes
+			chooseRemote = remote
+		end
+		(chooseRemote :: RemoteEvent).OnServerEvent:Connect(function(player, size)
+			LiftService.ChooseSize(player, size)
+		end)
+	end
+
+	local accumulator = 0
+	RunService.Heartbeat:Connect(function(dt)
+		accumulator += dt
+		if accumulator &gt;= TICK then
+			accumulator = 0
+			tick()
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		local lift = liftOf(player)
+		if lift then
+			removeMember(lift, player)
+		end
+		for _, l in lifts do
+			l.blocked[player] = nil
+			if l.pendingLeader == player then
+				clearPending(l)
+			end
+		end
+		clearRider(player)
+	end)
+end
+
+return LiftService
+</string>
+      </Properties>
+    </Item>
+    <Item class="Script" referent="16">
+      <Properties>
+        <string name="Name">LobbyMain</string>
+        <token name="RunContext">0</token>
+        <string name="Source">--!strict
+-- Lobby place entry point: builds the plaza, starts the lifts and the leaderboard.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Atmosphere = require(script.Parent.Atmosphere)
+local LeaderboardService = require(script.Parent.LeaderboardService)
+local LiftService = require(script.Parent.LiftService)
+local LobbyWorld = require(script.Parent.LobbyWorld)
+
+Players.CharacterAutoLoads = true
+
+local remotes = Instance.new("Folder")
+remotes.Name = "Remotes"
+local notifyRemote = Instance.new("RemoteEvent")
+notifyRemote.Name = "Notify"
+notifyRemote.Parent = remotes
+local setLanguage = Instance.new("RemoteEvent")
+setLanguage.Name = "SetLanguage"
+setLanguage.Parent = remotes
+local chooseLiftSize = Instance.new("RemoteEvent")
+chooseLiftSize.Name = "ChooseLiftSize"
+chooseLiftSize.Parent = remotes
+remotes.Parent = ReplicatedStorage
+
+-- The lobby keeps the language choice only for this visit; the tower saves it with the player's progress.
+setLanguage.OnServerEvent:Connect(function(player, code)
+	if code == "uk" or code == "ru" or code == "en" then
+		player:SetAttribute("Language", code)
+	end
+end)
+
+Atmosphere.Apply()
+local world = LobbyWorld.Build()
+LiftService.Start(world.lifts, function(player, message, kind)
+	notifyRemote:FireClient(player, message, kind or "info")
+end)
+LeaderboardService.Start(world.leaderboardRows)
+
+local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
+print(("[Skyline Zero] Lobby ready, build %s, tower place %d"):format(PlacesConfig.Build, PlacesConfig.TowerPlaceId))
+</string>
+      </Properties>
+    </Item>
+    <Item class="ModuleScript" referent="17">
+      <Properties>
+        <string name="Name">LobbyWorld</string>
+        <string name="Source">--!strict
+-- Builds the lobby: a ruined plaza at the foot of the tower, four lifts, a leaderboard and a how-to-play board.
+-- Text in the world carries a Locale key (TextKey attribute) so each client shows it in its own language.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Theme = require(ReplicatedStorage.Shared.Theme)
+local Locale = require(ReplicatedStorage.Shared.Locale)
+local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
+local Scenery = require(script.Parent.Scenery)
+
+local LobbyWorld = {}
+
+export type LiftRefs = { zone: BasePart, statusLabel: TextLabel }
+export type Refs = {
+	lifts: { [string]: LiftRefs },
+	leaderboardRows: { TextLabel },
+}
+
+local COLORS = {
+	ground = Color3.fromRGB(92, 88, 84),
+	concrete = Color3.fromRGB(120, 116, 110),
+	dark = Color3.fromRGB(45, 46, 52),
+	metal = Color3.fromRGB(110, 115, 122),
+	glow = Color3.fromRGB(255, 160, 70),
+	rubble = Color3.fromRGB(100, 92, 84),
+	silhouette = Color3.fromRGB(40, 42, 50),
+}
+
+local function block(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material?
+): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Anchored = true
+	part.Size = size
+	part.CFrame = cframe
+	part.Color = color
+	part.Material = material or Enum.Material.Concrete
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Parent = parent
+	return part
+end
+
+local function textLabel(parent: Instance, key: string?, size: UDim2, position: UDim2, textSize: number?): TextLabel
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = size
+	label.Position = position
+	label.FontFace = Theme.Bold
+	label.TextColor3 = Color3.fromRGB(255, 225, 170)
+	label.TextStrokeTransparency = 0.4
+	label.TextWrapped = true
+	if textSize then
+		label.TextSize = textSize
+	else
+		label.TextScaled = true
+	end
+	if key then
+		label.Text = Locale.T("en", key)
+		label:SetAttribute("TextKey", key)
+	else
+		label.Text = ""
+	end
+	label.Parent = parent
+	return label
+end
+
+local function board(parent: Instance, name: string, size: Vector2, cframe: CFrame): SurfaceGui
+	local part = block(parent, name, Vector3.new(size.X, size.Y, 0.6), cframe, COLORS.dark, Enum.Material.Metal)
+	local frame = block(
+		parent,
+		name .. "Frame",
+		Vector3.new(size.X + 1, size.Y + 1, 0.4),
+		cframe * CFrame.new(0, 0, 0.3),
+		COLORS.metal,
+		Enum.Material.Metal
+	)
+	frame.CanCollide = false
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 30
+	gui.LightInfluence = 0.2
+	gui.Parent = part
+	return gui
+end
+
+local function buildLift(parent: Instance, def: { id: string }, x: number, z: number): LiftRefs
+	local folder = Instance.new("Folder")
+	folder.Name = "Lift_" .. def.id
+	folder.Parent = parent
+	-- All boarding lifts share the same look — party size is chosen in UI, not by painted capacity signs.
+	local accent = COLORS.glow
+
+	block(folder, "Floor", Vector3.new(10, 0.6, 10), CFrame.new(x, 0.3, z), COLORS.metal, Enum.Material.DiamondPlate)
+	local edge = block(folder, "Edge", Vector3.new(10.4, 0.2, 10.4), CFrame.new(x, 0.05, z), accent, Enum.Material.Neon)
+	edge.CanCollide = false
+	-- Cabin: back and side walls, roof; the front faces the plaza.
+	block(folder, "Back", Vector3.new(10, 12, 0.6), CFrame.new(x, 6, z + 5), COLORS.dark, Enum.Material.Metal)
+	for _, side in { -1, 1 } do
+		local wall = block(
+			folder,
+			"Side",
+			Vector3.new(0.6, 12, 10),
+			CFrame.new(x + side * 5, 6, z),
+			COLORS.metal,
+			Enum.Material.Glass
+		)
+		wall.Transparency = 0.5
+	end
+	block(folder, "Roof", Vector3.new(11, 0.8, 11), CFrame.new(x, 12.4, z), COLORS.dark, Enum.Material.Metal)
+	local lamp = block(folder, "Lamp", Vector3.new(6, 0.2, 6), CFrame.new(x, 11.9, z), accent, Enum.Material.Neon)
+	lamp.CanCollide = false
+	local light = Instance.new("PointLight")
+	light.Color = accent
+	light.Range = 16
+	light.Brightness = 1.5
+	light.Parent = lamp
+	-- Cables running up into the dark, so it reads as a lift shaft.
+	for _, side in { -1, 1 } do
+		local cable = block(
+			folder,
+			"Cable",
+			Vector3.new(0.3, 60, 0.3),
+			CFrame.new(x + side * 3, 42.8, z + 3),
+			COLORS.dark,
+			Enum.Material.Metal
+		)
+		cable.CanCollide = false
+	end
+
+	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
+	zone.Transparency = 1
+	zone.CanCollide = false
+	zone.CanQuery = false
+	zone.CanTouch = false
+
+	-- Head count only (e.g. "2 / 4"); no Solo/2/4/6 capacity signs on the cabin.
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(140, 60)
+	billboard.StudsOffsetWorldSpace = Vector3.new(0, 15.5, 0)
+	billboard.LightInfluence = 0
+	billboard.MaxDistance = 140
+	billboard.Adornee = zone
+	billboard.Parent = zone
+	local status = textLabel(billboard, nil, UDim2.fromScale(1, 1), UDim2.new())
+	status.FontFace = Theme.Display
+	status.TextColor3 = accent
+	status.TextStrokeTransparency = 0.2
+	status.Text = "—"
+	return { zone = zone, statusLabel = status }
+end
+
+function LobbyWorld.Build(): Refs
+	local root = Instance.new("Folder")
+	root.Name = "LobbyWorld"
+
+	-- Plaza and debris.
+	block(root, "Ground", Vector3.new(240, 2, 240), CFrame.new(0, -1, 0), COLORS.ground, Enum.Material.Asphalt)
+	block(root, "Plaza", Vector3.new(110, 0.4, 90), CFrame.new(0, 0.2, 5), COLORS.concrete, Enum.Material.Concrete)
+	local rng = Random.new(77)
+	for _ = 1, 26 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local dist = rng:NextNumber(62, 110)
+		local s = rng:NextNumber(3, 9)
+		local chunk = block(
+			root,
+			"Debris",
+			Vector3.new(s, s * rng:NextNumber(0.4, 1), s * rng:NextNumber(0.6, 1.4)),
+			CFrame.new(math.cos(angle) * dist, s * 0.3, math.sin(angle) * dist)
+				* CFrame.Angles(0, rng:NextNumber(0, 3), rng:NextNumber(-0.3, 0.3)),
+			COLORS.rubble,
+			Enum.Material.Slate
+		)
+		chunk.CastShadow = true
+	end
+
+	-- The tower itself rises behind the lifts and disappears into the haze, overgrown like the rest of the city.
+	block(root, "Tower", Vector3.new(130, 420, 40), CFrame.new(0, 210, 78), COLORS.concrete, Enum.Material.Concrete).CastShadow =
+		false
+	Scenery.Dress(root, Vector3.new(0, 0, 78), 130, 40, 420, Random.new(5), false)
+	Scenery.Skyline(root, Vector3.zero, 12, 170, 260, 120, 320, 9, { { Vector3.new(0, 0, 78), 120 } })
+
+	-- Street around the plaza: lamps that still work, wrecked cars, plants pushing through the asphalt.
+	local street = Random.new(31)
+	for _, x in { -52, -26, 26, 52 } do
+		for _, z in { -36, 20 } do
+			block(root, "LampPost", Vector3.new(0.6, 12, 0.6), CFrame.new(x, 6, z), COLORS.dark, Enum.Material.Metal)
+			local bulb = block(
+				root,
+				"LampBulb",
+				Vector3.new(1.6, 0.8, 1.6),
+				CFrame.new(x, 12.2, z),
+				Color3.fromRGB(255, 226, 170),
+				Enum.Material.Neon
+			)
+			bulb.CanCollide = false
+			local glow = Instance.new("PointLight")
+			glow.Color = Color3.fromRGB(255, 214, 160)
+			glow.Range = 30
+			glow.Brightness = 1.6
+			glow.Shadows = true
+			glow.Parent = bulb
+		end
+	end
+	for _, car in { { -40, -8, 0.4 }, { 44, -28, -0.6 }, { -18, -52, 1.2 } } do
+		local carColor = Color3.fromHSV(street:NextNumber(), 0.35, 0.45)
+		local body = block(
+			root,
+			"WreckedCar",
+			Vector3.new(6, 2.4, 13),
+			CFrame.new(car[1], 1.5, car[2]) * CFrame.Angles(0, car[3], 0.06),
+			carColor,
+			Enum.Material.CorrodedMetal
+		)
+		block(
+			root,
+			"CarRoof",
+			Vector3.new(5.4, 1.8, 6),
+			body.CFrame * CFrame.new(0, 2, 0.5),
+			carColor,
+			Enum.Material.CorrodedMetal
+		)
+		Scenery.Grass(root, Vector3.new(car[1], 0, car[2]), Vector2.new(9, 15), street)
+	end
+	for _ = 1, 18 do
+		local x = street:NextNumber(-70, 70)
+		local z = street:NextNumber(-60, 30)
+		if math.abs(x) &gt; 30 or z &lt; -40 then
+			Scenery.Grass(
+				root,
+				Vector3.new(x, 0.4, z),
+				Vector2.new(street:NextNumber(5, 12), street:NextNumber(5, 12)),
+				street
+			)
+		end
+	end
+	for _, p in { { -60, -20 }, { 62, 4 }, { -64, 26 }, { 58, -44 }, { -30, -58 } } do
+		Scenery.Tree(root, Vector3.new(p[1], 0, p[2]), street:NextNumber(18, 26), street)
+	end
+	for _, p in { { -36, 28 }, { 36, 28 }, { -12, -44 }, { 14, -46 } } do
+		Scenery.Bush(root, Vector3.new(p[1], 0.4, p[2]), 4, street)
+	end
+
+	-- Floodlights on the lifts so the boarding area reads as the safe, lit place.
+	for _, x in { -30, 0, 30 } do
+		local flood = block(
+			root,
+			"Floodlight",
+			Vector3.new(2, 1, 1),
+			CFrame.new(x, 20, 34) * CFrame.Angles(math.rad(-40), 0, 0),
+			COLORS.metal,
+			Enum.Material.Metal
+		)
+		local beam = Instance.new("SpotLight")
+		beam.Face = Enum.NormalId.Front
+		beam.Angle = 80
+		beam.Range = 40
+		beam.Brightness = 2.2
+		beam.Color = Color3.fromRGB(255, 236, 205)
+		beam.Parent = flood
+	end
+
+	-- Two identical boarding lifts; party size 2–6 is chosen in a dialog after stepping in.
+	local lifts: { [string]: LiftRefs } = {}
+	local count = #PlacesConfig.Lifts
+	for i, def in PlacesConfig.Lifts do
+		local x = (i - (count + 1) / 2) * 18
+		lifts[def.id] = buildLift(root, def, x, 40)
+	end
+
+	-- Spawn facing the lifts.
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "LobbySpawn"
+	spawn.Anchored = true
+	spawn.Size = Vector3.new(12, 1, 12)
+	spawn.CFrame = CFrame.new(0, 0.5, -25)
+	spawn.Color = Color3.fromRGB(70, 110, 160)
+	spawn.Material = Enum.Material.SmoothPlastic
+	spawn.Neutral = true
+	spawn.Duration = 0
+	spawn.Parent = root
+
+	-- Title, hint, how to play, leaderboard.
+	local titleGui = board(root, "TitleBoard", Vector2.new(40, 8), CFrame.new(0, 26, 57.5))
+	textLabel(titleGui, "lobby.title", UDim2.fromScale(1, 0.62), UDim2.new()).FontFace = Theme.Display
+	textLabel(titleGui, "lobby.hint", UDim2.fromScale(1, 0.32), UDim2.fromScale(0, 0.64))
+
+	local howGui =
+		board(root, "HowToPlay", Vector2.new(16, 12), CFrame.new(46, 7, 0) * CFrame.Angles(0, math.pi / 2, 0))
+	textLabel(howGui, "lobby.howTitle", UDim2.fromScale(1, 0.16), UDim2.fromScale(0, 0.02))
+	local howBody = textLabel(howGui, "lobby.howBody", UDim2.fromScale(0.92, 0.78), UDim2.fromScale(0.04, 0.2))
+	howBody.TextXAlignment = Enum.TextXAlignment.Left
+	howBody.TextYAlignment = Enum.TextYAlignment.Top
+	howBody.FontFace = Theme.Body
+	howBody.TextColor3 = Color3.fromRGB(235, 235, 235)
+
+	local leadersGui =
+		board(root, "Leaderboard", Vector2.new(16, 14), CFrame.new(-46, 8, 0) * CFrame.Angles(0, -math.pi / 2, 0))
+	textLabel(leadersGui, "lobby.leaders", UDim2.fromScale(1, 0.13), UDim2.fromScale(0, 0.02))
+	local rows = {}
+	for i = 1, PlacesConfig.LeaderboardSize do
+		local row =
+			textLabel(leadersGui, nil, UDim2.fromScale(0.9, 0.08), UDim2.fromScale(0.05, 0.16 + (i - 1) * 0.083))
+		row.TextXAlignment = Enum.TextXAlignment.Left
+		row.FontFace = Theme.Body
+		row.TextColor3 = Color3.fromRGB(235, 235, 235)
+		rows[i] = row
+	end
+
+	root.Parent = workspace
+	return { lifts = lifts, leaderboardRows = rows }
+end
+
+return LobbyWorld
+</string>
+      </Properties>
+    </Item>
+    <Item class="ModuleScript" referent="18">
+      <Properties>
+        <string name="Name">Atmosphere</string>
+        <string name="Source">--!strict
+-- Shared look of both places (lobby and tower), in the spirit of The Last of Us: a quiet, overgrown city
+-- in warm late-afternoon light. Soft golden sun, hazy green-brown distance, readable shadows and interiors.
+
+local Lighting = game:GetService("Lighting")
+
+local Atmosphere = {}
+
+function Atmosphere.Apply()
+	Lighting.ClockTime = 16.4
+	Lighting.GeographicLatitude = 30
+	Lighting.Brightness = 3
+	Lighting.ExposureCompensation = 0.25
+	-- Ambient decides how dark the interiors are: dim enough for the flashlight to matter, never pitch black.
+	Lighting.Ambient = Color3.fromRGB(78, 74, 66)
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 144, 128)
+	Lighting.ColorShift_Top = Color3.fromRGB(255, 226, 180)
+	Lighting.ColorShift_Bottom = Color3.fromRGB(60, 70, 50)
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.35
+	Lighting.ShadowSoftness = 0.3
+	Lighting.GlobalShadows = true
+
+	-- Replace whatever the template place shipped with.
+	for _, child in Lighting:GetChildren() do
+		if child:IsA("Atmosphere") or child:IsA("Sky") or child:IsA("PostEffect") then
+			child:Destroy()
+		end
+	end
+
+	local sky = Instance.new("Sky")
+	sky.SunAngularSize = 12
+	sky.MoonAngularSize = 0
+	sky.StarCount = 0
+	sky.Parent = Lighting
+
+	-- Light haze near the player, thicker towards the horizon so the ruins fade into a warm green-grey.
+	local atmosphere = Instance.new("Atmosphere")
+	atmosphere.Density = 0.28
+	atmosphere.Offset = 0.3
+	atmosphere.Haze = 1.6
+	atmosphere.Glare = 0.35
+	atmosphere.Color = Color3.fromRGB(206, 190, 160)
+	atmosphere.Decay = Color3.fromRGB(104, 112, 86)
+	atmosphere.Parent = Lighting
+
+	-- Broken cloud cover lit by the afternoon sun.
+	local terrain = workspace.Terrain
+	local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
+	clouds.Cover = 0.55
+	clouds.Density = 0.5
+	clouds.Color = Color3.fromRGB(255, 236, 214)
+	clouds.Parent = terrain
+
+	local rays = Instance.new("SunRaysEffect")
+	rays.Intensity = 0.06
+	rays.Spread = 0.5
+	rays.Parent = Lighting
+
+	local grading = Instance.new("ColorCorrectionEffect")
+	grading.TintColor = Color3.fromRGB(255, 246, 232)
+	grading.Saturation = 0.04
+	grading.Contrast = 0.1
+	grading.Brightness = 0.03
+	grading.Parent = Lighting
+
+	local bloom = Instance.new("BloomEffect")
+	bloom.Intensity = 0.35
+	bloom.Size = 24
+	bloom.Threshold = 1.6
+	bloom.Parent = Lighting
+end
+
+return Atmosphere
+</string>
+      </Properties>
+    </Item>
+    <Item class="ModuleScript" referent="19">
+      <Properties>
+        <string name="Name">Scenery</string>
+        <string name="Source">--!strict
+-- Post-apocalyptic set dressing shared by the lobby and the tower: ruined high-rises taken over by plants,
+-- grass patches, bushes, trees and hanging vines. Plain Parts only, built once at server start.
+
+local Scenery = {}
+
+local PALETTE = {
+	concrete = { Color3.fromRGB(150, 142, 128), Color3.fromRGB(128, 122, 112), Color3.fromRGB(112, 104, 96) },
+	brick = Color3.fromRGB(122, 78, 58),
+	window = Color3.fromRGB(38, 44, 48),
+	lit = Color3.fromRGB(255, 196, 120),
+	rust = Color3.fromRGB(124, 72, 44),
+	moss = Color3.fromRGB(86, 110, 52),
+	leaf = { Color3.fromRGB(78, 112, 48), Color3.fromRGB(96, 128, 56), Color3.fromRGB(64, 92, 44) },
+	grass = Color3.fromRGB(104, 124, 62),
+	bark = Color3.fromRGB(84, 64, 46),
+}
+
+local function part(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material
+): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Anchored = true
+	p.Size = size
+	p.CFrame = cframe
+	p.Color = color
+	p.Material = material
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+local function pick&lt;T&gt;(rng: Random, list: { T }): T
+	return list[rng:NextInteger(1, #list)]
+end
+
+-- Ivy hanging down a wall from `top`, `length` studs long, on a face whose outward normal is `normal`.
+function Scenery.Vine(parent: Instance, top: Vector3, length: number, normal: Vector3, rng: Random)
+	local width = rng:NextNumber(1.5, 4)
+	local strand = part(
+		parent,
+		"Vine",
+		Vector3.new(width, length, 0.3),
+		CFrame.lookAt(top - Vector3.new(0, length / 2, 0) + normal * 0.25, top - Vector3.new(0, length / 2, 0) + normal),
+		pick(rng, PALETTE.leaf),
+		Enum.Material.Grass
+	)
+	strand.CanCollide = false
+	strand.CastShadow = false
+	return strand
+end
+
+-- Low patch of overgrown grass lying on a surface.
+function Scenery.Grass(parent: Instance, center: Vector3, size: Vector2, rng: Random)
+	local patch = part(
+		parent,
+		"Grass",
+		Vector3.new(size.X, 0.25, size.Y),
+		CFrame.new(center + Vector3.new(0, 0.125, 0)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
+		PALETTE.grass:Lerp(pick(rng, PALETTE.leaf), rng:NextNumber()),
+		Enum.Material.Grass
+	)
+	patch.CanCollide = false
+	patch.CastShadow = false
+	return patch
+end
+
+function Scenery.Bush(parent: Instance, base: Vector3, size: number, rng: Random)
+	for i = 1, 3 do
+		local s = size * rng:NextNumber(0.6, 1)
+		local ball = part(
+			parent,
+			"Bush",
+			Vector3.new(s, s * 0.8, s),
+			CFrame.new(
+				base + Vector3.new(rng:NextNumber(-size, size) * 0.4, s * 0.35, rng:NextNumber(-size, size) * 0.4)
+			),
+			pick(rng, PALETTE.leaf),
+			Enum.Material.Grass
+		)
+		ball.Shape = Enum.PartType.Ball
+		ball.CanCollide = i == 1
+	end
+end
+
+function Scenery.Tree(parent: Instance, base: Vector3, height: number, rng: Random)
+	local trunk = part(
+		parent,
+		"Trunk",
+		Vector3.new(height * 0.08, height * 0.6, height * 0.08),
+		CFrame.new(base + Vector3.new(0, height * 0.3, 0))
+			* CFrame.Angles(rng:NextNumber(-0.08, 0.08), 0, rng:NextNumber(-0.08, 0.08)),
+		PALETTE.bark,
+		Enum.Material.Wood
+	)
+	trunk.CastShadow = true
+	for _ = 1, 4 do
+		local s = height * rng:NextNumber(0.35, 0.5)
+		local crown = part(
+			parent,
+			"Leaves",
+			Vector3.new(s, s * 0.85, s),
+			CFrame.new(
+				base
+					+ Vector3.new(
+						rng:NextNumber(-1, 1) * s * 0.4,
+						height * rng:NextNumber(0.62, 0.85),
+						rng:NextNumber(-1, 1) * s * 0.4
+					)
+			),
+			pick(rng, PALETTE.leaf),
+			Enum.Material.Grass
+		)
+		crown.Shape = Enum.PartType.Ball
+		crown.CanCollide = false
+	end
+end
+
+-- A ruined high-rise: window bands, a few lit windows, a broken crown, rooftop junk and plants growing over it.
+function Scenery.Building(parent: Instance, base: Vector3, width: number, depth: number, height: number, rng: Random)
+	local model = Instance.new("Model")
+	model.Name = "Ruin"
+	model.Parent = parent
+	local body = part(
+		model,
+		"Body",
+		Vector3.new(width, height, depth),
+		CFrame.new(base + Vector3.new(0, height / 2, 0)),
+		if rng:NextNumber() &lt; 0.25 then PALETTE.brick else pick(rng, PALETTE.concrete),
+		Enum.Material.Concrete
+	)
+	body.CastShadow = false
+	Scenery.Dress(model, base, width, depth, height, rng, true)
+	return model
+end
+
+-- Window bands, lit windows, ivy and (optionally) a broken crown with a green roof around an existing box
+-- whose bottom centre is `base`. Used for skyline ruins and for the bodies of the two playable towers.
+function Scenery.Dress(
+	model: Instance,
+	base: Vector3,
+	width: number,
+	depth: number,
+	height: number,
+	rng: Random,
+	withCrown: boolean
+)
+	local bodyColor = pick(rng, PALETTE.concrete)
+	-- Window bands wrap all four sides in one part each.
+	local floorHeight = rng:NextNumber(10, 14)
+	local y = 8
+	while y &lt; height - 10 do
+		local band = part(
+			model,
+			"Windows",
+			Vector3.new(width + 0.4, floorHeight * 0.45, depth + 0.4),
+			CFrame.new(base + Vector3.new(0, y, 0)),
+			PALETTE.window,
+			Enum.Material.Glass
+		)
+		band.CastShadow = false
+		y += floorHeight
+	end
+	for _ = 1, rng:NextInteger(3, 8) do
+		local side = rng:NextInteger(0, 3)
+		local h = rng:NextNumber(10, height - 12)
+		local offset = rng:NextNumber(-0.4, 0.4)
+		local pos, size
+		if side &lt; 2 then
+			pos = Vector3.new(offset * width, h, (side * 2 - 1) * (depth / 2 + 0.25))
+			size = Vector3.new(3, 3, 0.2)
+		else
+			pos = Vector3.new((side * 2 - 5) * (width / 2 + 0.25), h, offset * depth)
+			size = Vector3.new(0.2, 3, 3)
+		end
+		local lit = part(model, "Lit", size, CFrame.new(base + pos), PALETTE.lit, Enum.Material.Neon)
+		lit.CanCollide = false
+		lit.CastShadow = false
+	end
+
+	-- Ivy down the walls.
+	local normals = {
+		{ Vector3.new(0, 0, -1), Vector3.new(0, 0, -depth / 2) },
+		{ Vector3.new(0, 0, 1), Vector3.new(0, 0, depth / 2) },
+		{ Vector3.new(-1, 0, 0), Vector3.new(-width / 2, 0, 0) },
+		{ Vector3.new(1, 0, 0), Vector3.new(width / 2, 0, 0) },
+	}
+	for _ = 1, rng:NextInteger(3, 7) do
+		local face = normals[rng:NextInteger(1, 4)]
+		local along = Vector3.new(face[1].Z, 0, face[1].X) * rng:NextNumber(-0.4, 0.4) * math.max(width, depth)
+		local length = rng:NextNumber(height * 0.15, height * 0.6)
+		local startY = rng:NextNumber(length, height)
+		Scenery.Vine(model, base + face[2] + along + Vector3.new(0, startY, 0) + face[1] * 0.3, length, face[1], rng)
+	end
+	if not withCrown then
+		return
+	end
+
+	-- Broken crown: slabs knocked askew and a leaning rooftop tank.
+	local top = base + Vector3.new(0, height, 0)
+	for _ = 1, rng:NextInteger(2, 4) do
+		local s =
+			Vector3.new(width * rng:NextNumber(0.25, 0.5), rng:NextNumber(3, 8), depth * rng:NextNumber(0.25, 0.5))
+		part(
+			model,
+			"Crown",
+			s,
+			CFrame.new(
+				top + Vector3.new(rng:NextNumber(-0.3, 0.3) * width, s.Y / 2 - 1, rng:NextNumber(-0.3, 0.3) * depth)
+			) * CFrame.Angles(rng:NextNumber(-0.2, 0.2), rng:NextNumber(0, 1), rng:NextNumber(-0.2, 0.2)),
+			bodyColor:Lerp(Color3.new(0, 0, 0), 0.15),
+			Enum.Material.Concrete
+		).CastShadow =
+			false
+	end
+	if rng:NextNumber() &lt; 0.6 then
+		local tank = part(
+			model,
+			"Tank",
+			Vector3.new(8, 7, 7),
+			CFrame.new(top + Vector3.new(rng:NextNumber(-0.3, 0.3) * width, 4.5, rng:NextNumber(-0.3, 0.3) * depth))
+				* CFrame.Angles(0, 0, math.pi / 2 + rng:NextNumber(-0.15, 0.15)),
+			PALETTE.rust,
+			Enum.Material.CorrodedMetal
+		)
+		tank.Shape = Enum.PartType.Cylinder
+		tank.CastShadow = false
+	end
+
+	-- Nature taking it back: a green roof.
+	Scenery.Grass(model, top, Vector2.new(width * 0.8, depth * 0.8), rng)
+	if rng:NextNumber() &lt; 0.5 then
+		Scenery.Tree(
+			model,
+			top + Vector3.new(rng:NextNumber(-0.25, 0.25) * width, 0, rng:NextNumber(-0.25, 0.25) * depth),
+			rng:NextNumber(10, 18),
+			rng
+		)
+	end
+end
+
+-- A ring of ruins around `center`, skipping anything inside `keepClear` (a list of { center, radius }).
+function Scenery.Skyline(
+	parent: Instance,
+	center: Vector3,
+	count: number,
+	minDistance: number,
+	maxDistance: number,
+	minHeight: number,
+	maxHeight: number,
+	seed: number,
+	keepClear: { { Vector3 | number } }?
+)
+	local folder = Instance.new("Folder")
+	folder.Name = "Skyline"
+	folder.Parent = parent
+	local rng = Random.new(seed)
+	for i = 1, count do
+		local angle = (i / count) * math.pi * 2 + rng:NextNumber(-0.15, 0.15)
+		local distance = rng:NextNumber(minDistance, maxDistance)
+		local pos = center + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+		local clear = true
+		if keepClear then
+			for _, zone in keepClear do
+				local zc = zone[1] :: Vector3
+				local zr = zone[2] :: number
+				if (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(zc.X, 0, zc.Z)).Magnitude &lt; zr then
+					clear = false
+				end
+			end
+		end
+		if clear then
+			Scenery.Building(
+				folder,
+				pos,
+				rng:NextNumber(36, 70),
+				rng:NextNumber(36, 70),
+				rng:NextNumber(minHeight, maxHeight),
+				rng
+			)
+		end
+	end
+	return folder
+end
+
+return Scenery
+</string>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="SoundService" referent="20">
+    <Properties>
+      <string name="Name">SoundService</string>
+      <bool name="RespectFilteringEnabled">true</bool>
+    </Properties>
+  </Item>
+  <Item class="StarterPlayer" referent="21">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="22">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="LocalScript" referent="23">
+        <Properties>
+          <string name="Name">LobbyClient</string>
+          <string name="Source">--!strict
+-- Lobby client: translates world text, shows short messages from the lifts and a language switch.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local TeleportService = game:GetService("TeleportService")
+local TweenService = game:GetService("TweenService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+Shared:WaitForChild("Locale")
+local Locale = require(Shared:WaitForChild("Locale"))
+local MusicConfig = require(Shared:WaitForChild("MusicConfig"))
+local PlacesConfig = require(Shared:WaitForChild("PlacesConfig"))
+local Theme = require(Shared:WaitForChild("Theme"))
+local Lang = require(script.Parent:WaitForChild("Lang"))
+local UIKit = require(script.Parent:WaitForChild("UIKit"))
+
+local C = UIKit.Colors
+local screen = UIKit.Screen()
+local player = Players.LocalPlayer
+local remotesFolder = ReplicatedStorage:WaitForChild("Remotes")
+local chooseLiftSize = remotesFolder:WaitForChild("ChooseLiftSize") :: RemoteEvent
+
+-- World text ------------------------------------------------------------------------------------------
+local function localize(label: Instance)
+	if not label:IsA("TextLabel") then
+		return
+	end
+	local key = label:GetAttribute("TextKey")
+	if type(key) == "string" then
+		label.Text = Lang.T(key)
+	end
+end
+
+local function watch(label: Instance)
+	if label:IsA("TextLabel") then
+		localize(label)
+		label:GetAttributeChangedSignal("TextKey"):Connect(function()
+			localize(label)
+		end)
+	end
+end
+
+task.spawn(function()
+	local world = workspace:WaitForChild("LobbyWorld", 60)
+	if not world then
+		return
+	end
+	for _, d in world:GetDescendants() do
+		watch(d)
+	end
+	world.DescendantAdded:Connect(watch)
+	Lang.Changed:Connect(function()
+		for _, d in world:GetDescendants() do
+			localize(d)
+		end
+	end)
+end)
+
+-- Messages ---------------------------------------------------------------------------------------------
+local toastHolder = UIKit.New("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 64),
+	Size = UDim2.fromOffset(460, 200),
+	BackgroundTransparency = 1,
+	Parent = screen,
+})
+UIKit.New("UIListLayout", {
+	Padding = UDim.new(0, 6),
+	VerticalAlignment = Enum.VerticalAlignment.Top,
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = toastHolder,
+})
+local KIND_COLORS = { info = C.text, success = C.good, warning = C.warn, error = C.bad }
+local order = 0
+
+local function toast(text: string, kind: string?)
+	order += 1
+	local panel = UIKit.Panel({
+		Size = UDim2.fromOffset(460, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = order,
+		Parent = toastHolder,
+	})
+	UIKit.Padding(10).Parent = panel
+	local label = UIKit.Label({
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = text,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = KIND_COLORS[kind or "info"] or C.text,
+		Parent = panel,
+	})
+	task.delay(4, function()
+		local info = TweenInfo.new(0.4)
+		TweenService:Create(panel, info, { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(label, info, { TextTransparency = 1 }):Play()
+		task.wait(0.45)
+		panel:Destroy()
+	end)
+end
+
+local notify = remotesFolder:WaitForChild("Notify") :: RemoteEvent
+notify.OnClientEvent:Connect(function(message, kind)
+	local text = Lang.Format(message)
+	if text ~= "" then
+		toast(text, if type(kind) == "string" then kind else nil)
+	end
+end)
+
+-- Party size dialog (2–6) — first rider in an empty lift picks capacity; Designer can restyle later.
+local pickPanel = UIKit.Panel({
+	Name = "LiftSizePick",
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.45),
+	Size = UDim2.fromOffset(360, 210),
+	Visible = false,
+	BackgroundTransparency = 0.05,
+	Parent = screen,
+})
+UIKit.Padding(16).Parent = pickPanel
+local pickTitle = UIKit.Label({
+	Size = UDim2.new(1, 0, 0, 32),
+	TextXAlignment = Enum.TextXAlignment.Center,
+	FontFace = Theme.Display,
+	TextSize = 26,
+	TextColor3 = C.accent,
+	Parent = pickPanel,
+})
+local pickBody = UIKit.Label({
+	Position = UDim2.fromOffset(0, 36),
+	Size = UDim2.new(1, 0, 0, 40),
+	TextXAlignment = Enum.TextXAlignment.Center,
+	TextSize = 15,
+	TextColor3 = C.muted,
+	Parent = pickPanel,
+})
+local pickRow = UIKit.New("Frame", {
+	Position = UDim2.fromOffset(0, 90),
+	Size = UDim2.new(1, 0, 0, 56),
+	BackgroundTransparency = 1,
+	Parent = pickPanel,
+})
+UIKit.New("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	Padding = UDim.new(0, 8),
+	Parent = pickRow,
+})
+local minSize = PlacesConfig.MinPartySize or 2
+local maxSize = PlacesConfig.MaxPartySize or 6
+for size = minSize, maxSize do
+	local button = UIKit.Button({
+		Size = UDim2.fromOffset(52, 52),
+		Text = tostring(size),
+		TextSize = 22,
+		Parent = pickRow,
+	})
+	button.Activated:Connect(function()
+		chooseLiftSize:FireServer(size)
+	end)
+end
+
+local function refreshPickCopy()
+	pickTitle.Text = Lang.T("lobby.pickSizeTitle")
+	pickBody.Text = Lang.T("lobby.pickSizeBody")
+end
+refreshPickCopy()
+Lang.Changed:Connect(refreshPickCopy)
+
+local function updatePickDialog()
+	pickPanel.Visible = player:GetAttribute("LiftPickOpen") == true
+end
+player:GetAttributeChangedSignal("LiftPickOpen"):Connect(updatePickDialog)
+updatePickDialog()
+
+-- Language switch ----------------------------------------------------------------------------------------
+local languageButton = UIKit.Button({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -12, 0, 8),
+	Size = UDim2.fromOffset(52, 44),
+	Text = string.upper(Lang.Get()),
+	Parent = screen,
+})
+languageButton.Activated:Connect(function()
+	local code = Lang.Cycle()
+	Lang.Set(code)
+	toast(Locale.LanguageNames[code], "info")
+end)
+Lang.Changed:Connect(function(code)
+	languageButton.Text = string.upper(code)
+end)
+
+-- Lift countdown ------------------------------------------------------------------------------------------
+-- The server sets LiftSeconds / LiftCount / LiftCapacity on riders; show them big at the bottom of the screen.
+local liftPanel = UIKit.Panel({
+	Name = "LiftCountdown",
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -24),
+	Size = UDim2.fromOffset(300, 96),
+	Visible = false,
+	Parent = screen,
+})
+local liftSeconds = UIKit.Label({
+	Size = UDim2.new(1, 0, 0, 60),
+	TextXAlignment = Enum.TextXAlignment.Center,
+	FontFace = Theme.Display,
+	TextSize = 44,
+	TextColor3 = C.accent,
+	Parent = liftPanel,
+})
+local liftRiders = UIKit.Label({
+	Position = UDim2.fromOffset(0, 60),
+	Size = UDim2.new(1, 0, 0, 28),
+	TextXAlignment = Enum.TextXAlignment.Center,
+	TextSize = 16,
+	TextColor3 = C.muted,
+	Parent = liftPanel,
+})
+
+local function updateLift()
+	local seconds = player:GetAttribute("LiftSeconds")
+	local count = player:GetAttribute("LiftCount")
+	local capacity = player:GetAttribute("LiftCapacity")
+	if type(seconds) ~= "number" or type(count) ~= "number" or type(capacity) ~= "number" then
+		liftPanel.Visible = false
+		return
+	end
+	liftPanel.Visible = true
+	liftSeconds.Text = if seconds &gt; 0 then Lang.T("lobby.countdown", seconds) else Lang.T("lobby.starting")
+	liftRiders.Text = Lang.T("lobby.riders", count, capacity)
+end
+for _, name in { "LiftSeconds", "LiftCount", "LiftCapacity" } do
+	player:GetAttributeChangedSignal(name):Connect(updateLift)
+end
+Lang.Changed:Connect(updateLift)
+updateLift()
+
+
+-- Teleport screen ------------------------------------------------------------------------------------------
+-- Replaces Roblox's default loading screen, which shows the raw place name.
+local teleportGui = Instance.new("ScreenGui")
+teleportGui.Name = "SkylineTeleport"
+teleportGui.IgnoreGuiInset = true
+teleportGui.DisplayOrder = 100
+local backdrop = UIKit.New("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.fromRGB(18, 16, 14),
+	BorderSizePixel = 0,
+	Parent = teleportGui,
+})
+UIKit.Label({
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.45),
+	Size = UDim2.new(0.8, 0, 0, 80),
+	Text = "SKYLINE ZERO",
+	TextXAlignment = Enum.TextXAlignment.Center,
+	FontFace = Theme.Display,
+	TextSize = 64,
+	TextColor3 = C.accent,
+	Parent = backdrop,
+})
+local teleportHint = UIKit.Label({
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0.45, 50),
+	Size = UDim2.new(0.8, 0, 0, 30),
+	TextXAlignment = Enum.TextXAlignment.Center,
+	TextSize = 20,
+	TextColor3 = C.muted,
+	Parent = backdrop,
+})
+local function updateTeleportText()
+	teleportHint.Text = Lang.T("lobby.teleporting")
+end
+updateTeleportText()
+Lang.Changed:Connect(updateTeleportText)
+TeleportService:SetTeleportGui(teleportGui)
+
+-- Music ---------------------------------------------------------------------------------------------------
+local musicGroup = Instance.new("SoundGroup")
+musicGroup.Name = "Music"
+musicGroup.Parent = SoundService
+local muted = false
+local track: Sound? = nil
+local index = math.random(1, #MusicConfig.Roof)
+
+local function playNext()
+	index = index % #MusicConfig.Roof + 1
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://" .. tostring(MusicConfig.Roof[index])
+	sound.Volume = if muted then 0 else MusicConfig.Volume
+	sound.SoundGroup = musicGroup
+	sound.Parent = SoundService
+	sound.Ended:Once(function()
+		sound:Destroy()
+		playNext()
+	end)
+	sound:Play()
+	track = sound
+end
+playNext()
+
+local musicButton = UIKit.Button({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -72, 0, 8),
+	Size = UDim2.fromOffset(44, 44),
+	Text = "♪",
+	TextSize = 22,
+	Parent = screen,
+})
+musicButton.Activated:Connect(function()
+	muted = not muted
+	musicButton.Text = if muted then "✕♪" else "♪"
+	if track then
+		track.Volume = if muted then 0 else MusicConfig.Volume
+	end
+end)
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="24">
+        <Properties>
+          <string name="Name">Lang</string>
+          <string name="Source">--!strict
+-- Client-side translation helpers. Static labels register with Lang.Bind and refresh on a language change;
+-- everything else re-renders from the state snapshot (Lang.Changed re-fires it).
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Locale = require(ReplicatedStorage.Shared.Locale)
+
+local Lang = {}
+
+local player = Players.LocalPlayer
+local changed = Instance.new("BindableEvent")
+Lang.Changed = changed.Event
+
+type Binding = { key: string, args: { any } }
+local bindings: { [Instance]: Binding } = {}
+
+function Lang.Get(): Locale.Lang
+	return Locale.ForPlayer(player)
+end
+
+function Lang.T(key: string, ...: any): string
+	return Locale.T(Lang.Get(), key, ...)
+end
+
+function Lang.Format(message: any): string
+	return Locale.Format(Lang.Get(), message)
+end
+
+-- Keeps a TextLabel / TextButton translated: Text = T(key, ...), now and after every language change.
+function Lang.Bind(instance: Instance, key: string, ...: any)
+	local target: any = instance
+	target.Text = Lang.T(key, ...)
+	bindings[instance] = { key = key, args = { ... } }
+	instance.Destroying:Once(function()
+		bindings[instance] = nil
+	end)
+end
+
+function Lang.Cycle(): Locale.Lang
+	local current = Lang.Get()
+	local list = Locale.Languages
+	local index = table.find(list, current) or 0
+	return list[index % #list + 1]
+end
+
+function Lang.Set(code: Locale.Lang)
+	-- Applied locally right away; the server saves it and sets the same attribute for everyone.
+	player:SetAttribute("Language", code)
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	local remote = remotes and remotes:FindFirstChild("SetLanguage")
+	if remote and remote:IsA("RemoteEvent") then
+		remote:FireServer(code)
+	end
+end
+
+local last = Lang.Get()
+player:GetAttributeChangedSignal("Language"):Connect(function()
+	local now = Lang.Get()
+	if now == last then
+		return
+	end
+	last = now
+	for instance, binding in bindings do
+		local target: any = instance
+		target.Text = Lang.T(binding.key, table.unpack(binding.args))
+	end
+	changed:Fire(now)
+end)
+
+return Lang
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="25">
+        <Properties>
+          <string name="Name">UIKit</string>
+          <string name="Source">--!strict
+-- Tiny helpers for building UI in code with a consistent look.
+
+local Theme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Theme"))
+local Players = game:GetService("Players")
+
+local UIKit = {}
+
+UIKit.Colors = {
+	panel = Color3.fromRGB(22, 24, 28),
+	panelLight = Color3.fromRGB(38, 41, 47),
+	text = Color3.fromRGB(235, 235, 235),
+	muted = Color3.fromRGB(165, 168, 175),
+	accent = Color3.fromRGB(255, 196, 64),
+	good = Color3.fromRGB(110, 210, 120),
+	warn = Color3.fromRGB(255, 170, 60),
+	bad = Color3.fromRGB(235, 80, 70),
+	health = Color3.fromRGB(200, 60, 60),
+	toxic = Color3.fromRGB(140, 230, 80),
+}
+
+function UIKit.New(className: string, props: { [string]: any }, children: { Instance }?): any
+	local instance = Instance.new(className)
+	for key, value in props do
+		if key ~= "Parent" then
+			(instance :: any)[key] = value
+		end
+	end
+	if children then
+		for _, child in children do
+			child.Parent = instance
+		end
+	end
+	if props.Parent then
+		instance.Parent = props.Parent
+	end
+	return instance
+end
+
+function UIKit.Corner(radius: number?): UICorner
+	return UIKit.New("UICorner", { CornerRadius = UDim.new(0, radius or 8) })
+end
+
+function UIKit.Padding(px: number): UIPadding
+	return UIKit.New("UIPadding", {
+		PaddingLeft = UDim.new(0, px),
+		PaddingRight = UDim.new(0, px),
+		PaddingTop = UDim.new(0, px),
+		PaddingBottom = UDim.new(0, px),
+	})
+end
+
+function UIKit.Panel(props: { [string]: any }): Frame
+	local merged = {
+		BackgroundColor3 = UIKit.Colors.panel,
+		BackgroundTransparency = 0.15,
+		BorderSizePixel = 0,
+	}
+	for k, v in props do
+		merged[k] = v
+	end
+	return UIKit.New("Frame", merged, { UIKit.Corner(10) })
+end
+
+function UIKit.Label(props: { [string]: any }): TextLabel
+	local merged = {
+		BackgroundTransparency = 1,
+		FontFace = Theme.Body,
+		TextColor3 = UIKit.Colors.text,
+		TextSize = 16,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextWrapped = true,
+	}
+	for k, v in props do
+		merged[k] = v
+	end
+	return UIKit.New("TextLabel", merged)
+end
+
+function UIKit.Button(props: { [string]: any }): TextButton
+	local merged = {
+		BackgroundColor3 = UIKit.Colors.panelLight,
+		BorderSizePixel = 0,
+		FontFace = Theme.Bold,
+		TextColor3 = UIKit.Colors.text,
+		TextSize = 16,
+		AutoButtonColor = true,
+	}
+	for k, v in props do
+		merged[k] = v
+	end
+	return UIKit.New("TextButton", merged, { UIKit.Corner(8) })
+end
+
+-- Single ScreenGui shared by all controllers.
+local screen: ScreenGui? = nil
+function UIKit.Screen(): ScreenGui
+	if screen then
+		return screen
+	end
+	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	local gui = UIKit.New("ScreenGui", {
+		Name = "SkylineUI",
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = playerGui,
+	})
+	-- Scale the whole UI down on small screens (phones) and keep it 1:1 on PC, tablets and TVs.
+	local scale = UIKit.New("UIScale", { Parent = gui })
+	local function updateScale()
+		local camera = workspace.CurrentCamera
+		if not camera then
+			return
+		end
+		local viewport = camera.ViewportSize
+		scale.Scale = math.clamp(math.min(viewport.X / 1100, viewport.Y / 620), 0.6, 1)
+	end
+	updateScale()
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(updateScale)
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+	end
+	screen = gui
+	return gui
+end
+
+return UIKit
+</string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="Workspace" referent="26">
+    <Properties>
+      <string name="Name">Workspace</string>
+      <bool name="FilteringEnabled">true</bool>
+      <bool name="NeedsPivotMigration">false</bool>
+      <bool name="StreamingEnabled">false</bool>
+    </Properties>
+  </Item>
+</roblox>

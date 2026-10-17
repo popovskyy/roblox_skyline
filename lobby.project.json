@@ -1,0 +1,17 @@
+{
+  "name": "SkylineZero_Lobby",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$path": "src_lobby/ReplicatedStorage"
+    },
+    "ServerScriptService": {
+      "$path": "src_lobby/ServerScriptService"
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "$path": "src_lobby/StarterPlayer/StarterPlayerScripts"
+      }
+    }
+  }
+}
