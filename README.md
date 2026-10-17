@@ -57,7 +57,7 @@ python3 tools/inject_scripts.py places/SkylineZero_Lobby.rbxlx src_lobby -o plac
 
 ## Shipped so far
 
-- Elevators: **restored original** boarding (zone enter → 2–6 size dialog → countdown → teleport). Modal 1–6 overlay proposed but NOT shipped.
+- Elevators: original boarding path + **1–6** size overlay (Active=false panel; no new remotes/zones).
 - Rubble clearable + electronics prompt gating; shared server collision
 - Floor scale 240; F1/F2 safe electronics + F2 rubble wings
 - Ground item drop (G / long-press) with activate suppress + party pickup gate
@@ -67,6 +67,6 @@ python3 tools/inject_scripts.py places/SkylineZero_Lobby.rbxlx src_lobby -o plac
 - Downed teammate markers; no zombie respawn after floor clear
 - Weather cycle without per-frame Brightness fight
 
-Build stamp: `b20 · lift-rollback-orig` (lift path restored to pre-modal original; non-lift b19 fixes kept) (print on join). Play: https://www.roblox.com/games/128619231370772/Skyline-Zero
+Build stamp: `b21 · lift-overlay-1-6` (original boarding + 1–6 overlay; rollback: `tools/rollback_lift_v31.sh`) (print on join). Play: https://www.roblox.com/games/128619231370772/Skyline-Zero
 
 Still open: rubble shared 3–5s hold bar; live mobile melee verify (JOIN-BLOCKED); hunger soft until tutorial.done.

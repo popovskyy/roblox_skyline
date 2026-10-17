@@ -110,13 +110,16 @@ notify.OnClientEvent:Connect(function(message, kind)
 	end
 end)
 
--- Party size dialog (2–6) — first rider in an empty lift picks capacity; Designer can restyle later.
+-- Party size overlay (1–6). Same open path as original: LiftPickOpen attribute only.
+-- No dimmer, no new remotes, no zone changes. Panel Active=false so only size buttons capture taps.
 local pickPanel = UIKit.Panel({
 	Name = "LiftSizePick",
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.45),
-	Size = UDim2.fromOffset(360, 210),
+	-- Slightly above center so the panel stays clear of mobile jump / thumbstick.
+	Position = UDim2.fromScale(0.5, 0.40),
+	Size = UDim2.fromOffset(400, 210),
 	Visible = false,
+	Active = false,
 	BackgroundTransparency = 0.05,
 	Parent = screen,
 })
@@ -127,6 +130,7 @@ local pickTitle = UIKit.Label({
 	FontFace = Theme.Display,
 	TextSize = 26,
 	TextColor3 = C.accent,
+	Active = false,
 	Parent = pickPanel,
 })
 local pickBody = UIKit.Label({
@@ -135,21 +139,23 @@ local pickBody = UIKit.Label({
 	TextXAlignment = Enum.TextXAlignment.Center,
 	TextSize = 15,
 	TextColor3 = C.muted,
+	Active = false,
 	Parent = pickPanel,
 })
 local pickRow = UIKit.New("Frame", {
 	Position = UDim2.fromOffset(0, 90),
 	Size = UDim2.new(1, 0, 0, 56),
 	BackgroundTransparency = 1,
+	Active = false,
 	Parent = pickPanel,
 })
 UIKit.New("UIListLayout", {
 	FillDirection = Enum.FillDirection.Horizontal,
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	Padding = UDim.new(0, 8),
+	Padding = UDim.new(0, 6),
 	Parent = pickRow,
 })
-local minSize = PlacesConfig.MinPartySize or 2
+local minSize = PlacesConfig.MinPartySize or 1
 local maxSize = PlacesConfig.MaxPartySize or 6
 for size = minSize, maxSize do
 	local button = UIKit.Button({

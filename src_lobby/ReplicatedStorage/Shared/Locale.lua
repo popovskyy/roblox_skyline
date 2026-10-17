@@ -486,9 +486,9 @@ local S: { [string]: Entry } = {
 	["lobby.liftSolo"] = { uk = "ЛІФТ", ru = "ЛИФТ", en = "LIFT" },
 	["lobby.liftGroup"] = { uk = "ЛІФТ", ru = "ЛИФТ", en = "LIFT" },
 	["lobby.hint"] = {
-		uk = "Зайди в ліфт і обери розмір групи (2–6), щоб піднятися на дах.",
-		ru = "Зайди в лифт и выбери размер группы (2–6), чтобы подняться на крышу.",
-		en = "Step into a lift and pick a party size (2–6) to go up to the roof.",
+		uk = "Зайди в ліфт і обери розмір групи (1–6), щоб піднятися на дах.",
+		ru = "Зайди в лифт и выбери размер группы (1–6), чтобы подняться на крышу.",
+		en = "Step into a lift and pick a party size (1–6) to go up to the roof.",
 	},
 	["lobby.pickSizeTitle"] = {
 		uk = "Скільки гравців?",
@@ -501,9 +501,9 @@ local S: { [string]: Entry } = {
 		en = "Choose how many seats to hold. The lift leaves when the timer ends.",
 	},
 	["lobby.pickSizeHint"] = {
-		uk = "Обери розмір групи 2–6",
-		ru = "Выбери размер группы 2–6",
-		en = "Pick a party size from 2 to 6",
+		uk = "Обери розмір групи 1–6",
+		ru = "Выбери размер группы 1–6",
+		en = "Pick a party size from 1 to 6",
 	},
 	["lobby.sizeChosen"] = {
 		uk = "Місць: %d. Чекаємо…",
