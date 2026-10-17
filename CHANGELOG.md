@@ -43,6 +43,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 - Check in game: stand on floor 2 after 3 min — warn toast (uk/ru/en), darkness readable via green exits
   / flashlight, power-back toast; confirm it does not fire twice; roof and floor 1 stay lit for players
   not on the blackout floor; horde at 8–10 min still works.
+- Polish (code-only): idle nudge on the roof — if you stand still ~45 s before reading the terminal, a soft
+  click plays at the terminal and the objective marker bobs harder (once; no toast spam). Toast
+  throttling — info/success at most one every 15 s (warning/error still show immediately). Hunger drain
+  stays off until you read the terminal or reach a floor. Low-health heartbeat skipped (no suitable sound
+  id in SoundConfig/HANDOFF). Better Bat/prop Blender models still open (needs upload).
+- Check in game: spawn and AFK on the roof ~45 s (ping + marker bob once); spam loot pickups and confirm
+  soft toasts do not stack every second while horde/blackout warnings still appear; hunger bar stays full
+  on the roof until terminal or stairs, then drains as before.
 
 ## b25 · 17.10
 - Classes, bought with tokens in the lobby ("Класи" button under the tokens) and picked before the lift:

@@ -17,6 +17,8 @@ The owner tests on PC, phone, tablet and PS5. Open questions for that pass:
   floor zombies still do not respawn.
 - b26: mid-floor blackout once per match on floor 2 or 3 (warn toast → dark → power back), green exit
   lamps stay on; does not overlap the first roof horde.
+- b26 polish: AFK ~45 s on the roof before the terminal (soft click + marker bob once); soft toasts at
+  most every 15 s while warning/error still land; hunger full until terminal or first floor, then drains.
 - Lift: solo lift plus three group lifts; the first player in a group lift picks 2–6 on the lift card.
 - Team chest and buildings shared, rubble cleared for everyone, hold-to-drop items, downed marker.
 - Lighting: no flicker entering a floor; roof gloomier; rain and night readable.
@@ -30,9 +32,9 @@ Questions for the owner:
 ## Next (in this order)
 
 1. **Bugs from the b24–b26 test pass.** Always first.
-2. **Polish**: idle nudge on the roof, toast throttling, hunger paused during the first steps,
-   low-health heartbeat sound, better Blender models for props and weapons (the Bat still borrows the
-   club's model and icon).
+2. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
+   model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
+   sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent).
 3. **Launch**: store icon and thumbnails (`docs/design/store-visual-brief.md`), description
    (`marketing-draft.md`), make the experience public.
 

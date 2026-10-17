@@ -20,12 +20,19 @@ local GameConfig = {
 
 	-- Hunger meter: empties over time (faster below the roof), Food refills it, empty = slow health loss.
 	-- Full to empty takes about 6 min below the roof and about 11 min resting on it.
+	-- Drain stays off until the first floor or a meaningful roof action (terminal), so the first
+	-- minutes teach the loop instead of punishing AFK on spawn.
 	HungerMax = 100,
 	HungerDrainBelow = 0.28,
 	HungerDrainRoof = 0.15,
 	HungerWarnAt = 25,
 	FoodRestore = 35,
 	HungerDamagePerSecond = 1,
+
+	-- First-session polish (roof idle nudge + HUD toast spacing).
+	IdleNudgeSeconds = 45, -- soft ping at the terminal if still on step 1 and not moving
+	IdleNudgeMoveSpeed = 2, -- horizontal studs/s that count as moving
+	ToastMinIntervalSeconds = 15, -- info/success; warning/error bypass so danger still lands
 
 	-- Flashlight: battery drains while switched on, charges next to a built Generator.
 	FlashlightBatterySeconds = 240,

@@ -1,8 +1,11 @@
 --!strict
 -- HUD: the current goal and short messages, top centre. Health and hunger live in VitalsController.
 
-local Theme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Theme"))
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+
+local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
+local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Theme"))
 
 local ClientState = require(script.Parent.ClientState)
 local Lang = require(script.Parent.Lang)
@@ -18,6 +21,18 @@ local actsText: TextLabel
 local toastHolder: Frame
 
 local touch = UIKit.IsTouch()
+
+-- Toast spacing: info/success at most once per ToastMinIntervalSeconds; warning/error always show.
+local lastToastAt = -math.huge
+local pendingToast: { text: string, kind: string? }? = nil
+local pendingToken = 0
+
+local KIND_RANK = {
+	info = 1,
+	success = 2,
+	warning = 3,
+	error = 4,
+}
 
 -- Goal, top centre: amber "GOAL", the task, systems restored.
 local function buildObjective(screen: ScreenGui)
@@ -110,7 +125,7 @@ local KIND_COLORS = {
 	error = C.bad,
 }
 
-function HUDController.Toast(text: string, kind: string?)
+local function showToast(text: string, kind: string?)
 	toastCounter += 1
 	local children = toastHolder:GetChildren()
 	local toasts = {}
@@ -150,6 +165,49 @@ function HUDController.Toast(text: string, kind: string?)
 			TweenService:Create(label, info, { TextTransparency = 1 }):Play()
 			task.wait(0.45)
 			toast:Destroy()
+		end
+	end)
+end
+
+local function flushPending()
+	local pending = pendingToast
+	if not pending then
+		return
+	end
+	pendingToast = nil
+	lastToastAt = os.clock()
+	showToast(pending.text, pending.kind)
+end
+
+function HUDController.Toast(text: string, kind: string?)
+	local rank = KIND_RANK[kind or "info"] or 1
+	-- Danger always lands; soft tips wait so loot / tutorial lines do not stack.
+	if rank >= 3 then
+		pendingToast = nil
+		pendingToken += 1
+		lastToastAt = os.clock()
+		showToast(text, kind)
+		return
+	end
+	local now = os.clock()
+	local wait = GameConfig.ToastMinIntervalSeconds - (now - lastToastAt)
+	if wait <= 0 then
+		pendingToast = nil
+		pendingToken += 1
+		lastToastAt = now
+		showToast(text, kind)
+		return
+	end
+	local existing = pendingToast
+	local existingRank = if existing then (KIND_RANK[existing.kind or "info"] or 1) else 0
+	if not existing or rank >= existingRank then
+		pendingToast = { text = text, kind = kind }
+	end
+	pendingToken += 1
+	local token = pendingToken
+	task.delay(wait, function()
+		if pendingToken == token then
+			flushPending()
 		end
 	end)
 end

@@ -3,22 +3,29 @@
 -- Each step checks the player's current state, so a step can never get stuck when the action was done earlier.
 
 local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
+local CharacterUtil = require(script.Parent.CharacterUtil)
 local HazardService = require(script.Parent.HazardService)
 local MatchStatsService = require(script.Parent.MatchStatsService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local SfxService = require(script.Parent.SfxService)
 local StateSyncService = require(script.Parent.StateSyncService)
 local StorageService = require(script.Parent.StorageService)
 
 local TutorialService = {}
 
 local TERMINAL_NOTE_ID = "Terminal01"
+local idleSeconds: { [Player]: number } = {}
+local idleNudged: { [Player]: boolean } = {}
 
 type Step = {
 	text: string, -- Locale key
@@ -134,6 +141,10 @@ function TutorialService.ReadTerminal(player: Player)
 		data.discoveredNotes[TERMINAL_NOTE_ID] = true
 		PlayerDataService.MarkDirty(player)
 	end
+	-- Reading the note counts as the first meaningful action: hunger can start draining.
+	HazardService.UnlockHunger(player)
+	idleNudged[player] = true
+	idleSeconds[player] = 0
 	local acts = countActs(data)
 	Net.Get(RemoteNames.ShowNote):FireClient(player, {
 		kind = "note",
@@ -203,10 +214,76 @@ function TutorialService.Init()
 	end)
 end
 
+local function findTerminal(): BasePart?
+	local world = workspace:FindFirstChild(GameConfig.World.FolderName)
+	local folder = world and world:FindFirstChild("Interactables")
+	local terminal = folder and folder:FindFirstChild("EmergencyTerminal")
+	if terminal and terminal:IsA("BasePart") then
+		return terminal
+	end
+	return nil
+end
+
+-- Soft ping + marker bob if the player freezes on the roof before reading the terminal.
+local function updateIdleNudge(player: Player, dt: number)
+	if idleNudged[player] then
+		return
+	end
+	local data = PlayerDataService.Get(player)
+	if not data or data.tutorialStep > 1 or data.discoveredNotes[TERMINAL_NOTE_ID] then
+		idleNudged[player] = true
+		return
+	end
+	if HazardService.GetZone(player) ~= "Roof" then
+		idleSeconds[player] = 0
+		return
+	end
+	local root = CharacterUtil.GetRoot(player)
+	if not root then
+		idleSeconds[player] = 0
+		return
+	end
+	local velocity = root.AssemblyLinearVelocity
+	local horizontal = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+	if horizontal > GameConfig.IdleNudgeMoveSpeed then
+		idleSeconds[player] = 0
+		return
+	end
+	local idle = (idleSeconds[player] or 0) + dt
+	idleSeconds[player] = idle
+	if idle < GameConfig.IdleNudgeSeconds then
+		return
+	end
+	idleNudged[player] = true
+	local terminal = findTerminal()
+	if terminal then
+		-- Soft UI ping at the terminal (Click is already in SoundConfig; no new asset id).
+		SfxService.Play("Click", terminal, 1.1)
+	end
+	-- Client marker reads this and bobs harder for a few seconds.
+	player:SetAttribute("ObjectiveNudge", os.clock())
+end
+
 function TutorialService.Start()
 	HazardService.OnZoneChanged(onZoneChanged)
 	HazardService.OnReturnedToRoof(function(player)
 		StateSyncService.Request(player)
+	end)
+	local accumulator = 0
+	RunService.Heartbeat:Connect(function(dt)
+		accumulator += dt
+		if accumulator < 0.5 then
+			return
+		end
+		local step = accumulator
+		accumulator = 0
+		for _, player in Players:GetPlayers() do
+			updateIdleNudge(player, step)
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		idleSeconds[player] = nil
+		idleNudged[player] = nil
 	end)
 end
 

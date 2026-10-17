@@ -161,14 +161,21 @@ function ObjectiveMarkerController.Start()
 		refresh()
 	end)
 
-	-- Gentle bob and the live distance.
+	-- Gentle bob and the live distance. Idle nudge from the server makes the bob stronger briefly.
 	local clock = 0
+	local nudgeUntil = 0
+	player:GetAttributeChangedSignal("ObjectiveNudge"):Connect(function()
+		nudgeUntil = os.clock() + 3.5
+	end)
 	RunService.RenderStepped:Connect(function(dt)
 		if not target then
 			return
 		end
 		clock += dt
-		billboard.StudsOffsetWorldSpace = Vector3.new(0, 7 + math.sin(clock * 3) * 0.6, 0)
+		local nudged = os.clock() < nudgeUntil
+		local amp = if nudged then 1.8 else 0.6
+		local speed = if nudged then 7 else 3
+		billboard.StudsOffsetWorldSpace = Vector3.new(0, 7 + math.sin(clock * speed) * amp, 0)
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and root:IsA("BasePart") then

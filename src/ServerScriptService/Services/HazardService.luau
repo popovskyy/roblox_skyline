@@ -29,6 +29,8 @@ type Tracker = {
 	roofTime: number,
 	hunger: number,
 	warnedHungry: boolean,
+	-- False until the player leaves the roof for a floor or takes a meaningful first action.
+	hungerActive: boolean,
 }
 
 local trackers: { [Player]: Tracker } = {}
@@ -86,11 +88,20 @@ function HazardService.ResetCharacter(player: Player)
 		roofTime = 0,
 		hunger = GameConfig.HungerMax,
 		warnedHungry = false,
+		hungerActive = false,
 	}
 	player:SetAttribute("InToxic", false)
 	player:SetAttribute("Hungry", false)
 	player:SetAttribute("Hunger", GameConfig.HungerMax)
 	player:SetAttribute("Zone", "Roof")
+end
+
+-- Start draining hunger (terminal read, first floor, etc.). Safe to call more than once.
+function HazardService.UnlockHunger(player: Player)
+	local t = trackers[player]
+	if t then
+		t.hungerActive = true
+	end
 end
 
 -- Eating. Returns false when the player is already full, so no food is wasted.
@@ -140,6 +151,10 @@ local function setZone(player: Player, t: Tracker, zone: string)
 	local old = t.zone
 	t.zone = zone
 	player:SetAttribute("Zone", zone)
+	-- First descent unlocks hunger even if the terminal was skipped.
+	if not t.hungerActive and string.sub(zone, 1, 5) == "Floor" then
+		t.hungerActive = true
+	end
 	for _, listener in zoneListeners do
 		task.spawn(listener, player, zone, old)
 	end
@@ -231,7 +246,14 @@ local function updateExpedition(player: Player, t: Tracker, root: BasePart, _hum
 		t.roofTime = 0
 	end
 
-	-- Hunger meter.
+	-- Hunger meter (paused until first floor or UnlockHunger).
+	if not t.hungerActive then
+		if t.onExpedition then
+			t.hungerActive = true
+		else
+			return
+		end
+	end
 	local drain = if t.onExpedition then GameConfig.HungerDrainBelow else GameConfig.HungerDrainRoof
 	local before = math.floor(t.hunger)
 	t.hunger = math.max(0, t.hunger - drain * dt)
