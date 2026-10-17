@@ -3,6 +3,26 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## Unreleased · roadmap-continue (no publish)
+
+Cloud pass after b34: regenerate Phase D FBX packs + Bat icon art + owner-gate docs. **Does not bump
+`PlacesConfig.Build`.** Live game stays b34 until owner merges + publishes.
+
+### Phase D assets (upload still owner)
+- Headless Blender on Cloud regenerated `assets/models/Weapons.fbx` (**WeaponBat**, **WeaponCrowbar** + Club/Pipe/Machete), `InteriorProps.fbx` (LootCrate* / ScrapNode / ElectronicsNode / Soft-HardRubble / BarricadeBoards + filler), `RoofProps.fbx`.
+- Previews + `.blend` sources updated. **PropLibrary.ASSETS ids unchanged** (no invent) — Has()-dress still waits for `upload_model.sh` on owner PC.
+- Bat worn-cream icon: `assets/icons/svg/Bat.svg` + `Bat.png` via `scripts/build_icons.py`. Hotbar still uses Club image id + Rare tint until Image upload prints a real id.
+- Owner checklist: `docs/design/owner-gates.md` (upload / heartbeat / Hub Public).
+
+### Heartbeat low-HP SFX
+- Owner id `9043365842` in `SoundConfig.Sounds.Heartbeat`; `VitalsController` loops it while HP ≤ 30.
+- Check in game (after publish): take damage to ≤30 HP — soft heartbeat loop; heal / down / match end — stops.
+
+### Docs / declutter verify
+- ROADMAP / HANDOFF / blender README / marketing status synced to b34 + continue.
+- Toast KEEP/DIE re-audit: DIE call sites still silent; no new tip keys.
+- Owner-gates §2 heartbeat unmarked as blocked.
+
 ## b34 · 17.10 19:30
 
 Final-pass ship: HUD declutter + Phase D scaffold + launch prep docs. Phase A A1–A10 already live (b28–b32).

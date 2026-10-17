@@ -7,10 +7,12 @@
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
+local SoundConfig = require(ReplicatedStorage.Shared.SoundConfig)
 local Theme = require(ReplicatedStorage.Shared.Theme)
 local ClientState = require(script.Parent.ClientState)
 local Lang = require(script.Parent.Lang)
@@ -353,6 +355,36 @@ local function setPulse(on: boolean)
 end
 
 local lowShown = false
+local heartbeatSound: Sound? = nil
+
+-- Soft loop while low HP (same ≤30 threshold as the badge). Uses SoundConfig.Heartbeat only.
+local function setHeartbeat(on: boolean)
+	local ids = SoundConfig.Sounds.Heartbeat
+	if not ids or #ids == 0 then
+		return
+	end
+	if not heartbeatSound then
+		local sound = Instance.new("Sound")
+		sound.Name = "Heartbeat"
+		sound.SoundId = "rbxassetid://" .. tostring(ids[1])
+		sound.Looped = true
+		sound.Volume = 0.45 * SoundConfig.Volume
+		sound.Parent = SoundService
+		heartbeatSound = sound
+	end
+	local sound = heartbeatSound
+	if not sound then
+		return
+	end
+	if on then
+		if not sound.IsPlaying then
+			sound:Play()
+		end
+	elseif sound.IsPlaying then
+		sound:Stop()
+	end
+end
+
 local function updateBadges()
 	for _, child in badgeRow:GetChildren() do
 		if child:IsA("TextLabel") then
@@ -397,6 +429,7 @@ local function updateBadges()
 		end
 	end
 	local over = player:GetAttribute("MatchOver") == true
+	setHeartbeat(low and not over)
 	toxicVignette.Visible = player:GetAttribute("InToxic") == true and not over
 	dangerVignette.Visible = (low or isDowned()) and not toxicVignette.Visible and not over
 	panel.BackgroundColor3 = if isDowned() then Color3.fromRGB(90, 22, 18) else T.Panel

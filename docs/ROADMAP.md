@@ -1,31 +1,32 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build **b34 · 17.10 19:30** published.
+Owner: Popovskyi. Updated 17.10, build **b34 · 17.10 19:30** published (continue branch: FBX regen + Bat icon art; **no publish**).
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
 
-## Now: play / Art / Blender follow-ups
+## Now: owner gates only
 
-Live **b34** shipped: HUD declutter (calm tips), Phase D Blender scaffold + Has()-dress, launch prep docs.
+Live **b34** already shipped: HUD declutter, Phase D scaffold + Has()-dress, launch prep docs, lobby L1 Classes.
 
-Focus for owner:
-- Roof start feels calm (intro → ЦІЛЬ, no toast pile); Scrap tip without «зібрано» spam; one blackout warning.
-- Optional: run Blender uploads on PC (`blender/README.md` / `HANDOFF.md`) → paste **real** ids into `PropLibrary`.
-- Optional: Art approve `assets/store/` then Creator Hub Public when you say so.
-- Heartbeat low-HP SFX still blocked until a real Creator Store / HANDOFF id (do not invent).
+**Cloud continue (this branch) closed everything agents can do without your PC / Creator Hub:**
 
-Still OK from b33: lobby gamepad **L1** opens Classes.
+- Regenerated `Weapons.fbx` / `InteriorProps.fbx` / `RoofProps.fbx` with Bat, Crowbar, crates, nodes, rubble, boards (Blender headless on Cloud).
+- Bat worn-cream SVG + PNG ready for Image upload (`assets/icons/…`).
+- Owner gate runbook: `docs/design/owner-gates.md`.
+- Docs synced (marketing / HANDOFF / blender README / first-session status).
+- Tip inventory re-audited — DIE list still silent; no new tip spam.
 
-## Next (in this order)
+## Next (owner only — see `docs/design/owner-gates.md`)
 
-1. **Owner Blender upload** (optional) — WeaponBat / Crowbar / crates / nodes / rubble / boards → `PropLibrary`.
-2. **Heartbeat SFX** — only after a real asset id.
-3. **Launch Public** — store copy + art already prepped; Creator Hub only with owner + Art OK.
-4. Brainstorm hooks — only when owner pulls them forward.
+1. **Blender upload** — `upload_model.sh` on PC with `.roblox_api_key` → paste printed ids into `PropLibrary.ASSETS`. Re-import RoofProps.fbx → `.rbxm` in Studio. Optional: upload Bat.png Image → `ItemDefinitions.Bat.iconImage`.
+2. **Heartbeat SFX** — done (id `9043365842` wired in `SoundConfig` + `VitalsController` low-HP loop).
+3. **Launch Public** — Art approve `assets/store/` → Creator Hub Public when you say so.
+4. Brainstorm hooks — only when you pull them forward.
 
 ## Rules that stay
 
 - Robux never skips the game and never buys tokens directly (`economy-robux.md`).
 - Every match starts from zero; only tokens, stats and the leaderboard persist.
 - Ukrainian first, then Russian and English, for every string.
+- **No invent asset / sound ids. No publish / Build bump unless owner asks.**

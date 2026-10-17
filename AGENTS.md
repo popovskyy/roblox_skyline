@@ -5,14 +5,12 @@ breaking the live game once.
 
 ## Where the code is (read first)
 
-As of 17.10 (build b25) the up-to-date code lives in the local folder **`C:\Roblox`** on the owner's PC
-(branch `master`). The GitHub repo `popovskyy/roblox_skyline` does **not** have it yet: its `main` is an older
-parallel version made by Cursor from an old place file (240-stud floors). Until the owner pushes:
+**Source of truth:** GitHub `popovskyy/roblox_skyline`, branch **`master`** (live build tag in
+`PlacesConfig.Build`, currently **b34**). Prefer branching off latest `origin/master`. GitHub `main` is an
+older parallel tree — do **not** build or publish from `main` or from any `.rbxlx` extract.
 
-- Cursor: open the folder `C:\Roblox` locally. Do **not** use a Cursor background/cloud agent on the GitHub
-  repo, and never build on GitHub `main` or on any `.rbxlx`.
-- To publish GitHub: `git push origin master:claude/main` (needs the owner's GitHub sign-in), then make
-  `main` point at it only with the owner's explicit OK (keep the old one as `cursor/main-backup`).
+Owner PC folder `C:\Roblox` is a local checkout of the same work; keep it in sync via git. Cloud agents
+may work on this repo; still **never invent asset/sound ids**, and publish only when the owner asks.
 
 ## The game in one paragraph
 
@@ -73,8 +71,8 @@ bash scripts/publish.sh tower     # only one place
 - The Open Cloud API key lives in `.roblox_api_key` (git-ignored). **Never print it, commit it, paste it
   in chat or copy it elsewhere.** `rojo upload` does not work with this key; `scripts/publish.sh` posts the
   built place with curl.
-- **Only one agent publishes at a time**, and only from this repository's current `main`. Publishing
-  replaces the live game for every player.
+- **Only one agent publishes at a time**, and only from this repository's current `master` after the
+  owner asks. Publishing replaces the live game for every player.
 - Nobody can run the game headless here (no Luau-execution scope). The owner tests on PC, phone, tablet
   and PS5 and reports with screenshots. Read code paths carefully before publishing.
 - Teleports and DataStores do not work in Studio; test lifts and tokens in the published game.
@@ -103,10 +101,12 @@ is unavailable. The owner wants steady, honest progress, not surprises.
 
 ## Git
 
-- GitHub: `popovskyy/roblox_skyline`, branch `main` is the truth. Work on a branch, keep commits small,
-  English messages describing the visible change; merge to `main` when checks pass.
-- Do not commit built places (`*.rbxl`, `*.rbxlx`, `*.rbxm` outputs) or anything secret.
-- Never force-push `main`.
+- GitHub: `popovskyy/roblox_skyline`, branch **`master`** is the truth for Skyline Zero. Work on a
+  branch, keep commits small, English messages describing the visible change; open a draft PR into
+  `master` when ready. Do not merge or publish unless the owner asks.
+- Do not commit built places (`*.rbxl`, `*.rbxlx`) or anything secret. Checked-in `.rbxm` props (e.g.
+  RoofProps) are intentional source assets.
+- Never force-push `master`.
 
 ## Pitfalls we already hit (do not repeat)
 

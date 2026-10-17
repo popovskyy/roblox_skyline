@@ -16,10 +16,22 @@ PNG_DIR = os.path.join(ROOT, "assets", "icons")
 CHROME = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
 ]
 SIZE = 256
 # Long thin items get blown up a bit more so they read at hotbar size.
-SCALE = {"Club": 1.22, "Pipe": 1.2, "Machete": 1.25, "Crowbar": 1.18, "Flashlight": 1.15, "Scrap": 1.1}
+SCALE = {
+	"Club": 1.22,
+	"Bat": 1.2,
+	"Pipe": 1.2,
+	"Machete": 1.25,
+	"Crowbar": 1.18,
+	"Flashlight": 1.15,
+	"Scrap": 1.1,
+}
 CREAM = "#e9dfc6"
 
 # Each icon: (body, cut, rotate). body = cream shapes, cut = details knocked out of them (drawn
@@ -50,6 +62,21 @@ ICONS = {
         <path d="M44 78 L56 77"/><path d="M44 83 L56 82.5"/></g>
         <path d="M45 26 L48 40" stroke="#000" stroke-width="1.2"/>""",
         40,
+    ),
+    # Aluminium bat (Phase D): longer barrel + wrap — not Club-with-nails. Upload PNG as Image
+    # via Open Cloud, then paste the printed id into ItemDefinitions.Bat.iconImage (never invent).
+    "Bat": (
+        """
+        <path d="M47 90 L47 58 C47 50 44 44 44 36 L44 18 Q44 10 50 10 Q56 10 56 18 L56 36
+                 C56 44 53 50 53 58 L53 90 Z"/>
+        <ellipse cx="50" cy="91" rx="5.5" ry="2.8"/>
+        <ellipse cx="50" cy="14" rx="7.2" ry="5.5"/>
+        <rect x="45.5" y="62" width="9" height="14" rx="2"/>""",
+        """
+        <g stroke="#000" stroke-width="1.2"><path d="M45.5 66 H54.5"/><path d="M45.5 72 H54.5"/></g>
+        <path d="M46 28 L48 48" stroke="#000" stroke-width="1.1"/>
+        <ellipse cx="50" cy="14" rx="3.2" ry="2.2" fill="#000"/>""",
+        38,
     ),
     "Pipe": (
         """
