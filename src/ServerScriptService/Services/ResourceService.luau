@@ -124,7 +124,7 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 	InventoryService.Add(player, id, count)
 	SfxService.Play("Pickup", node.Position, 0.8)
 	StateSyncService.Request(player)
-	Net.Notify(player, { "res.collected", Locale.Item(id), count }, "success")
+	-- No res.collected toast: pouch / objective strip are enough (HUD declutter).
 	if id == "Scrap" and not scrapHinted[player] then
 		scrapHinted[player] = true
 		Net.Notify(player, "hint.scrapNotCrowbar", "info")
@@ -156,9 +156,8 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 		-- The reward is a tool the player needs, so it ignores the weight limit.
 		InventoryService.ForceAdd(player, reward :: string, 1)
 		Net.Notify(player, { "rubble.found", Locale.Item(reward :: string) }, "success")
-	else
-		Net.Notify(player, "rubble.cleared", "success")
 	end
+	-- No rubble.cleared toast: the pile vanishing is the feedback.
 	-- Everyone's world updates: the pile disappears for all players.
 	syncEveryone()
 	return true, nil
@@ -266,9 +265,8 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 		SfxService.Play("BreakIn", crate.Position)
 		ZombieService.Alert(crate.Position, Loot.BreakInNoiseRadius, Loot.BreakInAlertSeconds)
 		Net.Notify(player, "loot.breakIn", "warning")
-	elseif useKey then
-		Net.Notify(player, "loot.keyUsed", "info")
 	end
+	-- No loot.keyUsed toast: crate open juice / inventory is enough.
 	for id, amount in loot do
 		InventoryService.ForceAdd(player, id, amount)
 	end

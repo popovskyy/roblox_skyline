@@ -3,6 +3,37 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## Unreleased · `cursor/roadmap-final-pass`
+
+Epic final-pass branch (no publish until owner merge). Phase A A1–A10 already live on master (b28–b32).
+
+### HUD declutter (P0)
+- Quieter tower HUD: no toast on every pickup (`res.collected`), tutorial step (`tutorial.new`), rubble
+  clear, food/medkit success, flash full, class/party spawn, weapon replace, drop, or key-used.
+- **Kept:** Scrap≠Лом one-shot, attack / eat / medkit hints, horde, hazards, downed/revive, build/craft,
+  party.built, rubble reward (Crowbar), loot break-in, food/medkit none warnings.
+- Blackout: **one** warning at telegraph (copy mentions flashlight / green exits); restore is SFX only.
+- Toast cap: **1 soft + 1 danger** (touch: 1 total). Soft toasts silenced while intro card is up (+2 s).
+- Lobby: same concurrent cap only.
+- Check in game: roof start = intro → terminal → one ЦІЛЬ, no toast pile; pick Scrap → tip only (no
+  «зібрано» spam); blackout = one warning; danger still readable.
+- Fix: attack teach tip no longer lost if first Floor zone lands during intro soft-silence (retry until
+  shown). Eat hint stays once/match (no re-fire after hunger recovers).
+
+### Phase D scaffold + Has()-dress
+- Blender `build_weapons.py`: **WeaponBat** + **WeaponCrowbar**. CombatService MESHES + Part LOOKS fallback.
+- Interior props: crates / ScrapNode / ElectronicsNode / Soft-HardRubble / BarricadeBoards.
+- WorldBuilder dresses those props when `PropLibrary.Has` (after a real upload); grey-box Parts otherwise.
+- **No invented PropLibrary ids.** Upload blocked on Cloud VM (no Blender CLI / API key) — owner PC path in
+  `blender/README.md` + `HANDOFF.md`.
+- Block 1 verify: A1–A8 / §8 knobs still match design; no retune.
+
+### Launch prep (docs only)
+- `marketing-draft.md` status + fantasy aligned to live roof→down→back→bridge; Creator Hub still owner gate.
+- Store art checklist points at `assets/store/icon-512.png` + `thumbnail-1920x1080.png` (Art approve first).
+- Heartbeat SFX: blocker noted in `HANDOFF.md` + `SoundConfig` comment — **no fake SoundId**.
+- ROADMAP: Blocks 0–1 done / verified; B2 upload pending owner PC; Launch = owner Public.
+
 ## b33 · 17.10 19:05
 ### Lobby: gamepad opens Classes
 - On a controller, **L1 / LB** opens the Classes panel (same toggle as the Класи button). X still

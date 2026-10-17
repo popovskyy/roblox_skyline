@@ -196,6 +196,70 @@ def ceiling_panel(p):
         cylinder(p, f"Wire{i}", "Dark", 0.05, 3, (-2 + i * 1.6, 1.4, 0.8), rot=(rad(rng.uniform(-20, 20)), 0, 0), vertices=4)
 
 
+# --- Phase D polish props (scaffold). WorldBuilder still uses Parts until pack re-upload. ---
+
+
+def loot_crate_common(p):
+    box(p, "Body", "Wood", (3.2, 2.2, 2.0), (0, 0, 1.0), bevel=0.06)
+    box(p, "Lid", "Wood", (3.3, 2.3, 0.25), (0, 0, 2.15), bevel=0.04)
+    box(p, "Band", "Metal", (0.2, 2.25, 2.05), (0, 0, 1.05))
+    box(p, "Latch", "Dark", (0.35, 0.2, 0.35), (0, -1.15, 1.6))
+
+
+def loot_crate_rare(p):
+    loot_crate_common(p)
+    box(p, "Trim", "Teal", (3.35, 0.12, 0.12), (0, -1.12, 1.05))
+    box(p, "Trim2", "Teal", (3.35, 0.12, 0.12), (0, 1.12, 1.05))
+
+
+def loot_crate_gold(p):
+    loot_crate_common(p)
+    box(p, "Trim", "Yellow", (3.35, 0.15, 0.15), (0, -1.12, 1.05))
+    box(p, "Trim2", "Yellow", (3.35, 0.15, 0.15), (0, 1.12, 1.05))
+    box(p, "Badge", "Yellow", (0.5, 0.08, 0.5), (0, -1.18, 1.7), rot=(0, rad(45), 0))
+
+
+def loot_crate_diamond(p):
+    loot_crate_common(p)
+    box(p, "BodyMetal", "Metal", (3.25, 2.25, 2.05), (0, 0, 1.0), bevel=0.05)
+    box(p, "Trim", "Glow", (3.4, 0.12, 0.12), (0, -1.15, 1.1))
+    box(p, "Lock", "Dark", (0.55, 0.25, 0.55), (0, -1.2, 1.55))
+
+
+def scrap_node(p):
+    # Distinct from slate rubble: warm rust pile + glow nub (WorldBuilder adds PointLight).
+    box(p, "Heap", "Rust", (1.4, 1.1, 0.55), (0, 0, 0.3), rot=(0, 0, rad(12)), bevel=0.08)
+    box(p, "Bar", "Metal", (1.6, 0.25, 0.2), (0.1, -0.15, 0.55), rot=(rad(8), 0, rad(-20)))
+    box(p, "Nub", "Glow", (0.25, 0.25, 0.25), (0.35, 0.2, 0.7))
+
+
+def electronics_node(p):
+    box(p, "Board", "Dark", (1.2, 0.9, 0.15), (0, 0, 0.2), rot=(0, 0, rad(-8)))
+    box(p, "Chip", "Teal", (0.5, 0.4, 0.12), (0.1, 0.05, 0.35))
+    cylinder(p, "Wire", "Yellow", 0.04, 0.9, (-0.35, 0.1, 0.4), rot=(0, rad(90), rad(30)), vertices=6)
+    box(p, "Led", "Glow", (0.12, 0.12, 0.08), (0.35, -0.2, 0.35))
+
+
+def soft_rubble(p):
+    box(p, "Main", "Concrete", (4.5, 3.2, 2.4), (0, 0, 1.2), rot=(0, 0, rad(6)), bevel=0.1)
+    box(p, "Chunk", "Concrete", (2.0, 1.6, 1.4), (1.4, -0.8, 0.7), rot=(rad(15), 0, rad(25)), bevel=0.08)
+    box(p, "Moss", "Moss", (2.5, 1.8, 0.12), (-0.6, 0.5, 2.35), rot=(rad(5), 0, rad(-10)))
+
+
+def hard_rubble(p):
+    soft_rubble(p)
+    cylinder(p, "Rebar1", "Rust", 0.08, 2.8, (-1.2, 0.4, 2.0), rot=(rad(40), rad(10), 0), vertices=5)
+    cylinder(p, "Rebar2", "Rust", 0.08, 2.2, (1.0, -0.3, 2.2), rot=(rad(-35), rad(-15), rad(20)), vertices=5)
+    box(p, "Sign", "Yellow", (0.6, 0.08, 0.6), (0, -1.7, 1.8), rot=(0, rad(45), 0))
+
+
+def barricade_boards(p):
+    # Fidelity boards for roof stair mouth (Collision still WorldBuilder BarricadeBlock parts).
+    for i, (x, z, yaw) in enumerate(((-1.2, 1.2, -8), (0, 1.5, 4), (1.1, 1.1, 12), (-0.4, 2.4, -3))):
+        box(p, f"Plank{i}", "Wood", (0.35, 3.6, 0.55), (x, 0, z), rot=(0, 0, rad(yaw)), bevel=0.02)
+    box(p, "Cross", "Dark", (0.25, 3.8, 0.3), (0, 0, 1.8), rot=(0, 0, rad(55)))
+
+
 PROPS = [
     ("Sofa", sofa),
     ("Bed", bed),
@@ -215,6 +279,15 @@ PROPS = [
     ("Locker", locker),
     ("RebarSlab", rebar_slab),
     ("CeilingPanel", ceiling_panel),
+    ("LootCrateCommon", loot_crate_common),
+    ("LootCrateRare", loot_crate_rare),
+    ("LootCrateGold", loot_crate_gold),
+    ("LootCrateDiamond", loot_crate_diamond),
+    ("ScrapNode", scrap_node),
+    ("ElectronicsNode", electronics_node),
+    ("SoftRubble", soft_rubble),
+    ("HardRubble", hard_rubble),
+    ("BarricadeBoards", barricade_boards),
 ]
 
 

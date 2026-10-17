@@ -72,6 +72,14 @@ Edit multi-line Cyrillic strings with a real editor, not shell heredocs (they br
   break-in that alerts zombies). Effects are client-only in `LootFxController`. Crates stay opened for the match.
 - QA reports from the tester thread are in `QA/` (not committed).
 
+## Blockers (do not invent ids)
+
+- **Low-HP heartbeat SFX:** no Creator Store / HANDOFF sound id yet. `SoundConfig` has a comment placeholder
+  only — do **not** add a fake `rbxassetid`. Ship without heartbeat until a real id is pasted here.
+- **Phase D mesh re-upload:** Bat/Crowbar (+ interior polish props) are scaffolded on
+  `cursor/roadmap-final-pass`; live packs stay at InteriorProps `76157686296384` / Weapons
+  `126001413949023` until `bash scripts/upload_model.sh` prints new ids on the owner PC.
+
 ## In progress / next
 
 See `docs/ROADMAP.md` (what to do next) and `CHANGELOG.md` (what each build changed). Rules for every agent: `AGENTS.md`.

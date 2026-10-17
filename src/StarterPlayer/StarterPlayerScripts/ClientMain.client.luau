@@ -58,7 +58,7 @@ WorldVisualsController.Start()
 MusicController.Start()
 ObjectiveMarkerController.Start()
 CombatController.Hint = function(text)
-	HUDController.Toast(text, "info")
+	return HUDController.Toast(text, "info")
 end
 CombatController.Start(remotes)
 LootFxController.Start(remotes)
@@ -73,7 +73,7 @@ end)
 remote(RemoteNames.Notify).OnClientEvent:Connect(function(message, kind)
 	local text = Lang.Format(message)
 	if text ~= "" then
-		-- First Scrap teach must share the beat with "collected" (soft throttle would delay it 15s).
+		-- Force whitelist: only Scrap≠Crowbar (design §2.3). Bypass soft throttle / intro silence.
 		local force = message == "hint.scrapNotCrowbar"
 			or (type(message) == "table" and message[1] == "hint.scrapNotCrowbar")
 		HUDController.Toast(text, if type(kind) == "string" then kind else nil, force)

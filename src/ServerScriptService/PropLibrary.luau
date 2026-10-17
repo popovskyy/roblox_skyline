@@ -10,6 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PropLibrary = {}
 
 -- Uploaded model assets (see scripts/upload_model.sh).
+-- Phase D: re-run build_* scripts then upload_model.sh and paste the *printed* id here.
+-- Never invent ids. Until re-upload, WorldBuilder / CombatService fall back to Parts.
 local ASSETS: { [string]: number } = {
 	InteriorProps = 76157686296384,
 	Weapons = 126001413949023,

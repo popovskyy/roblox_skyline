@@ -1,40 +1,32 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build b33 · 17.10 19:05 published.
-One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
-to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
-`docs/design/brainstorm-hooks.md` instead.
+Owner: Popovskyi. Updated 17.10 · live **b33** · epic branch `cursor/roadmap-final-pass` (no publish
+until owner says merge). One list for every agent. When an item ships, move it to `CHANGELOG.md` and
+delete it here. Ideas go in `docs/design/brainstorm-hooks.md`, not here.
 
-## Now: Phase C playtest gate (owner)
+## Now: owner merge gate (epic branch ready for review)
 
-Code readiness for Phase B/C is live as **b32**: `Horde.Enabled` kill-switch, Scrap≠Лом tip same beat,
-Gold/Diamond open juice. **Owner signs Phase C** before any Phase D / polish.
+Branch `cursor/roadmap-final-pass` · draft PR — **do not merge/publish mid-pass** until owner OK.
 
-Focus in game (solo + 2–3 co-op):
-- First Scrap tip visible with pickup; F1 scrap path + soft rubble still obvious.
-- Barricade before ~8–10 min → horde stuck behind boards (video); if not → set `Horde.Enabled = false`.
-- Gold/Diamond open clearly louder than Common; crates stay party-shared and scarce.
-- Co-op Bridge typically **≥ 25 min**; solo **≥ 30 min** without AFK.
+| Block | State on branch |
+|-------|-----------------|
+| **0 HUD declutter (P0)** | **Done** (tip `d4a6314`+): soft spam killed; blackout one warning; 1+1 toast cap; intro silence; **attack tip silence race fixed** (retry until Toast succeeds) |
+| **1 Phase A leftovers** | **Verified** — A1–A8 + §8 knobs re-checked on branch; no gaps / no retune |
+| **2 Phase D Blender** | **Scaffold + Has()-dress** — scripts + WorldBuilder optional props. **Upload blocked** (no Blender CLI / `.roblox_api_key` on Cloud VM). Owner-PC upload → paste real ids into `PropLibrary.ASSETS` only |
+| **3 Launch prep** | **Docs done** — marketing fantasy aligned; `assets/store/` checklist ready for Art; heartbeat SFX documented as blocker |
 
-Still OK from b31: crisp hotbar tooltip / touch caption; soft rubble hold-clear; stair shaft; no yellow Health.
+**Owner after merge:** publish build tag · optional Creator Hub Public (copy + art) · optional Blender re-upload.
 
-Shipped in **b33**: lobby gamepad **L1 / LB** opens Classes. Owner question closed.
+## Later (not this pass)
 
-## Next (in this order)
-
-1. **Slow survival Phase B/C** — owner Phase C sign-off on **b32** (`docs/design/slow-survival-loop.md` §10).
-   LOCAL #2–#5 and C-gate hardening are published; do not pull brainstorm ideas or Phase D ahead of that
-   sign-off.
-2. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
-   model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
-   sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent). **Only after**
-   Phase C loop feels right.
-3. **Launch**: store copy drafted in `docs/design/marketing-draft.md` (uk/ru/en, roof→bridge fantasy).
-   Store art concepts in `assets/store/` + `docs/design/banner-art-brief.md` — do **not** upload to
-   Creator Hub until owner + Art approve. Then Creator Dashboard → Public when owner says so.
+- Heartbeat low-HP SFX — only after a real Creator Store / HANDOFF id (see `HANDOFF.md` blockers)
+- Phase D mesh ids in `PropLibrary` after owner upload
+- Brainstorm hooks (`docs/design/brainstorm-hooks.md`) until owner pulls them forward
+- 240-stud floors / Pickaxe item / Robux token cheats — out of scope
 
 ## Rules that stay
 
 - Robux never skips the game and never buys tokens directly (`economy-robux.md`).
 - Every match starts from zero; only tokens, stats and the leaderboard persist.
 - Ukrainian first, then Russian and English, for every string.
+- Never invent mesh / sound / icon asset ids.

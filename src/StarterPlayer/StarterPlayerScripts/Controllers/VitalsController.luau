@@ -472,9 +472,7 @@ local function updateHunger()
 		end)
 	else
 		hungerFill.BackgroundTransparency = 0
-		if not low then
-			eatHinted = false
-		end
+		-- Keep eatHinted for the whole match (design once/match); do not re-fire after hunger recovers.
 	end
 	updateBadges()
 end

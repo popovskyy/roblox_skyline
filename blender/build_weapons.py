@@ -1,9 +1,11 @@
-# Melee weapons for Skyline Zero: a nail bat (starter club), a taped pipe and a machete.
+# Melee weapons for Skyline Zero: nail club, aluminium bat, crowbar, taped pipe, machete.
 #
 #   blender --background --factory-startup --python blender/build_weapons.py
 #
 # Each weapon lies along +Y with its grip at the origin; a small "<Weapon>_Grip_Dark" box marks where
 # the hand holds it, so the game can line the mesh up with the tool handle.
+# After export: bash scripts/upload_model.sh assets/models/Weapons.fbx SkylineZero_Weapons
+# → paste the printed id into PropLibrary.ASSETS.Weapons (never invent ids).
 
 import os
 import sys
@@ -25,6 +27,24 @@ def club(p):
     box(p, "Grip", "Dark", (0.05, 0.05, 0.05), (0, 0.4, 0))
 
 
+def bat(p):
+    # Own mesh (Phase D): longer aluminium barrel — not a Club tint.
+    cylinder(p, "Handle", "Dark", 0.12, 1.0, (0, 0.5, 0), rot=ALONG_Y, vertices=8)
+    cylinder(p, "Wrap", "Cloth", 0.14, 0.7, (0, 0.55, 0), rot=ALONG_Y, vertices=8)
+    cylinder(p, "Neck", "Metal", 0.14, 0.9, (0, 1.45, 0), rot=ALONG_Y, vertices=10)
+    cylinder(p, "Barrel", "Metal", 0.24, 1.7, (0, 2.75, 0), rot=ALONG_Y, vertices=12, bevel=0.02)
+    cylinder(p, "End", "Metal", 0.26, 0.18, (0, 3.65, 0), rot=ALONG_Y, vertices=12)
+    box(p, "Grip", "Dark", (0.05, 0.05, 0.05), (0, 0.35, 0))
+
+
+def crowbar(p):
+    # Held tool mesh (Phase D): was a plain Part block in CombatService.LOOKS.
+    cylinder(p, "Shaft", "Rust", 0.09, 2.6, (0, 1.4, 0), rot=ALONG_Y, vertices=8)
+    box(p, "Chisel", "Metal", (0.12, 0.55, 0.28), (0, 2.85, 0.08), rot=(rad(-18), 0, 0), bevel=0.02)
+    box(p, "Hook", "Metal", (0.12, 0.35, 0.45), (0, -0.05, 0.12), rot=(rad(55), 0, 0), bevel=0.02)
+    box(p, "Grip", "Dark", (0.05, 0.05, 0.05), (0, 0.5, 0))
+
+
 def pipe(p):
     cylinder(p, "Tube", "Rust", 0.15, 3.4, (0, 1.7, 0), rot=ALONG_Y, vertices=10)
     cylinder(p, "Tape", "Cloth", 0.17, 0.9, (0, 0.45, 0), rot=ALONG_Y, vertices=10)
@@ -43,7 +63,13 @@ def machete(p):
     box(p, "Grip", "Dark", (0.05, 0.05, 0.05), (0, 0.45, 0))
 
 
-WEAPONS = [("WeaponClub", club), ("WeaponPipe", pipe), ("WeaponMachete", machete)]
+WEAPONS = [
+    ("WeaponClub", club),
+    ("WeaponBat", bat),
+    ("WeaponCrowbar", crowbar),
+    ("WeaponPipe", pipe),
+    ("WeaponMachete", machete),
+]
 
 
 def main():
@@ -52,7 +78,7 @@ def main():
         build(new_prop(name, i * 2.5))
     apply_modifiers()
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT, "blender", "Weapons.blend"))
-    render_preview(os.path.join(ROOT, "assets", "previews", "Weapons.png"), (2.5, 1.8, 0), 7, 8)
+    render_preview(os.path.join(ROOT, "assets", "previews", "Weapons.png"), (5.0, 1.8, 0), 11, 10)
     export_fbx(os.path.join(ROOT, "assets", "models", "Weapons.fbx"))
     print("[Weapons] exported", len(WEAPONS))
 

@@ -78,10 +78,7 @@ local function onDataLoaded(player: Player)
 	else
 		adoptLeaderBase(player)
 	end
-	local leader = party and Players:GetPlayerByUserId(party.leaderUserId)
-	if leader then
-		Net.Notify(player, { "party.leader", leader.DisplayName }, "info")
-	end
+	-- No party.leader toast: spawn clutter; party state is visible elsewhere.
 end
 
 -- Something one member built goes into every member's save.

@@ -583,6 +583,34 @@ type NodeOptions = {
 	requiresRubble: string?,
 }
 
+-- Phase D Blender prop names (build_interior_props.py). Used only when PropLibrary.Has —
+-- after a real upload_model.sh id is pasted into PropLibrary.ASSETS. Never invent ids.
+local CRATE_PROPS: { [string]: string } = {
+	Common = "LootCrateCommon",
+	Rare = "LootCrateRare",
+	Gold = "LootCrateGold",
+	Diamond = "LootCrateDiamond",
+}
+
+-- Optional Blender mesh as non-colliding dress; interaction attrs stay on `host`.
+local function dressWithProp(host: BasePart, propName: string, base: Vector3, fit: Vector3, yaw: number?): boolean
+	if not PropLibrary.Has(propName) then
+		return false
+	end
+	local model = PropLibrary.Place(host, propName, base, fit, yaw, false)
+	if not model then
+		return false
+	end
+	host.Transparency = 1
+	for _, d in host:GetChildren() do
+		if d:IsA("BasePart") and (d.Name == "Lid" or d.Name == "Trim" or string.sub(d.Name, 1, 5) == "Chunk") then
+			d.Transparency = 1
+			d.CanCollide = false
+		end
+	end
+	return true
+end
+
 local CRATE_LOOKS: { [string]: { body: Color3, trim: Color3, glow: boolean } } = {
 	Common = { body = Color3.fromRGB(116, 84, 56), trim = Color3.fromRGB(90, 90, 90), glow = false },
 	Rare = { body = Color3.fromRGB(52, 78, 120), trim = Color3.fromRGB(110, 170, 255), glow = false },
@@ -641,25 +669,30 @@ local function lootCrate(
 			crate:SetAttribute("RequiresRubble", options.requiresRubble)
 		end
 	end
-	local lid = block(
-		crate,
-		"Lid",
-		Vector3.new(3.6, 0.5, 2.6),
-		crate.CFrame * CFrame.new(0, 1.35, 0),
-		look.body,
-		crate.Material
-	)
-	lid.CanCollide = false
-	for _, offset in { -1.2, 1.2 } do
-		local band = block(
+	local propName = CRATE_PROPS[tier]
+	local dressed = propName ~= nil
+		and dressWithProp(crate, propName, Vector3.new(x, levelY(level), z), Vector3.new(3.4, 2.2, 2.4), nil)
+	if not dressed then
+		local lid = block(
 			crate,
-			"Trim",
-			Vector3.new(0.3, 2.35, 2.5),
-			crate.CFrame * CFrame.new(offset, 0, 0),
-			look.trim,
-			if look.glow then Enum.Material.Neon else Enum.Material.Metal
+			"Lid",
+			Vector3.new(3.6, 0.5, 2.6),
+			crate.CFrame * CFrame.new(0, 1.35, 0),
+			look.body,
+			crate.Material
 		)
-		band.CanCollide = false
+		lid.CanCollide = false
+		for _, offset in { -1.2, 1.2 } do
+			local band = block(
+				crate,
+				"Trim",
+				Vector3.new(0.3, 2.35, 2.5),
+				crate.CFrame * CFrame.new(offset, 0, 0),
+				look.trim,
+				if look.glow then Enum.Material.Neon else Enum.Material.Metal
+			)
+			band.CanCollide = false
+		end
 	end
 	if tier == "Diamond" then
 		crate:SetAttribute("Locked", true)
@@ -708,6 +741,9 @@ local function resourceNode(
 	-- Scrap gets a warm point light so it reads as loot next to slate rubble.
 	if itemId == "Scrap" then
 		pointLight(part, Color3.fromRGB(255, 160, 70), 10, 0.55, true)
+		dressWithProp(part, "ScrapNode", Vector3.new(x, levelY(level), z), size, nil)
+	elseif itemId == "Electronics" then
+		dressWithProp(part, "ElectronicsNode", Vector3.new(x, levelY(level), z), size, nil)
 	end
 	addPrompt(part, "prompt.collect", "prompt.itemAmount", 0.3, "@item." .. itemId .. ".name", amount)
 	return part
@@ -752,20 +788,31 @@ local function rubble(
 			main:SetAttribute("RequiresUpgrade", options.requiresUpgrade)
 		end
 	end
-	-- A few loose chunks so it reads as a pile. They are children, so hiding the rubble hides them too.
-	local rng = Random.new(#rubbleId * 7919)
-	for i = 1, 5 do
-		local chunk = block(
-			main,
-			"Chunk" .. i,
-			Vector3.new(rng:NextNumber(1.5, 3), rng:NextNumber(1, 2.5), rng:NextNumber(1.5, 3)),
-			main.CFrame
-				* CFrame.new(rng:NextNumber(-1, 1), rng:NextNumber(-size.Y / 2, size.Y / 3), rng:NextNumber(-2, 2))
-				* CFrame.Angles(rng:NextNumber(0, 1), rng:NextNumber(0, 3), rng:NextNumber(0, 1)),
-			COLORS.rubble:Lerp(COLORS.darkConcrete, rng:NextNumber()),
-			Enum.Material.Slate
-		)
-		chunk.CanCollide = false
+	local rubbleProp = if needsTool then "HardRubble" else "SoftRubble"
+	-- facing ±1 is approach along X; yaw matches the boarded doorway.
+	local dressed = dressWithProp(
+		main,
+		rubbleProp,
+		cframe.Position + Vector3.new(0, floorY, 0),
+		size,
+		if facing > 0 then 90 else -90
+	)
+	if not dressed then
+		-- A few loose chunks so it reads as a pile. They are children, so hiding the rubble hides them too.
+		local rng = Random.new(#rubbleId * 7919)
+		for i = 1, 5 do
+			local chunk = block(
+				main,
+				"Chunk" .. i,
+				Vector3.new(rng:NextNumber(1.5, 3), rng:NextNumber(1, 2.5), rng:NextNumber(1.5, 3)),
+				main.CFrame
+					* CFrame.new(rng:NextNumber(-1, 1), rng:NextNumber(-size.Y / 2, size.Y / 3), rng:NextNumber(-2, 2))
+					* CFrame.Angles(rng:NextNumber(0, 1), rng:NextNumber(0, 3), rng:NextNumber(0, 1)),
+				COLORS.rubble:Lerp(COLORS.darkConcrete, rng:NextNumber()),
+				Enum.Material.Slate
+			)
+			chunk.CanCollide = false
+		end
 	end
 	if needsTool then
 		sign(
@@ -1727,6 +1774,32 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	barricadeTop:SetAttribute("UpgradeVisual", "Barricade")
 	barricadeTop:SetAttribute("VisualMode", "Show")
 	barricadeTop:SetAttribute("BarricadeBlock", true)
+	-- Optional Phase D boards mesh (visual only). BarricadeBlock collision parts stay authoritative.
+	if PropLibrary.Has("BarricadeBoards") then
+		local boards = PropLibrary.Place(
+			barricade,
+			"BarricadeBoards",
+			Vector3.new(0, roofY, HOLE_MIN_Z - 0.9),
+			Vector3.new(HOLE_X * 2 + 2, 7, 2.4),
+			0,
+			false
+		)
+		if boards then
+			for _, d in boards:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.CanCollide = false
+					d:SetAttribute("UpgradeVisual", "Barricade")
+					d:SetAttribute("VisualMode", "Show")
+				end
+			end
+			barricade.Transparency = 1
+			for _, child in barricade:GetChildren() do
+				if child:IsA("BasePart") and (child.Name == "Plank" or child.Name == "BarricadeTop") then
+					child.Transparency = 1
+				end
+			end
+		end
+	end
 
 	-- Base lights: off until the player's Generator runs.
 	for _, p in

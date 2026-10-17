@@ -778,9 +778,32 @@ UIKit.New("UIListLayout", {
 	Parent = toastHolder,
 })
 local KIND_COLORS = { info = C.text, success = C.good, warning = C.warn, error = C.bad }
+local KIND_RANK = { info = 1, success = 2, warning = 3, error = 4 }
 local order = 0
 
+-- Concurrent cap only (design B0.5): 1 soft + 1 danger; touch = 1 total.
 local function toast(text: string, kind: string?)
+	local danger = (KIND_RANK[kind or "info"] or 1) >= 3
+	local softs: { Frame } = {}
+	local dangers: { Frame } = {}
+	for _, child in toastHolder:GetChildren() do
+		if child:IsA("Frame") then
+			if child:GetAttribute("ToastDanger") == true then
+				table.insert(dangers, child)
+			else
+				table.insert(softs, child)
+			end
+		end
+	end
+	local sameKind = if danger then dangers else softs
+	for _, panel in sameKind do
+		panel:Destroy()
+	end
+	if UIKit.IsTouch() then
+		for _, panel in (if danger then softs else dangers) do
+			panel:Destroy()
+		end
+	end
 	order += 1
 	local panel = UIKit.Panel({
 		Size = UDim2.fromOffset(460, 0),
@@ -788,6 +811,7 @@ local function toast(text: string, kind: string?)
 		LayoutOrder = order,
 		Parent = toastHolder,
 	})
+	panel:SetAttribute("ToastDanger", danger)
 	UIKit.Padding(10).Parent = panel
 	local label = UIKit.Label({
 		Size = UDim2.fromScale(1, 0),

@@ -22,3 +22,25 @@ Roblox приймає меші тільки через Studio, тому один
 3. Проєкт Rojo кладе цей файл у `ReplicatedStorage.Models`, а `WorldBuilder` ставить моделі на місце сірих коробок.
 
 Якщо `ReplicatedStorage.Models` немає, гра працює зі звичайними сірими блоками.
+
+## Phase D polish (final-pass branch)
+
+Headless scripts (owner PC Blender 5.x — **not** on Cloud VM):
+
+| Script | Adds / refresh | Upload |
+|--------|----------------|--------|
+| `build_weapons.py` | **WeaponBat**, **WeaponCrowbar** (+ Club/Pipe/Machete) | `bash scripts/upload_model.sh assets/models/Weapons.fbx SkylineZero_Weapons` → paste id into `PropLibrary.ASSETS.Weapons` |
+| `build_interior_props.py` | LootCrate* tiers, ScrapNode, ElectronicsNode, Soft/HardRubble, BarricadeBoards | same for InteriorProps |
+| `build_roof_props.py` | Storage/Gen/Filter/Bridge fidelity | RoofProps.rbxm Studio path above |
+
+**Never invent asset ids.** Until re-upload, CombatService falls back to Part LOOKS when `WeaponBat` / `WeaponCrowbar` are missing from the live pack. WorldBuilder dresses crates / Scrap-Elec / rubble / barricade boards only when `PropLibrary.Has` — Part grey-box otherwise.
+
+### Cloud VM blockers (final-pass)
+
+| Need | Status on Cloud agent VM |
+|------|--------------------------|
+| Blender CLI (`blender --background …`) | **Missing** — run scripts on owner PC |
+| `.roblox_api_key` for `upload_model.sh` | **Missing** — owner PC only; never commit the key |
+| Paste printed asset id → `PropLibrary.ASSETS` | Owner after successful upload |
+
+Until those land, keep scaffolding + Has()-gated dress; do not invent PropLibrary ids.

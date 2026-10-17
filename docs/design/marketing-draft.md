@@ -1,12 +1,14 @@
 # SkylineZero — store marketing draft
 
-> **Status (17.10, unpublished b26):** Paste-ready after the owner tests b26 in-game. Do **not** upload to
-> Roblox until that pass and store art are done. Old copy sold a “climb up” fantasy — **wrong**. The loop
-> is **roof → down floors → back → build → bridge**.
+> **Status (17.10, final-pass branch):** Paste-ready for Creator Hub **after** owner merge + Art sign-off.
+> Do **not** upload until owner says. Loop fantasy matches live game: **roof → down floors → back →
+> build → bridge** (never “climb up”). Live build tag on master is **b33**; this epic branch adds HUD
+> declutter + Phase D scaffolds (no publish yet).
 >
 > Where this doc and the code disagree, the code and `GameConfig` win.
 
-Visual specs: [store-visual-brief.md](./store-visual-brief.md) · `media/marketing/` (folder still empty)
+Visual specs: [store-visual-brief.md](./store-visual-brief.md) · [banner-art-brief.md](./banner-art-brief.md) ·
+concepts in `assets/store/` (see checklist below)
 
 ---
 
@@ -113,9 +115,21 @@ Robux never skips the game and never buys tokens directly.
 | Don’t say | Why |
 |-----------|-----|
 | Robux shop / packs / “buy tokens” | No token shop; Robux never buys tokens directly |
-| Perfect / guided onboarding from second one | Owner still testing b26 start flow |
+| Perfect / guided onboarding from second one | First session still owner-validated |
 | Dynamic weather as a main USP | Rain/night exist; not TLOU-grade showcase |
-| Fire-door / perfect Bat model | Polish / brainstorm — not store claims |
-| “Perfect on every device” | Phone/tablet combat still in the b26 test checklist |
+| Fire-door / perfect Bat model | Phase D polish on branch; not a store claim until uploaded |
+| “Perfect on every device” | Phone/tablet still need owner pass after merge |
+| Heartbeat low-HP SFX | **Blocked** — no Creator Store / HANDOFF sound id yet (do not invent) |
 
-**Safe to sell now:** co-op roof → floors → base → bridge · token classes · weapon rarity · roof horde + barricade · blackout · shared chest · short matches from zero.
+**Safe to sell now:** co-op roof → floors → base → bridge · token classes · weapon rarity · roof horde + barricade · blackout · shared chest · matches from zero · quieter HUD (objective-first).
+
+---
+
+## Owner upload gate (final-pass)
+
+| Step | Ready? |
+|------|--------|
+| Copy uk/ru/en above | Yes — fantasy aligned |
+| Icon 512 + thumb 1920 in `assets/store/` | Yes — concepts present; Art approve before Hub |
+| Banner brief | [banner-art-brief.md](./banner-art-brief.md) |
+| Creator Hub Public | **Owner only** after merge + Art OK |

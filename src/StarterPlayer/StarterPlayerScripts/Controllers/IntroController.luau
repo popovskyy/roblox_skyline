@@ -21,7 +21,9 @@ local GOALS = {
 	{ icon = "🩹", key = "intro.goal5" },
 }
 
-local overlay: Frame
+local overlay: Frame? = nil
+-- Soft toasts stay quiet while intro is up and for a short beat after dismiss (HUD declutter).
+local softSilenceUntil = 0
 -- Phones in landscape are short: tighter type so the whole card fits without scrolling.
 local COMPACT = UserInputService.TouchEnabled
 local function size(normal: number, compact: number): number
@@ -29,14 +31,24 @@ local function size(normal: number, compact: number): number
 end
 
 local function close()
-	if not overlay.Visible then
+	local frame = overlay
+	if not frame or not frame.Visible then
 		return
 	end
 	local info = TweenInfo.new(0.35)
-	TweenService:Create(overlay, info, { BackgroundTransparency = 1 }):Play()
+	TweenService:Create(frame, info, { BackgroundTransparency = 1 }):Play()
 	task.delay(0.35, function()
-		overlay.Visible = false
+		frame.Visible = false
+		softSilenceUntil = os.clock() + 2
 	end)
+end
+
+-- True while intro card is visible or within ~2 s of dismiss — suppress info/success toasts.
+function IntroController.BlocksSoftToasts(): boolean
+	if overlay and overlay.Visible then
+		return true
+	end
+	return os.clock() < softSilenceUntil
 end
 
 local function build(screen: ScreenGui)
@@ -146,17 +158,22 @@ end
 
 -- Shows the story / how-to card again (from the menu).
 function IntroController.Show()
-	overlay.BackgroundTransparency = 0.25
-	overlay.Visible = true
+	local frame = overlay
+	if not frame then
+		return
+	end
+	frame.BackgroundTransparency = 0.25
+	frame.Visible = true
 end
 
 function IntroController.Start()
 	build(UIKit.Screen())
+	local frame = overlay :: Frame
 	-- One showing per match: the ScreenGui survives respawns, so it is not shown again after being closed.
-	overlay.Visible = true
+	frame.Visible = true
 	UserInputService.InputBegan:Connect(function(input)
 		local key = input.KeyCode
-		if overlay.Visible and (key == Enum.KeyCode.ButtonA or key == Enum.KeyCode.Return) then
+		if frame.Visible and (key == Enum.KeyCode.ButtonA or key == Enum.KeyCode.Return) then
 			close()
 		end
 	end)

@@ -223,7 +223,7 @@ local function useItem(player: Player, itemId: any)
 			return
 		end
 		if humanoid.Health >= humanoid.MaxHealth then
-			Net.Notify(player, "medkit.full", "info")
+			-- No medkit.full toast: vitals already read full HP.
 			return
 		end
 		if not InventoryService.Remove(player, "Medkit", 1) then
@@ -232,19 +232,19 @@ local function useItem(player: Player, itemId: any)
 		end
 		humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + GameConfig.MedkitHeal)
 		SfxService.PlayAtPlayer("Bandage", player)
-		Net.Notify(player, { "medkit.used", GameConfig.MedkitHeal }, "success")
+		-- No medkit.used toast: health bar is the feedback.
 	elseif itemId == "Food" then
 		if not InventoryService.Has(player, "Food", 1) then
 			Net.Notify(player, "food.none", "warning")
 			return
 		end
 		if not HazardService.Feed(player) then
-			Net.Notify(player, "food.notHungry", "info")
+			-- No food.notHungry toast: hunger meter already full.
 			return
 		end
 		InventoryService.Remove(player, "Food", 1)
 		SfxService.PlayAtPlayer("Eat", player)
-		Net.Notify(player, "food.eaten", "success")
+		-- No food.eaten toast: hunger bar is the feedback.
 	end
 end
 

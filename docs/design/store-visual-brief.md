@@ -1,26 +1,26 @@
 # SkylineZero — Roblox store visual brief
 
-> **Status (17.10, unpublished b26):** Brief only. `media/marketing/` is still missing — no icon, thumb, or
-> banner files in the repo. Required before Creator Dashboard upload: **512×512** experience icon and
-> **1920×1080** thumbnail / widescreen banner (see checklist below). Do **not** upload until owner + Art
-> sign-off.
+> **Status (17.10, final-pass branch):** Checklist for owner + Art. Do **not** upload to Creator Hub until
+> they approve. Concepts already in repo under `assets/store/` (see table). Optional polish copies may
+> also land in `media/marketing/` later.
 >
 > Where this doc and the code disagree, the code and `GameConfig` win.
 
-Art / marketing execution guide. Mockups belong in `media/marketing/` once created.
+Art / marketing execution guide.
 
 ---
 
 ## Asset checklist (exact specs)
 
-| Asset | Size (px) | Ratio | File | Notes |
-|-------|-----------|-------|------|--------|
-| **Experience icon** | **512 × 512** | 1:1 | PNG, no transparency preferred for store | Must read at ~64–96px in lists |
-| **Thumbnail** (in-experience / carousel) | **1920 × 1080** | 16:9 | PNG/JPG | Safe margins: keep subject in center 70% |
-| **Widescreen / game page banner** | **1920 × 1080** | 16:9 | PNG/JPG | Same canvas OK as hero thumb; banner can be wider crop if Roblox UI crops edges — keep logo left-third or center |
-| **Optional square thumb** | 512 × 512 | 1:1 | Match icon mood | For social / Discord |
+| Asset | Size (px) | Ratio | Repo file | Owner gate |
+|-------|-----------|-------|-----------|------------|
+| **Experience icon** | **512 × 512** | 1:1 | `assets/store/icon-512.png` | Art approve → Creator Hub |
+| **Thumbnail / widescreen banner** | **1920 × 1080** | 16:9 | `assets/store/thumbnail-1920x1080.png` | Same canvas OK for thumb + banner; Art approve |
+| **Banner brief / redo notes** | — | — | [banner-art-brief.md](./banner-art-brief.md) | Human/Blender redo if concept rejected |
+| **Optional square thumb** | 512 × 512 | 1:1 | (reuse icon mood) | Social / Discord |
 
-**Export:** sRGB, no watermark, no “AI sample” text. Max file size per Roblox limits at upload time (keep &lt; ~5–10 MB).
+**Export:** sRGB, no watermark, no “AI sample” text. Max file size per Roblox limits at upload time (keep &lt; ~5–10 MB).  
+**Do not invent asset ids.** Hub upload is owner-only after merge.
 
 ---
 

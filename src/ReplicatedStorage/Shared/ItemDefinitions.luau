@@ -43,7 +43,8 @@ local Items: { [string]: ItemDef } = {
 		weapon = GameConfig.Weapons.Club,
 		rarity = "Common",
 	},
-	-- No own mesh or icon yet: the Club's, recoloured (CombatService.MESHES, iconTint).
+	-- Mesh: WeaponBat after Weapons pack re-upload (CombatService.MESHES). Icon still Club tint until
+	-- SVG/`build_icons.py` path gets a Bat art pass — do not invent image ids.
 	Bat = {
 		id = "Bat",
 		iconImage = "rbxassetid://92584142342300",

@@ -1,17 +1,17 @@
 # Skyline Zero — banner art brief (human / Blender redo)
 
-> **Status (17.10):** Concept still from Cursor GenerateImage. Treat as **direction only** until Art
-> sign-off. Target export: **1920×1080** PNG/JPG, sRGB. Concept file path below. Do **not** upload
-> to Creator Hub until owner + Art approve. Do **not** invent asset ids.
+> **Status (17.10, final-pass):** Concept direction for Art. Do **not** upload to Creator Hub until
+> owner + Art approve. Do **not** invent asset ids.
 
-## Concept file
+## Concept files (repo)
 
-| Role | Path | Size / ratio |
-|------|------|----------------|
-| Primary widescreen banner / thumb concept | `C:\Users\Roman\.cursor\projects\c-Roblox\assets\banner-1920-concept.jpg` | 16:9 (re-export to exact **1920×1080** before upload) |
-| Repo target once approved | `media/marketing/banner-1920-concept.png` | 1920×1080 |
+| Role | Path | Size / ratio | Gate |
+|------|------|----------------|------|
+| Primary widescreen banner / thumb | `assets/store/thumbnail-1920x1080.png` | **1920×1080** | Art approve |
+| Experience icon | `assets/store/icon-512.png` | **512×512** | Art approve |
+| Optional owner-PC concept | `C:\Users\Roman\.cursor\projects\c-Roblox\assets\banner-1920-concept.jpg` | 16:9 | Re-export if preferred over repo PNG |
 
-Also still needed separately: **512×512** experience icon (`media/marketing/icon-512-concept.png`) — see `store-visual-brief.md`.
+See [store-visual-brief.md](./store-visual-brief.md) for palette / composition / rejection list.
 
 ## One-sentence pitch
 
