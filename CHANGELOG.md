@@ -17,6 +17,8 @@ Epic final-pass branch (no publish until owner merge). Phase A A1–A10 already 
 - Lobby: same concurrent cap only.
 - Check in game: roof start = intro → terminal → one ЦІЛЬ, no toast pile; pick Scrap → tip only (no
   «зібрано» spam); blackout = one warning; danger still readable.
+- Fix: attack teach tip no longer lost if first Floor zone lands during intro soft-silence (retry until
+  shown). Eat hint stays once/match (no re-fire after hunger recovers).
 
 ### Phase D scaffold
 - Blender `build_weapons.py`: **WeaponBat** + **WeaponCrowbar**. CombatService MESHES point at them with

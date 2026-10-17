@@ -58,7 +58,7 @@ WorldVisualsController.Start()
 MusicController.Start()
 ObjectiveMarkerController.Start()
 CombatController.Hint = function(text)
-	HUDController.Toast(text, "info")
+	return HUDController.Toast(text, "info")
 end
 CombatController.Start(remotes)
 LootFxController.Start(remotes)

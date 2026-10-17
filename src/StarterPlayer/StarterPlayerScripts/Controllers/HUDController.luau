@@ -236,20 +236,21 @@ local function flushPending()
 	showToast(pending.text, pending.kind)
 end
 
--- force: one-shot teach tips (Scrap≠Crowbar) bypass soft throttle; whitelist only that key.
-function HUDController.Toast(text: string, kind: string?, force: boolean?)
+-- Returns false if intro soft-silence dropped the toast (caller must not mark one-shots done).
+-- force: Scrap≠Crowbar only — bypasses soft throttle and intro silence.
+function HUDController.Toast(text: string, kind: string?, force: boolean?): boolean
 	local rank = KIND_RANK[kind or "info"] or 1
 	local danger = rank >= 3
-	-- Spawn silence: intro card (and 2 s after) drops soft toasts; danger still lands.
+	-- Spawn silence: intro card (and 2 s after) drops soft toasts; danger / force still land.
 	if not danger and not force and IntroController.BlocksSoftToasts() then
-		return
+		return false
 	end
 	if force then
 		pendingToast = nil
 		pendingToken += 1
 		lastToastAt = os.clock()
 		showToast(text, kind)
-		return
+		return true
 	end
 	-- Danger always lands; soft tips wait so lines do not stack.
 	if danger then
@@ -257,7 +258,7 @@ function HUDController.Toast(text: string, kind: string?, force: boolean?)
 		pendingToken += 1
 		lastToastAt = os.clock()
 		showToast(text, kind)
-		return
+		return true
 	end
 	local now = os.clock()
 	local wait = GameConfig.ToastMinIntervalSeconds - (now - lastToastAt)
@@ -266,7 +267,7 @@ function HUDController.Toast(text: string, kind: string?, force: boolean?)
 		pendingToken += 1
 		lastToastAt = now
 		showToast(text, kind)
-		return
+		return true
 	end
 	local existing = pendingToast
 	local existingRank = if existing then (KIND_RANK[existing.kind or "info"] or 1) else 0
@@ -280,6 +281,7 @@ function HUDController.Toast(text: string, kind: string?, force: boolean?)
 			flushPending()
 		end
 	end)
+	return true
 end
 
 local function onState(s: { [string]: any })

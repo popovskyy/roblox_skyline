@@ -20,8 +20,10 @@ local UIKit = require(script.Parent.UIKit)
 
 local CombatController = {}
 
--- Set by ClientMain: shows a short message on screen.
-CombatController.Hint = function(_text: string) end
+-- Set by ClientMain: shows a short message; false if intro soft-silence dropped it.
+CombatController.Hint = function(_text: string): boolean
+	return false
+end
 
 local player = Players.LocalPlayer
 local C = UIKit.Colors
