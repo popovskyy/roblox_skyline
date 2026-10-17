@@ -35,12 +35,10 @@ type MeshInfo = {
 }
 local MESHES: { [string]: MeshInfo } = {
 	Club = { prop = "WeaponClub", length = 3.4 },
-	-- No Bat mesh yet: the nail club, longer, with an aluminium barrel.
-	Bat = {
-		prop = "WeaponClub",
-		length = 3.8,
-		repaint = { Wood = { color = Color3.fromRGB(95, 120, 150), material = Enum.Material.Metal } },
-	},
+	-- Own Blender mesh (build_weapons.py WeaponBat). Until Weapons pack is re-uploaded with Bat,
+	-- PropLibrary.Raw returns nil and LOOKS Part fallback is used — never invent asset ids.
+	Bat = { prop = "WeaponBat", length = 3.8 },
+	Crowbar = { prop = "WeaponCrowbar", length = 3.2 },
 	Pipe = { prop = "WeaponPipe", length = 3.7 },
 	Machete = { prop = "WeaponMachete", length = 3.4 },
 }
@@ -63,6 +61,7 @@ local LOOKS: { [string]: { size: Vector3, color: Color3, material: Enum.Material
 		color = Color3.fromRGB(60, 62, 66),
 		material = Enum.Material.Metal,
 	},
+	-- Crowbar / Bat LOOKS: Part fallback when WeaponCrowbar / WeaponBat are missing from the pack.
 	Crowbar = { size = Vector3.new(0.2, 0.2, 3.2), color = Color3.fromRGB(150, 45, 40), material = Enum.Material.Metal },
 	Club = { size = Vector3.new(0.5, 0.5, 3.4), color = Color3.fromRGB(120, 84, 52), material = Enum.Material.Wood },
 	Bat = { size = Vector3.new(0.5, 0.5, 3.8), color = Color3.fromRGB(95, 120, 150), material = Enum.Material.Metal },
