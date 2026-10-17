@@ -154,9 +154,14 @@ local function applyUpgradeVisual(part: BasePart, s: { [string]: any })
 		end
 	elseif owned then
 		setPartState(part, "normal")
-		-- Barricade walls start non-colliding on the server; force collide for the local player when built.
+		-- Barricade walls start non-colliding; server enables CanCollide on purchase. Mirror locally
+		-- and remember so later "normal" restores do not reopen the stair mouth.
 		if barricadeBlock then
 			part.CanCollide = true
+			local remembered = originals[part]
+			if remembered then
+				remembered.collide = true
+			end
 		end
 	else
 		setPartState(part, if missingRequirement(upgradeId, s) then "locked" else "ghost")

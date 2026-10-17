@@ -56,6 +56,12 @@ local function applyBarricadeCollision(built: boolean)
 	for _, part in barricadeParts do
 		if part.Parent then
 			part.CanCollide = built
+			-- Keep raycasts / pathfinding in sync with the physical block.
+			part.CanQuery = true
+			local mod = part:FindFirstChildOfClass("PathfindingModifier")
+			if mod then
+				mod.PassThrough = not built
+			end
 		end
 	end
 end
@@ -81,16 +87,19 @@ local function warnEveryone()
 end
 
 -- Spawn just inside the stair shaft (behind a built barricade) or pouring onto the roof.
+-- When barricaded, home stays in the shaft too — never on the roof pad (that made MoveTo walk through boards).
 local function spawnPositions(behindBarricade: boolean): (Vector3, Vector3)
-	local home = Vector3.new(LANE_CENTER + (math.random() - 0.5) * 4, World.RoofY + 3, HOLE_MIN_Z - 6)
 	if behindBarricade then
 		local spawnAt = Vector3.new(
 			LANE_CENTER + (math.random() - 0.5) * 5,
 			World.RoofY - 4 + math.random() * 2,
 			HOLE_MIN_Z + 4 + math.random() * 3
 		)
+		local home =
+			Vector3.new(LANE_CENTER + (math.random() - 0.5) * 4, World.RoofY - 3, HOLE_MIN_Z + 6 + math.random() * 2)
 		return spawnAt, home
 	end
+	local home = Vector3.new(LANE_CENTER + (math.random() - 0.5) * 4, World.RoofY + 3, HOLE_MIN_Z - 6)
 	local spawnAt = Vector3.new(
 		LANE_CENTER + (math.random() - 0.5) * 6,
 		World.RoofY + 3,

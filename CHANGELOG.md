@@ -5,6 +5,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 ## Unreleased (local) · 17.10
 
+### Barricade blocks roof horde (Phase A1)
+- Built Barricade now hard-blocks zombies server-side: thicker boards + pathfinding modifier; horde
+  spawn/home stay in the stair shaft (not the roof pad); zombie AI never LoS-`MoveTo` through
+  `BarricadeBlock` parts — path fail or blocked goal = stop in place. Client remembers collide=true
+  after build so visuals do not reopen the mouth.
+- Check in game: build Barricade before ~8–10 min; next horde piles up behind boards; no zombies on the
+  roof pad; players can still leave via stairs / vault; floor zombies unchanged.
+
 ### Tablet hit animation
 - Tablet taps for attack were often marked `processed` by Roblox even on the world (unlike phones), so
   the swing never started; tablets with KeyboardEnabled also skipped the touch HUD. Touch taps now count

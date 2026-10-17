@@ -216,15 +216,47 @@ local function findTarget(z: Zombie): (Player?, BasePart?)
 	return best, bestRoot
 end
 
+local function isBarricadeBlock(part: Instance?): boolean
+	return part ~= nil and part:IsA("BasePart") and part:GetAttribute("BarricadeBlock") == true and part.CanCollide
+end
+
+-- Ray from A to B hits a built barricade segment (server collision on).
+local function rayHitsBarricade(from: Vector3, to: Vector3, ignore: { Instance }): BasePart?
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	local result = workspace:Raycast(from, to - from, params)
+	if result and isBarricadeBlock(result.Instance) then
+		return result.Instance
+	end
+	return nil
+end
+
 local function hasLineOfSight(z: Zombie, target: BasePart): boolean
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { z.model, target.Parent :: Instance }
 	local from = z.root.Position
-	return workspace:Raycast(from, target.Position - from, params) == nil
+	local result = workspace:Raycast(from, target.Position - from, params)
+	if result == nil then
+		return true
+	end
+	-- Built boards count as a hard block even if a thin gap would otherwise look clear.
+	return not isBarricadeBlock(result.Instance)
+end
+
+local function stopInPlace(z: Zombie)
+	z.humanoid:MoveTo(z.root.Position)
+	z.waypoints = {}
+	z.waypointIndex = 0
 end
 
 local function moveAlongPath(z: Zombie, goal: Vector3, now: number)
+	-- Never soft-clip through boards: if the goal is on the other side, stop (or attack in place).
+	if rayHitsBarricade(z.root.Position, goal, { z.model }) then
+		stopInPlace(z)
+		return
+	end
 	if now - z.lastPath > 1.5 or z.waypointIndex > #z.waypoints then
 		z.lastPath = now
 		local path = PathfindingService:CreatePath({ AgentRadius = 2, AgentHeight = 5, AgentCanJump = false })
@@ -241,12 +273,21 @@ local function moveAlongPath(z: Zombie, goal: Vector3, now: number)
 	end
 	local waypoint = z.waypoints[z.waypointIndex]
 	if waypoint then
+		if rayHitsBarricade(z.root.Position, waypoint.Position, { z.model }) then
+			stopInPlace(z)
+			return
+		end
 		z.humanoid:MoveTo(waypoint.Position)
 		if (waypoint.Position - z.root.Position).Magnitude < 4 then
 			z.waypointIndex += 1
 		end
 	else
-		z.humanoid:MoveTo(goal)
+		-- Path failed: do not fall back to naked MoveTo(goal) through a barricade.
+		if rayHitsBarricade(z.root.Position, goal, { z.model }) then
+			stopInPlace(z)
+		else
+			z.humanoid:MoveTo(goal)
+		end
 	end
 end
 
@@ -266,13 +307,22 @@ local function think(z: Zombie, now: number)
 	end
 	if target and targetRoot then
 		local distance = (targetRoot.Position - z.root.Position).Magnitude
-		if distance <= Z.AttackRange then
+		local ignore: { Instance } = { z.model }
+		local character = target.Character
+		if character then
+			table.insert(ignore, character)
+		end
+		local blocked = rayHitsBarricade(z.root.Position, targetRoot.Position, ignore)
+		if distance <= Z.AttackRange and not blocked then
 			z.humanoid:MoveTo(z.root.Position)
 			if now - z.lastAttack >= Z.AttackCooldown then
 				z.lastAttack = now
 				SfxService.Play("ZombieAttack", z.root, 0.9)
 				DamageService.Damage(target, Z.Damage)
 			end
+		elseif blocked then
+			-- Goal is behind boards: idle / press against the wall; never LoS-MoveTo through it.
+			stopInPlace(z)
 		elseif hasLineOfSight(z, targetRoot) then
 			z.humanoid:MoveTo(targetRoot.Position)
 		else
@@ -287,11 +337,16 @@ local function think(z: Zombie, now: number)
 		end
 		return
 	end
-	-- Nobody around: shuffle near home.
+	-- Nobody around: shuffle near home (still never through boards).
 	if now >= z.wanderAt then
 		z.wanderAt = now + math.random(4, 9)
 		local offset = Vector3.new(math.random(-12, 12), 0, math.random(-12, 12))
-		z.humanoid:MoveTo(z.home + offset)
+		local wanderGoal = z.home + offset
+		if rayHitsBarricade(z.root.Position, wanderGoal, { z.model }) then
+			stopInPlace(z)
+		else
+			z.humanoid:MoveTo(wanderGoal)
+		end
 	end
 end
 

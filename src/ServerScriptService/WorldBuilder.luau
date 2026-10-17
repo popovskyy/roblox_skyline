@@ -1636,11 +1636,12 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	)
 	-- Physical barrier across the stair exit (south mouth). Starts non-colliding; HordeService
 	-- enables collision when the team builds Barricade. Zombies cannot jump (AgentCanJump false).
+	-- Thick + tall so LoS/MoveTo cannot soft-clip the stair mouth.
 	local barricade = block(
 		visuals,
 		"BarricadeBarrier",
-		Vector3.new(HOLE_X * 2 + 1, 5, 1.4),
-		CFrame.new(0, roofY + 2.5, HOLE_MIN_Z - 0.9),
+		Vector3.new(HOLE_X * 2 + 2, 7, 2.4),
+		CFrame.new(0, roofY + 3.5, HOLE_MIN_Z - 0.9),
 		Color3.fromRGB(110, 78, 48),
 		Enum.Material.WoodPlanks
 	)
@@ -1648,12 +1649,16 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	barricade:SetAttribute("UpgradeVisual", "Barricade")
 	barricade:SetAttribute("VisualMode", "Show")
 	barricade:SetAttribute("BarricadeBlock", true)
+	local barrierMod = Instance.new("PathfindingModifier")
+	barrierMod.Label = "Barricade"
+	barrierMod.PassThrough = false
+	barrierMod.Parent = barricade
 	-- Extra plank strips so it reads as boarded-up boards, not a single slab.
 	for _, offsetX in { -5, 0, 5 } do
 		local plank = block(
 			barricade,
 			"Plank",
-			Vector3.new(4.2, 0.45, 1.6),
+			Vector3.new(4.2, 0.45, 2.2),
 			CFrame.new(offsetX, roofY + 1.2 + (offsetX % 3) * 0.15, HOLE_MIN_Z - 0.9)
 				* CFrame.Angles(0, 0, (offsetX * 0.02)),
 			Color3.fromRGB(95, 68, 40),
@@ -1667,8 +1672,8 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	local barricadeTop = block(
 		barricade,
 		"BarricadeTop",
-		Vector3.new(HOLE_X * 2, 0.5, 1.5),
-		CFrame.new(0, roofY + 4.6, HOLE_MIN_Z - 0.9),
+		Vector3.new(HOLE_X * 2 + 1, 0.6, 2.2),
+		CFrame.new(0, roofY + 6.6, HOLE_MIN_Z - 0.9),
 		Color3.fromRGB(130, 95, 55),
 		Enum.Material.WoodPlanks
 	)
