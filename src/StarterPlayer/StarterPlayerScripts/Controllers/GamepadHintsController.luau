@@ -1,5 +1,5 @@
 --!strict
--- Controller hints (ui/HUD_SPEC.md, section 5): a small panel bottom-right with the buttons that matter
+-- Controller hints (docs/design/HUD_SPEC.md, section 5): a small panel bottom-right with the buttons that matter
 -- (RT hit / use, Y flashlight, D-pad up medkit, D-pad down food) and LB / RB plates beside the hotbar.
 -- Glyphs come from GetImageForKeyCode, so a PlayStation pad shows its own symbols. Only while the last
 -- input was a gamepad; the panel fades after a minute of play.

@@ -75,7 +75,7 @@ function InteractionController.Start(remotes: Folder)
 	if UserInputService.TouchEnabled then
 		local T = Theme.Colors
 		local screen = UIKit.Screen()
-		-- Round action button (ui/HUD_SPEC.md, section 4): only while a prompt is near, its action above it,
+		-- Round action button (docs/design/HUD_SPEC.md, section 4): only while a prompt is near, its action above it,
 		-- an amber fill grows while holding.
 		local holder = UIKit.New("Frame", {
 			Name = "ActionButton",

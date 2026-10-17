@@ -13,7 +13,7 @@ local Theme = {
 	Body = family("Montserrat", Enum.FontWeight.Medium), -- regular text
 	Semi = family("Montserrat", Enum.FontWeight.SemiBold),
 
-	-- HUD colour tokens (ui/HUD_SPEC.md). Colour is never the only signal: states also get a word badge.
+	-- HUD colour tokens (docs/design/HUD_SPEC.md). Colour is never the only signal: states also get a word badge.
 	Colors = {
 		Panel = Color3.fromHex("0F0E0C"), -- with BackgroundTransparency 0.35
 		PanelSolid = Color3.fromHex("1E1C18"),

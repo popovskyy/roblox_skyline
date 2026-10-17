@@ -179,7 +179,7 @@ local function watchTool(character: Model)
 	end)
 end
 
--- Downed screen (ui/HUD_SPEC.md, section 7) ---------------------------------------------------------------
+-- Downed screen (docs/design/HUD_SPEC.md, section 7) ---------------------------------------------------------------
 -- Grey world, red edges, "YOU'RE DOWN", and every teammate with distance and whether they carry a bandage.
 local downedFrame: Frame
 local downedList: Frame

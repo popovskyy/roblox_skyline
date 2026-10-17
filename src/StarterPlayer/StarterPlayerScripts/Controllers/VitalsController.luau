@@ -1,5 +1,5 @@
 --!strict
--- Health and hunger (ui/HUD_SPEC.md, section 3). Health is ten segments with a trailing amber "chip" on
+-- Health and hunger (docs/design/HUD_SPEC.md, section 3). Health is ten segments with a trailing amber "chip" on
 -- damage and a green one on healing; hunger is a thin olive bar. Up to two state badges (down, starving,
 -- toxic, low health) and an edge vignette (red for danger, teal for toxic air).
 -- PC / gamepad: bottom-left. Phone: in the top bar row, right of the Roblox buttons.

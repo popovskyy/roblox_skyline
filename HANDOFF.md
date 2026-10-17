@@ -1,6 +1,6 @@
 # Skyline Zero — handoff
 
-State on 2026-10-17, build `b15`, both places published at version 17.
+State on 2026-10-17, build `b24` (lobby v35, tower v34).
 
 ## What the game is
 
@@ -74,11 +74,7 @@ Edit multi-line Cyrillic strings with a real editor, not shell heredocs (they br
 
 ## In progress / next
 
-1. **Floors, deeper rework** — holes in ceilings, collapsed walls, more TLOU detail; props are placed from
-   `FURNISHING` in `WorldBuilder.luau`; verify prop orientation/scale in game (not yet seen in-engine).
-2. Confirm in game: weapon grip angle and the new hold/swing animations, loot effects.
-3. Optional from the design review: one elite zombie per floor dropping a gold chest or a key.
-4. Lobby decor.
+See `docs/ROADMAP.md` (what to do next) and `CHANGELOG.md` (what each build changed). Rules for every agent: `AGENTS.md`.
 
 ## Working with the user
 

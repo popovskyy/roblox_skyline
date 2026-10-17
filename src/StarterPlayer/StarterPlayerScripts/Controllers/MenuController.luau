@@ -1,5 +1,5 @@
 --!strict
--- The ☰ menu (ui/HUD_SPEC.md, section 6): Resume, How to play, Leave run. Leaving asks first and only
+-- The ☰ menu (docs/design/HUD_SPEC.md, section 6): Resume, How to play, Leave run. Leaving asks first and only
 -- goes after holding the button for 1.5 s, so nobody quits a run by accident. Keys M / Tab open it.
 
 local ContextActionService = game:GetService("ContextActionService")

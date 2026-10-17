@@ -68,11 +68,34 @@ bash scripts/publish.sh tower     # only one place
   and PS5 and reports with screenshots. Read code paths carefully before publishing.
 - Teleports and DataStores do not work in Studio; test lifts and tokens in the published game.
 
+## How to work (every agent, every task)
+
+The lead architect for this project is Claude Code; Cursor and other agents continue the same way when it
+is unavailable. The owner wants steady, honest progress, not surprises.
+
+1. **Start from the list.** Take the next item from `docs/ROADMAP.md` (or exactly what the owner asked).
+   Do not add features, redesigns or refactors nobody asked for. Ideas go to
+   `docs/design/brainstorm-hooks.md`, not into code.
+2. **Read before you write.** Open the files you will touch and the services they call. Follow the
+   existing patterns (services, remotes, Locale, GameConfig, Theme). Never invent an API, an asset id, a
+   sound id or a Roblox feature: check the code, the Roblox docs, or ask.
+3. **Small change, whole feature.** One coherent change per commit: server rule + client view + strings
+   (uk/ru/en) + config numbers. No half-features behind TODOs.
+4. **Check.** `stylua src && selene src` (0 warnings) and `grep -rn "end)(" src` (empty). Re-read the diff
+   for the pitfalls below. If you could not verify something, say so; never claim "works" from reading
+   code alone.
+5. **Write it down.** Add an entry to `CHANGELOG.md` (what a player notices + what to check in game) and
+   update `docs/ROADMAP.md` in the same commit.
+6. **Publish only when the owner wants it**, after bumping `PlacesConfig.Build`, with
+   `bash scripts/publish.sh`, and tell the owner the build tag and what to test.
+7. **Report plainly** to the owner in Ukrainian: what changed, what to check, what is still open.
+
 ## Git
 
-- Work on a branch, keep commits small, write messages in English describing the visible change.
-- Run the checks above before every commit. Do not commit built places (`*.rbxl`, `*.rbxlx`, `*.rbxm`
-  outputs) or anything secret.
+- GitHub: `popovskyy/roblox_skyline`, branch `main` is the truth. Work on a branch, keep commits small,
+  English messages describing the visible change; merge to `main` when checks pass.
+- Do not commit built places (`*.rbxl`, `*.rbxlx`, `*.rbxm` outputs) or anything secret.
+- Never force-push `main`.
 
 ## Pitfalls we already hit (do not repeat)
 
@@ -98,6 +121,9 @@ bash scripts/publish.sh tower     # only one place
 
 ## Design references
 
-- `ui/HUD_SPEC.md` style rules live in `Theme.Colors`; HUD layout follows that spec.
-- Design reviews and economy notes: the `docs/design/` folder on the Cursor branches of the GitHub repo.
-- `HANDOFF.md` has the asset ids (models, icons, animations) and the current to-do list.
+- `docs/design/HUD_SPEC.md` style rules live in `Theme.Colors`; HUD layout follows that spec.
+- `docs/ROADMAP.md`: what to do next. `CHANGELOG.md`: what each build changed.
+- `docs/design/`: game design loops, economy and Robux plan, first-session UX, test plan, store brief.
+  Each starts with a status note saying what is already in the game; the code and `GameConfig` win.
+- `HANDOFF.md`: asset ids (models, icons, animations).
+- `.claude/agents/`: role prompts (coder, tester, game designer, UX, economist) for sub-agents.
