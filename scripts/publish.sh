@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds both places and publishes them to Roblox through Open Cloud.
-# Needs the API key in .roblox_api_key (git-ignored), with the universe-places:write permission.
+# Needs ROBLOX_API_KEY in the environment, or .roblox_api_key / .env (git-ignored).
+# Open Cloud permission: universe-places:write.
 #   bash scripts/publish.sh          # lobby + tower
 #   bash scripts/publish.sh tower    # one of: lobby, tower
 set -euo pipefail
@@ -10,7 +11,21 @@ UNIVERSE_ID=10771270901
 LOBBY_PLACE_ID=128619231370772
 TOWER_PLACE_ID=104145307601846
 
-KEY=$(tr -d ' \r\n\t' < .roblox_api_key)
+if [[ -z "${ROBLOX_API_KEY:-}" && -f .env ]]; then
+	# shellcheck disable=SC1091
+	set -a
+	# shellcheck disable=SC1091
+	source .env
+	set +a
+fi
+if [[ -n "${ROBLOX_API_KEY:-}" ]]; then
+	KEY=$(printf '%s' "$ROBLOX_API_KEY" | tr -d ' \r\n\t')
+elif [[ -f .roblox_api_key ]]; then
+	KEY=$(tr -d ' \r\n\t' < .roblox_api_key)
+else
+	echo "Missing ROBLOX_API_KEY (env) or .roblox_api_key" >&2
+	exit 1
+fi
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 

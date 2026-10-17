@@ -19,3 +19,4 @@ assets/animations/*.rbxm
 
 # Local tool binaries (stylua/selene/rojo)
 .tools/
+.env
