@@ -1,14 +1,14 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, after Phase B/C readiness slice (Unreleased, post-b31).
+Owner: Popovskyi. Updated 17.10, build b32 · 17.10 18:55 published.
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
 
 ## Now: Phase C playtest gate (owner)
 
-Code readiness for Phase B/C is in (Unreleased): `Horde.Enabled` kill-switch, Scrap≠Лом tip same beat,
-Gold/Diamond open juice. **Owner signs Phase C** before any Phase D / polish / publish.
+Code readiness for Phase B/C is live as **b32**: `Horde.Enabled` kill-switch, Scrap≠Лом tip same beat,
+Gold/Diamond open juice. **Owner signs Phase C** before any Phase D / polish.
 
 Focus in game (solo + 2–3 co-op):
 - First Scrap tip visible with pickup; F1 scrap path + soft rubble still obvious.
@@ -23,8 +23,9 @@ Questions for the owner:
 
 ## Next (in this order)
 
-1. **Slow survival Phase B/C** — owner Phase C sign-off (`docs/design/slow-survival-loop.md` §10). LOCAL
-   #2–#5 and C-gate hardening are done; do not pull brainstorm ideas or Phase D ahead of that sign-off.
+1. **Slow survival Phase B/C** — owner Phase C sign-off on **b32** (`docs/design/slow-survival-loop.md` §10).
+   LOCAL #2–#5 and C-gate hardening are published; do not pull brainstorm ideas or Phase D ahead of that
+   sign-off.
 2. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
    model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
    sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent). **Only after**

@@ -3,9 +3,9 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
-## Unreleased · Phase B/C readiness (post-b31)
-C-gate hardening only: horde QA switch, Scrap≠Лом tip same beat, louder Gold/Diamond opens. No balance
-retune, no Blender, no publish.
+## b32 · 17.10 18:55
+C-gate hardening: horde QA switch, Scrap≠Лом tip same beat, louder Gold/Diamond opens. No balance
+retune, no Blender.
 
 ### Horde kill-switch (A10)
 - `GameConfig.Horde.Enabled` (default `true`). When `false`, no siren and no waves; Barricade boards still
