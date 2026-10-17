@@ -33,4 +33,14 @@ Headless scripts (owner PC Blender 5.x — **not** on Cloud VM):
 | `build_interior_props.py` | LootCrate* tiers, ScrapNode, ElectronicsNode, Soft/HardRubble, BarricadeBoards | same for InteriorProps |
 | `build_roof_props.py` | Storage/Gen/Filter/Bridge fidelity | RoofProps.rbxm Studio path above |
 
-**Never invent asset ids.** Until re-upload, CombatService falls back to Part LOOKS when `WeaponBat` / `WeaponCrowbar` are missing from the live pack. WorldBuilder still builds Part crates/nodes until props are wired after a real upload.
+**Never invent asset ids.** Until re-upload, CombatService falls back to Part LOOKS when `WeaponBat` / `WeaponCrowbar` are missing from the live pack. WorldBuilder dresses crates / Scrap-Elec / rubble / barricade boards only when `PropLibrary.Has` — Part grey-box otherwise.
+
+### Cloud VM blockers (final-pass)
+
+| Need | Status on Cloud agent VM |
+|------|--------------------------|
+| Blender CLI (`blender --background …`) | **Missing** — run scripts on owner PC |
+| `.roblox_api_key` for `upload_model.sh` | **Missing** — owner PC only; never commit the key |
+| Paste printed asset id → `PropLibrary.ASSETS` | Owner after successful upload |
+
+Until those land, keep scaffolding + Has()-gated dress; do not invent PropLibrary ids.

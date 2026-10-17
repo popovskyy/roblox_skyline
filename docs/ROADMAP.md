@@ -11,8 +11,8 @@ Branch `cursor/roadmap-final-pass` · draft PR — **do not merge/publish mid-pa
 | Block | State on branch |
 |-------|-----------------|
 | **0 HUD declutter (P0)** | **Done** (tip `d4a6314`+): soft spam killed; blackout one warning; 1+1 toast cap; intro silence; **attack tip silence race fixed** (retry until Toast succeeds) |
-| **1 Phase A leftovers** | **Verified** — A1–A8 + holds already live on master (b28–b32); no §8 retune |
-| **2 Phase D Blender** | **Scaffolded** — Bat/Crowbar + interior props in scripts; CombatService fallback. **Upload blocked** on Cloud VM (no Blender / API key). Owner-PC `upload_model.sh` → paste real ids only |
+| **1 Phase A leftovers** | **Verified** — A1–A8 + §8 knobs re-checked on branch; no gaps / no retune |
+| **2 Phase D Blender** | **Scaffold + Has()-dress** — scripts + WorldBuilder optional props. **Upload blocked** (no Blender CLI / `.roblox_api_key` on Cloud VM). Owner-PC upload → paste real ids into `PropLibrary.ASSETS` only |
 | **3 Launch prep** | **Docs done** — marketing fantasy aligned; `assets/store/` checklist ready for Art; heartbeat SFX documented as blocker |
 
 **Owner after merge:** publish build tag · optional Creator Hub Public (copy + art) · optional Blender re-upload.
