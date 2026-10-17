@@ -8,7 +8,7 @@ local GameConfig = {
 
 	-- Health
 	StartingHealth = 100,
-	MedkitHeal = 35,
+	MedkitHeal = 60, -- craft primary; matches game-design-loops §2
 
 	-- Hazards
 	FallDamageThreshold = 18,
@@ -104,12 +104,23 @@ local GameConfig = {
 		},
 	} :: { [string]: { { item: string, min: number, max: number, chance: number? } } },
 
-	-- Workbench on the roof.
+	-- Workbench on the roof. Heal craft is the primary sustain path (loops §2).
 	Recipes = {
-		{ id = "Bandage", cost = { Food = 1, Scrap = 1 } },
+		{ id = "Bandage", cost = { Scrap = 4 } },
+		{ id = "Medkit", cost = { Scrap = 6, Electronics = 2 } },
 		{ id = "Pipe", cost = { Scrap = 4 } },
 		{ id = "Machete", cost = { Scrap = 5, Electronics = 2 } },
 	} :: { { id: string, cost: { [string]: number } } },
+
+	-- Soft-currency tokens (not Robux). Earn table locked to game-design-loops / economy-robux.
+	Tokens = {
+		KillMin = 1,
+		KillMax = 2,
+		FloorClearBase = 10,
+		FloorClearPerLevel = 2,
+		FloorClearCap = 25,
+		RoofBonus = 25,
+	},
 
 	-- Testing: every upgrade costs 1 of each listed item. Never ship with this on.
 	TestPrices = false,

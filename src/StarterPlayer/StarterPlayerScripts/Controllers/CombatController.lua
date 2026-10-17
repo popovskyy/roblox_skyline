@@ -27,7 +27,33 @@ local function remote(name: string): RemoteEvent
 	return remotes:FindFirstChild(name) :: RemoteEvent
 end
 
+-- R15 ToolSlash — local play for instant mobile feedback; server also plays for replication.
+local SLASH_ANIM_ID = "rbxassetid://522635514"
+local localSlash: AnimationTrack? = nil
+
+local function playLocalSlash()
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = humanoid
+	end
+	if not localSlash or localSlash.Parent == nil then
+		local anim = Instance.new("Animation")
+		anim.AnimationId = SLASH_ANIM_ID
+		localSlash = animator:LoadAnimation(anim)
+		localSlash.Priority = Enum.AnimationPriority.Action
+		localSlash.Looped = false
+	end
+	localSlash:Play(0.05, 1, 1.15)
+end
+
 local function attack()
+	playLocalSlash()
 	remote(RemoteNames.Attack):FireServer()
 end
 
@@ -216,7 +242,10 @@ function CombatController.Start(remoteFolder: Folder)
 	if player.Character then
 		watchTool(player.Character)
 	end
-	player.CharacterAdded:Connect(watchTool)
+	player.CharacterAdded:Connect(function(character)
+		localSlash = nil
+		watchTool(character)
+	end)
 	player:GetAttributeChangedSignal("Downed"):Connect(updateDowned)
 	updateDowned()
 

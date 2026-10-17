@@ -102,7 +102,7 @@ local Items: { [string]: ItemDef } = {
 		displayName = "Аптечка",
 		weight = 2,
 		startAmount = 1,
-		description = "Відновлює 35 здоров'я.",
+		description = "Відновлює 60 здоров'я. Крафтиться на верстаку.",
 		storable = true,
 	},
 	Cable = {

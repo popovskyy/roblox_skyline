@@ -8,7 +8,7 @@ local GameConfig = {
 
 	-- Health
 	StartingHealth = 100,
-	MedkitHeal = 35,
+	MedkitHeal = 60,
 
 	-- Hazards
 	FallDamageThreshold = 18,

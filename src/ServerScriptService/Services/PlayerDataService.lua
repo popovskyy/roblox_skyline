@@ -69,6 +69,7 @@ function PlayerDataService.DefaultData(): PlayerData
 		towerCompleted = false,
 		tutorialStep = 1,
 		discoveredNotes = {},
+		tokens = 0,
 		ownedPasses = {},
 		processedReceipts = {},
 	}
@@ -125,6 +126,9 @@ local function sanitize(raw: any): PlayerData
 		data.flashlightCharge = math.min(charge, GameConfig.FlashlightBatterySeconds)
 	end
 	data.towerCompleted = raw.towerCompleted == true
+	if isCount(raw.tokens) then
+		data.tokens = raw.tokens
+	end
 	if raw.language == "uk" or raw.language == "ru" or raw.language == "en" then
 		data.language = raw.language
 	end
@@ -144,6 +148,7 @@ local function serialize(data: PlayerData, version: number): { [string]: any }
 		language = data.language,
 		tutorialStep = data.tutorialStep,
 		discoveredNotes = table.clone(data.discoveredNotes),
+		tokens = data.tokens or 0,
 		ownedPasses = table.clone(data.ownedPasses),
 		processedReceipts = table.clone(data.processedReceipts),
 		updatedAt = os.time(),

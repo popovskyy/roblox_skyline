@@ -43,9 +43,9 @@ local S: { [string]: Entry } = {
 	},
 	["item.Medkit.name"] = { uk = "Аптечка", ru = "Аптечка", en = "Medkit" },
 	["item.Medkit.desc"] = {
-		uk = "Відновлює 35 здоров'я.",
-		ru = "Восстанавливает 35 здоровья.",
-		en = "Restores 35 health.",
+		uk = "Відновлює 60 здоров'я. Крафтиться на верстаку.",
+		ru = "Восстанавливает 60 здоровья. Крафтится на верстаке.",
+		en = "Restores 60 health. Craft at the workbench.",
 	},
 	["item.Cable.name"] = { uk = "Кабель", ru = "Кабель", en = "Cable" },
 	["item.Cable.desc"] = {
@@ -348,21 +348,21 @@ local S: { [string]: Entry } = {
 		en = "Backpack is full",
 	},
 
-	-- Tutorial
+	-- Tutorial — one clear objective at a time (first-session-ux.md).
 	["tutorial.1"] = {
-		uk = "Знайди аварійний термінал на даху",
-		ru = "Найди аварийный терминал на крыше",
-		en = "Find the emergency terminal on the roof",
+		uk = "Підійди до аварійного терміналу на даху",
+		ru = "Подойди к аварийному терминалу на крыше",
+		en = "Walk to the emergency terminal on the roof",
 	},
 	["tutorial.2"] = {
-		uk = "Спустись сходами й збери 3 металобрухту на технічному поверсі",
-		ru = "Спустись по лестнице и собери 3 металлолома на техническом этаже",
-		en = "Take the stairs down and collect 3 scrap on the technical floor",
+		uk = "Спустись сходами й збери металобрухт",
+		ru = "Спустись по лестнице и собери металлолом",
+		en = "Take the stairs down and collect scrap",
 	},
 	["tutorial.3"] = {
-		uk = "Повернись на дах",
-		ru = "Вернись на крышу",
-		en = "Return to the roof",
+		uk = "Повернись на дах зі здобиччю",
+		ru = "Вернись на крышу с добычей",
+		en = "Return to the roof with your loot",
 	},
 	["tutorial.4"] = {
 		uk = "Збудуй скриню на даху (8 металобрухту)",
@@ -399,6 +399,22 @@ local S: { [string]: Entry } = {
 		uk = "Електроніка %d/%d",
 		ru = "Электроника %d/%d",
 		en = "Electronics %d/%d",
+	},
+	["tokens.earned"] = {
+		uk = "+%d жетонів (%s)",
+		ru = "+%d жетонов (%s)",
+		en = "+%d tokens (%s)",
+	},
+	["tokens.reason.kill"] = { uk = "за вбивство", ru = "за убийство", en = "for a kill" },
+	["tokens.reason.clear"] = {
+		uk = "за зачистку поверху",
+		ru = "за зачистку этажа",
+		en = "for clearing a floor",
+	},
+	["tokens.reason.roof"] = {
+		uk = "за повернення на дах",
+		ru = "за возвращение на крышу",
+		en = "for returning to the roof",
 	},
 
 	-- Notes

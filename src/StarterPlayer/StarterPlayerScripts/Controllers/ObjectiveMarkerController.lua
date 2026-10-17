@@ -160,8 +160,14 @@ function ObjectiveMarkerController.Start()
 	end)
 
 	-- Gentle bob and the live distance; re-pick nearest loot periodically.
+	-- Idle 45s on roof with step 1 incomplete → one soft ping (bob + click), not text spam.
 	local clock = 0
 	local retargetAt = 0
+	local idleSeconds = 0
+	local idlePinged = false
+	local lastRootPos: Vector3? = nil
+	local bobAmp = 0.6
+	local bobSpeed = 3
 	RunService.RenderStepped:Connect(function(dt)
 		clock += dt
 		retargetAt += dt
@@ -169,11 +175,41 @@ function ObjectiveMarkerController.Start()
 			retargetAt = 0
 			refresh()
 		end
+		local s = ClientState.Get()
+		local step1 = s and s.tutorial and not s.tutorial.done and s.tutorial.step == 1
+		local root = playerRoot()
+		if step1 and root then
+			local moved = lastRootPos and (root.Position - lastRootPos).Magnitude > 1.5
+			lastRootPos = root.Position
+			if moved then
+				idleSeconds = 0
+			else
+				idleSeconds += dt
+			end
+			if idleSeconds >= 45 and not idlePinged then
+				idlePinged = true
+				bobAmp = 1.8
+				bobSpeed = 7
+				local sound = Instance.new("Sound")
+				sound.SoundId = "rbxassetid://15675032796" -- Click
+				sound.Volume = 0.45
+				sound.Parent = root
+				sound:Play()
+				task.delay(1.2, function()
+					sound:Destroy()
+					bobAmp = 0.6
+					bobSpeed = 3
+				end)
+			end
+		else
+			idleSeconds = 0
+			idlePinged = false
+			lastRootPos = if root then root.Position else nil
+		end
 		if not target then
 			return
 		end
-		billboard.StudsOffsetWorldSpace = Vector3.new(0, 7 + math.sin(clock * 3) * 0.6, 0)
-		local root = playerRoot()
+		billboard.StudsOffsetWorldSpace = Vector3.new(0, 7 + math.sin(clock * bobSpeed) * bobAmp, 0)
 		if root then
 			local distance = math.floor((root.Position - target.Position).Magnitude)
 			distanceLabel.Text = Lang.T("marker.here", distance)

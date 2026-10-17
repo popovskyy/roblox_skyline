@@ -13,6 +13,7 @@ export type PlayerData = {
 	towerCompleted: boolean,
 	tutorialStep: number,
 	discoveredNotes: { [string]: boolean },
+	tokens: number, -- soft currency; session-scoped while PersistProgress is false
 	language: string?, -- "uk" | "ru" | "en"; nil = follow the Roblox locale
 	-- Monetization stubs, unused while MonetizationConfig.Enabled = false.
 	ownedPasses: { [string]: boolean },
@@ -45,6 +46,7 @@ export type StateSnapshot = {
 	acts: number,
 	saveEnabled: boolean,
 	towerCompleted: boolean,
+	tokens: number?,
 }
 
 return {}

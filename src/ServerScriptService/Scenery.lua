@@ -5,15 +5,17 @@
 local Scenery = {}
 
 local PALETTE = {
-	concrete = { Color3.fromRGB(150, 142, 128), Color3.fromRGB(128, 122, 112), Color3.fromRGB(112, 104, 96) },
+	concrete = { Color3.fromRGB(130, 124, 112), Color3.fromRGB(110, 106, 98), Color3.fromRGB(96, 90, 84) },
 	brick = Color3.fromRGB(122, 78, 58),
-	window = Color3.fromRGB(38, 44, 48),
-	lit = Color3.fromRGB(255, 196, 120),
+	window = Color3.fromRGB(28, 32, 36),
+	lit = Color3.fromRGB(200, 150, 80),
 	rust = Color3.fromRGB(124, 72, 44),
-	moss = Color3.fromRGB(86, 110, 52),
-	leaf = { Color3.fromRGB(78, 112, 48), Color3.fromRGB(96, 128, 56), Color3.fromRGB(64, 92, 44) },
-	grass = Color3.fromRGB(104, 124, 62),
-	bark = Color3.fromRGB(84, 64, 46),
+	moss = Color3.fromRGB(70, 82, 48),
+	-- Desaturated foliage — post-apoc grey-green, not a summer park.
+	leaf = { Color3.fromRGB(62, 78, 48), Color3.fromRGB(74, 86, 52), Color3.fromRGB(54, 68, 42) },
+	grass = Color3.fromRGB(72, 84, 52),
+	bark = Color3.fromRGB(70, 58, 46),
+	ground = Color3.fromRGB(52, 50, 46),
 }
 
 local function part(
@@ -128,6 +130,16 @@ function Scenery.Building(parent: Instance, base: Vector3, width: number, depth:
 	local model = Instance.new("Model")
 	model.Name = "Ruin"
 	model.Parent = parent
+	-- Footing plate so the tower reads as grounded when looking down from the playable roof.
+	local footing = part(
+		model,
+		"Ground",
+		Vector3.new(width * 1.55, 6, depth * 1.55),
+		CFrame.new(base + Vector3.new(0, -3, 0)),
+		PALETTE.ground,
+		Enum.Material.Asphalt
+	)
+	footing.CastShadow = false
 	local body = part(
 		model,
 		"Body",
@@ -234,15 +246,20 @@ function Scenery.Dress(
 		tank.CastShadow = false
 	end
 
-	-- Nature taking it back: a green roof.
-	Scenery.Grass(model, top, Vector2.new(width * 0.8, depth * 0.8), rng)
-	if rng:NextNumber() < 0.5 then
-		Scenery.Tree(
+	-- Sparse moss / debris on the crown — not a full green roof.
+	if rng:NextNumber() < 0.45 then
+		Scenery.Grass(model, top, Vector2.new(width * 0.28, depth * 0.28), rng)
+	end
+	if rng:NextNumber() < 0.35 then
+		part(
 			model,
-			top + Vector3.new(rng:NextNumber(-0.25, 0.25) * width, 0, rng:NextNumber(-0.25, 0.25) * depth),
-			rng:NextNumber(10, 18),
-			rng
-		)
+			"RoofJunk",
+			Vector3.new(rng:NextNumber(4, 9), rng:NextNumber(2, 4), rng:NextNumber(3, 7)),
+			CFrame.new(top + Vector3.new(rng:NextNumber(-0.2, 0.2) * width, 2, rng:NextNumber(-0.2, 0.2) * depth))
+				* CFrame.Angles(0, rng:NextNumber(0, 1), rng:NextNumber(-0.1, 0.1)),
+			PALETTE.rust,
+			Enum.Material.CorrodedMetal
+		).CastShadow = false
 	end
 end
 
@@ -262,6 +279,16 @@ function Scenery.Skyline(
 	folder.Name = "Skyline"
 	folder.Parent = parent
 	local rng = Random.new(seed)
+	-- City ground disk under the ring so distant towers sit on something when viewed from above.
+	local ground = part(
+		folder,
+		"CityGround",
+		Vector3.new(maxDistance * 2.4, 8, maxDistance * 2.4),
+		CFrame.new(center + Vector3.new(0, -4, 0)),
+		PALETTE.ground,
+		Enum.Material.Asphalt
+	)
+	ground.CastShadow = false
 	for i = 1, count do
 		local angle = (i / count) * math.pi * 2 + rng:NextNumber(-0.15, 0.15)
 		local distance = rng:NextNumber(minDistance, maxDistance)

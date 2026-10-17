@@ -27,6 +27,8 @@ local ZombieService = require(Services.ZombieService)
 local CombatService = require(Services.CombatService)
 local CraftService = require(Services.CraftService)
 local MatchService = require(Services.MatchService)
+local TokenService = require(Services.TokenService)
+local WeatherService = require(Services.WeatherService)
 
 Net.Init()
 PlayerDataService.Init()
@@ -35,6 +37,7 @@ ResourceService.Init()
 StorageService.Init()
 FlashlightService.Init()
 TutorialService.Init()
+TokenService.Init()
 
 if GameConfig.World.Mode == "Generated" then
 	local world = WorldBuilder.Build()
@@ -47,11 +50,13 @@ if GameConfig.World.Mode == "Generated" then
 	PlayerLifecycleService.SetWorld(world.interactables, world.roofDropPosition)
 	CraftService.SetWorkbench(world.workbench)
 	ZombieService.Start(world.root)
+	WeatherService.Start()
 else
 	warn("[ServerMain] World.Mode is Manual: wire a hand-built map into the services before playing")
 end
 
 HazardService.OnReturnedToRoof(ResourceService.OnReturnedToRoof)
+HazardService.OnReturnedToRoof(TokenService.OnRoofTouch)
 
 PlayerDataService.Start()
 MonetizationService.Start()

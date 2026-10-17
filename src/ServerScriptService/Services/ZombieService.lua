@@ -12,6 +12,7 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local DamageService = require(script.Parent.DamageService)
+local TokenService = require(script.Parent.TokenService)
 
 local ZombieService = {}
 
@@ -194,8 +195,9 @@ spawnZombie = function(level: number)
 			table.remove(zombies, index)
 		end
 		floorAlive[level] = math.max(0, (floorAlive[level] or 1) - 1)
-		if (floorAlive[level] or 0) <= 0 then
+		if (floorAlive[level] or 0) <= 0 and not floorCleared[level] then
 			floorCleared[level] = true
+			TokenService.OnFloorCleared(level)
 		end
 		task.delay(3, function()
 			model:Destroy()

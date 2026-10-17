@@ -45,9 +45,10 @@ local LANE_WIDTH = HOLE_X - 0.5
 local WALL_HEIGHT = World.FloorSpacing - World.SlabThickness
 
 local COLORS = {
-	concrete = Color3.fromRGB(120, 118, 115),
-	darkConcrete = Color3.fromRGB(82, 80, 78),
-	roof = Color3.fromRGB(96, 98, 100),
+	-- Dimmer slabs so interiors read as abandoned floors; flashlight still carries the room.
+	concrete = Color3.fromRGB(68, 66, 64),
+	darkConcrete = Color3.fromRGB(48, 46, 44),
+	roof = Color3.fromRGB(78, 80, 82),
 	metal = Color3.fromRGB(110, 115, 120),
 	rust = Color3.fromRGB(130, 82, 52),
 	rail = Color3.fromRGB(200, 170, 40),
@@ -380,21 +381,21 @@ local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 		end
 	end
 
-	-- Nature got in through the broken windows: grass in the cracks and ivy hanging from the ceiling.
+	-- Sparse moss and a little ivy — abandoned, not overgrown greenhouse.
 	local green = Random.new(level * 101)
-	for _ = 1, 4 + level * 2 do
+	for _ = 1, 2 + level do
 		local x = green:NextNumber(-half + 4, half - 4)
 		local z = green:NextNumber(-half + 4, half - 4)
 		if math.abs(x) > HOLE_X + 3 or math.abs(z) > HOLE_MAX_Z + 3 then
 			Scenery.Grass(
 				parent,
 				Vector3.new(x, floorY, z),
-				Vector2.new(green:NextNumber(3, 7), green:NextNumber(3, 7)),
+				Vector2.new(green:NextNumber(2, 4), green:NextNumber(2, 4)),
 				green
 			)
 		end
 	end
-	for _ = 1, 3 + level do
+	for _ = 1, 2 + math.floor(level / 2) do
 		local side = green:NextInteger(1, 4)
 		local along = green:NextNumber(-half + 5, half - 5)
 		local inner = half - 0.2
@@ -409,21 +410,22 @@ local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 		else
 			pos, normal = Vector3.new(inner, top, along), Vector3.new(-1, 0, 0)
 		end
-		Scenery.Vine(parent, pos, green:NextNumber(5, 14), normal, green)
+		Scenery.Vine(parent, pos, green:NextNumber(4, 10), normal, green)
 	end
 
 	if lit then
+		-- Soft warm pools only — bright Neon + strong PointLights were reading as flicker on floor entry.
 		for _, pos in { Vector2.new(-22, -22), Vector2.new(22, -22), Vector2.new(-22, 22), Vector2.new(22, 22) } do
 			local lamp = block(
 				parent,
 				"CeilingLamp",
 				Vector3.new(3, 0.4, 1),
 				CFrame.new(pos.X, floorY + WALL_HEIGHT - 0.3, pos.Y),
-				Color3.fromRGB(255, 200, 140),
-				Enum.Material.Neon
+				Color3.fromRGB(160, 130, 90),
+				Enum.Material.SmoothPlastic
 			)
 			lamp.CanCollide = false
-			pointLight(lamp, Color3.fromRGB(255, 190, 130), 26, 0.8, true)
+			pointLight(lamp, Color3.fromRGB(255, 190, 130), 18, 0.35, true)
 		end
 	end
 end
@@ -1534,28 +1536,29 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	end
 	onFloor(roof, "Antenna", 0, 30, 44, Vector3.new(0.8, 25, 0.8), COLORS.metal, Enum.Material.Metal)
 
-	-- Survivors' rooftop garden and plants creeping over the edges.
+	-- Sparse post-apoc roof: a few dead planters and moss, not a botanical garden.
 	local green = Random.new(396)
-	for _, p in { { -42, -6 }, { -42, 12 }, { 10, 44 }, { -28, 42 } } do
+	for _, p in { { -42, -6 }, { 10, 44 } } do
 		onFloor(roof, "Planter", 0, p[1], p[2], Vector3.new(6, 1.6, 6), COLORS.wood, Enum.Material.WoodPlanks)
-		Scenery.Bush(roof, Vector3.new(p[1], roofY + 1.6, p[2]), 3.5, green)
+		Scenery.Bush(roof, Vector3.new(p[1], roofY + 1.6, p[2]), 2.2, green)
 	end
-	Scenery.Tree(roof, Vector3.new(-44, roofY, -44), 16, green)
-	Scenery.Tree(roof, Vector3.new(44, roofY, 44), 14, green)
-	for _ = 1, 14 do
+	-- Rusted crates / debris instead of trees.
+	for _, p in { { -44, -44 }, { 44, 44 }, { -36, 40 } } do
+		onFloor(roof, "Debris", 0, p[1], p[2], Vector3.new(5, 2.2, 4), COLORS.rust, Enum.Material.CorrodedMetal)
+	end
+	for _ = 1, 5 do
 		local x = green:NextNumber(-46, 46)
 		local z = green:NextNumber(-46, 46)
-		-- Keep walkways, the stairwell and the build spots clear.
-		if math.abs(x) > 12 and math.abs(z + 38) > 8 then
+		if math.abs(x) > 16 and math.abs(z + 38) > 10 then
 			Scenery.Grass(
 				roof,
 				Vector3.new(x, roofY, z),
-				Vector2.new(green:NextNumber(4, 9), green:NextNumber(4, 9)),
+				Vector2.new(green:NextNumber(2, 4), green:NextNumber(2, 4)),
 				green
 			)
 		end
 	end
-	for _ = 1, 10 do
+	for _ = 1, 5 do
 		local side = green:NextInteger(1, 4)
 		local along = green:NextNumber(-45, 45)
 		local edge = World.RoofSize / 2 + 0.4
@@ -1569,7 +1572,7 @@ local function buildRoof(parent: Folder, interactables: Folder)
 		else
 			pos, normal = Vector3.new(edge, roofY, along), Vector3.new(1, 0, 0)
 		end
-		Scenery.Vine(roof, pos, green:NextNumber(8, 30), normal, green)
+		Scenery.Vine(roof, pos, green:NextNumber(6, 16), normal, green)
 	end
 end
 
@@ -1592,15 +1595,22 @@ local function buildNeighbor(parent: Folder)
 		false
 	Scenery.Dress(neighbor, Vector3.new(cx, bodyBottom, 0), size, size, bodyHeight, Random.new(150), false)
 	local neighborGreen = Random.new(151)
-	for _ = 1, 6 do
+	for _ = 1, 2 do
 		Scenery.Grass(
 			neighbor,
 			Vector3.new(cx + neighborGreen:NextNumber(-24, 24), roofY, neighborGreen:NextNumber(-24, 24)),
-			Vector2.new(neighborGreen:NextNumber(5, 10), neighborGreen:NextNumber(5, 10)),
+			Vector2.new(neighborGreen:NextNumber(3, 5), neighborGreen:NextNumber(3, 5)),
 			neighborGreen
 		)
 	end
-	Scenery.Tree(neighbor, Vector3.new(cx + 18, roofY, 18), 15, neighborGreen)
+	block(
+		neighbor,
+		"Debris",
+		Vector3.new(6, 2, 5),
+		CFrame.new(cx + 18, roofY + 1, 18),
+		COLORS.rust,
+		Enum.Material.CorrodedMetal
+	)
 	block(
 		neighbor,
 		"TowerRoof",

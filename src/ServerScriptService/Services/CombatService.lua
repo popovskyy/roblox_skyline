@@ -15,14 +15,18 @@ local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PropLibrary = require(script.Parent.Parent.PropLibrary)
 local RateLimiter = require(script.Parent.RateLimiter)
+local TokenService = require(script.Parent.TokenService)
 local ZombieService = require(script.Parent.ZombieService)
 
 local CombatService = {}
 
 local TOOL_NAME = "Weapon"
+-- R15 ToolSlash — plays via Animator so mobile/tablet see the swing (classic toolanim alone does not).
+local SLASH_ANIM_ID = "rbxassetid://522635514"
 local lastSwing: { [Player]: number } = {}
 local held: { [Player]: string } = {}
 local equipped: { [Player]: string } = {}
+local slashTracks: { [Player]: AnimationTrack } = {}
 
 local MESHES: { [string]: { prop: string, length: number } } = {
 	Club = { prop = "WeaponClub", length = 3.4 },
@@ -159,6 +163,28 @@ local function refreshTool(player: Player)
 	held[player] = def.id
 end
 
+local function playSlashAnim(player: Player)
+	local humanoid = CharacterUtil.GetHumanoid(player)
+	if not humanoid then
+		return
+	end
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = humanoid
+	end
+	local track = slashTracks[player]
+	if not track or track.Parent == nil then
+		local anim = Instance.new("Animation")
+		anim.AnimationId = SLASH_ANIM_ID
+		track = animator:LoadAnimation(anim)
+		track.Priority = Enum.AnimationPriority.Action
+		track.Looped = false
+		slashTracks[player] = track
+	end
+	track:Play(0.05, 1, 1.15)
+end
+
 local function swing(player: Player)
 	if DamageService.IsDowned(player) then
 		return
@@ -175,7 +201,8 @@ local function swing(player: Player)
 	end
 	lastSwing[player] = now
 
-	-- The classic Animate script plays a slash when a StringValue "toolanim" appears in the held tool.
+	-- Animator slash replicates to all clients (including mobile). Keep toolanim as a soft fallback.
+	playSlashAnim(player)
 	local tool = player.Character and player.Character:FindFirstChild(TOOL_NAME)
 	if tool then
 		local anim = Instance.new("StringValue")
@@ -196,10 +223,14 @@ local function swing(player: Player)
 			if flat.Magnitude <= weapon.range and math.abs(offset.Y) < 5 then
 				local facing = if flat.Magnitude > 0.1 then look:Dot(flat.Unit) else 1
 				if facing > 0.2 then
+					local before = z.humanoid.Health
 					z.humanoid:TakeDamage(weapon.damage)
 					SfxService.Play("HitBlunt", z.root)
 					-- A little shove so hits feel solid.
 					z.root.AssemblyLinearVelocity += flat.Unit * 25 + Vector3.new(0, 8, 0)
+					if before > 0 and z.humanoid.Health <= 0 then
+						TokenService.OnZombieKill(player)
+					end
 				end
 			end
 		end
@@ -247,6 +278,11 @@ function CombatService.Start()
 		lastSwing[player] = nil
 		held[player] = nil
 		equipped[player] = nil
+		local track = slashTracks[player]
+		if track then
+			track:Stop(0)
+		end
+		slashTracks[player] = nil
 	end)
 end
 
