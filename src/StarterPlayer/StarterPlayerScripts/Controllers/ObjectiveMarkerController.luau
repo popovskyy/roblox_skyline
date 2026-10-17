@@ -77,15 +77,24 @@ function ObjectiveMarkerController.Start()
 	billboard.Enabled = false
 	billboard.Parent = player:WaitForChild("PlayerGui")
 
-	local arrow = Instance.new("TextLabel")
+	-- A downward chevron drawn from two bars (the ▼ glyph is missing from the game fonts).
+	local arrow = Instance.new("Frame")
 	arrow.BackgroundTransparency = 1
 	arrow.Size = UDim2.fromScale(1, 0.62)
-	arrow.Text = "▼"
-	arrow.TextScaled = true
-	arrow.FontFace = Theme.Display
-	arrow.TextColor3 = Theme.Colors.Amber
-	arrow.TextStrokeTransparency = 0.3
 	arrow.Parent = billboard
+	for _, side in { -1, 1 } do
+		local bar = Instance.new("Frame")
+		bar.AnchorPoint = Vector2.new(0.5, 0.5)
+		bar.Position = UDim2.new(0.5, side * 9, 0.45, 0)
+		bar.Size = UDim2.fromOffset(30, 9)
+		bar.Rotation = side * -45
+		bar.BackgroundColor3 = Theme.Colors.Amber
+		bar.BorderSizePixel = 0
+		bar.Parent = arrow
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 4)
+		corner.Parent = bar
+	end
 
 	distanceLabel = Instance.new("TextLabel")
 	distanceLabel.BackgroundTransparency = 1

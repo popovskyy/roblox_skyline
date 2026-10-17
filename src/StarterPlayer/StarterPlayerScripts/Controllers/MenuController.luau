@@ -94,11 +94,20 @@ local function buildMenu()
 		Size = UDim2.fromOffset(size, size),
 		BackgroundColor3 = T.Panel,
 		BackgroundTransparency = 0.35,
-		Text = "☰",
-		TextSize = 22,
-		TextColor3 = T.Cream,
+		Text = "",
 		Parent = top,
 	})
+	-- Three bars (the ☰ glyph is missing from the game fonts).
+	for i = -1, 1 do
+		UIKit.New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, i * 7),
+			Size = UDim2.fromOffset(math.floor(size * 0.45), 3),
+			BackgroundColor3 = T.Cream,
+			BorderSizePixel = 0,
+			Parent = open,
+		}, { UIKit.Corner(2) })
+	end
 	open.Activated:Connect(toggleMenu)
 
 	dim = UIKit.New("TextButton", {

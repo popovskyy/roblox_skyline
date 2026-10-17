@@ -108,7 +108,7 @@ local function makeWindow(
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.fromOffset(32, 32),
-		Text = "✕",
+		Text = "X",
 		Parent = panel,
 	})
 	close.Activated:Connect(function()

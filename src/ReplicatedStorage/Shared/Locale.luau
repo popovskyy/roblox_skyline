@@ -488,7 +488,7 @@ local S: { [string]: Entry } = {
 	["hud.hungerWord"] = { uk = "Ситість", ru = "Сытость", en = "Fullness" },
 	["hud.goal"] = { uk = "ЦІЛЬ", ru = "ЦЕЛЬ", en = "GOAL" },
 	["hud.lowHealth"] = { uk = "МАЛО ЗДОРОВ'Я", ru = "МАЛО ЗДОРОВЬЯ", en = "LOW HEALTH" },
-	["hud.starving"] = { uk = "ГОЛОД −1 HP/с", ru = "ГОЛОД −1 HP/с", en = "STARVING −1 HP/s" },
+	["hud.starving"] = { uk = "ГОЛОД -1 HP/с", ru = "ГОЛОД -1 HP/с", en = "STARVING -1 HP/s" },
 	["hud.toxicBadge"] = { uk = "ТОКСИН", ru = "ТОКСИН", en = "TOXIC" },
 	["hud.downedBadge"] = { uk = "ВПАВ", ru = "УПАЛ", en = "DOWN" },
 	["hud.eatHint"] = { uk = "Поїж щось", ru = "Поешь что-нибудь", en = "Eat something" },

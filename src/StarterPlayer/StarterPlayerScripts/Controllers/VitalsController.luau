@@ -390,8 +390,9 @@ local function updateBadges()
 		lowShown = low
 		setPulse(low)
 	end
-	toxicVignette.Visible = player:GetAttribute("InToxic") == true
-	dangerVignette.Visible = (low or isDowned()) and not toxicVignette.Visible
+	local over = player:GetAttribute("MatchOver") == true
+	toxicVignette.Visible = player:GetAttribute("InToxic") == true and not over
+	dangerVignette.Visible = (low or isDowned()) and not toxicVignette.Visible and not over
 	panel.BackgroundColor3 = if isDowned() then Color3.fromRGB(90, 22, 18) else T.Panel
 	panel.BackgroundTransparency = if isDowned() then 0.15 else 0.35
 end
@@ -510,7 +511,7 @@ function VitalsController.Start()
 	for _, attribute in { "Hunger", "Hungry" } do
 		player:GetAttributeChangedSignal(attribute):Connect(updateHunger)
 	end
-	for _, attribute in { "InToxic", "Downed" } do
+	for _, attribute in { "InToxic", "Downed", "MatchOver" } do
 		player:GetAttributeChangedSignal(attribute):Connect(function()
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")

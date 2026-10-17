@@ -293,7 +293,7 @@ local function renderTeammates()
 end
 
 local function updateDowned()
-	local down = player:GetAttribute("Downed") == true
+	local down = player:GetAttribute("Downed") == true and player:GetAttribute("MatchOver") ~= true
 	downedFrame.Visible = down
 	downedToken += 1
 	local token = downedToken
@@ -403,7 +403,7 @@ local function buildCraft(screen: ScreenGui)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.fromOffset(36, 36),
-		Text = "✕",
+		Text = "X",
 		Parent = craftPanel,
 	})
 	close.Activated:Connect(function()
@@ -429,8 +429,21 @@ end
 
 function CombatController.Start(remoteFolder: Folder)
 	-- Unarmed attacks: a tap on the world (not a camera drag), a click or R2.
-	UserInputService.TouchTapInWorld:Connect(function(_, processed)
-		if not processed then
+	-- Phones: a short tap that barely moves (not a camera drag). Tracked by hand because TouchTapInWorld
+	-- does not fire reliably next to the touch controls.
+	local touches: { [InputObject]: { at: Vector3, started: number } } = {}
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if input.UserInputType == Enum.UserInputType.Touch and not processed then
+			touches[input] = { at = input.Position, started = os.clock() }
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		local start = touches[input]
+		if not start then
+			return
+		end
+		touches[input] = nil
+		if os.clock() - start.started < 0.35 and (input.Position - start.at).Magnitude < 14 then
 			punch()
 		end
 	end)
@@ -466,6 +479,7 @@ function CombatController.Start(remoteFolder: Folder)
 	end
 	player.CharacterAdded:Connect(watchTool)
 	player:GetAttributeChangedSignal("Downed"):Connect(updateDowned)
+	player:GetAttributeChangedSignal("MatchOver"):Connect(updateDowned)
 	updateDowned()
 
 	-- Revive prompts: translate them, and never show players their own.

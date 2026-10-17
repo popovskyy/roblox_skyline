@@ -3,6 +3,7 @@
 -- lifts) appearing one row at a time with tokens counting up, the win bonus and the saved total.
 -- The server sends the summary (ShowResults) and, once saved, a second message with the new total.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
@@ -75,17 +76,29 @@ local function show(result: { [string]: any })
 	end
 	totalLabel = nil
 	local won = result.won == true
-	local screen = UIKit.Screen()
+	-- Hides the downed screen and vignettes underneath (they listen to this attribute).
+	Players.LocalPlayer:SetAttribute("MatchOver", true)
+	local layer = UIKit.New("ScreenGui", {
+		Name = "SkylineResults",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 50,
+		Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
+	})
 	local root = UIKit.New("Frame", {
 		Name = "Results",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromRGB(8, 8, 9),
 		BackgroundTransparency = 1,
 		ZIndex = 20,
-		Parent = screen,
+		Parent = layer,
 	})
+	root.Destroying:Connect(function()
+		layer:Destroy()
+		Players.LocalPlayer:SetAttribute("MatchOver", nil)
+	end)
 	overlay = root
-	TweenService:Create(root, TweenInfo.new(0.5), { BackgroundTransparency = 0.25 }):Play()
+	TweenService:Create(root, TweenInfo.new(0.5), { BackgroundTransparency = 0.08 }):Play()
 
 	local panel = UIKit.Panel({
 		AnchorPoint = Vector2.new(0.5, 0.5),
