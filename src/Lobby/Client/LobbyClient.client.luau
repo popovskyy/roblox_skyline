@@ -53,33 +53,67 @@ task.spawn(function()
 	end)
 end)
 
--- Tokens -----------------------------------------------------------------------------------------------
-local tokenChip = UIKit.Panel({
+-- Tokens (top-right) -------------------------------------------------------------------------------------
+local T = Theme.Colors
+local topScreen = UIKit.New("ScreenGui", {
+	Name = "LobbyTop",
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,
+	Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
+})
+local tokenChip = UIKit.New("Frame", {
 	Name = "Tokens",
-	-- Under the Roblox menu buttons in the top-left corner.
-	Position = UDim2.fromOffset(12, 64),
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -8, 0, 8),
 	Size = UDim2.fromOffset(0, 40),
 	AutomaticSize = Enum.AutomaticSize.X,
-	BackgroundColor3 = Color3.fromRGB(18, 19, 21),
+	BackgroundColor3 = T.Panel,
+	BackgroundTransparency = 0.35,
+	BorderSizePixel = 0,
 	Visible = false,
-	Parent = screen,
+	Parent = topScreen,
+}, { UIKit.Corner(10) })
+UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12), Parent = tokenChip })
+UIKit.New("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	VerticalAlignment = Enum.VerticalAlignment.Center,
+	Padding = UDim.new(0, 6),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = tokenChip,
 })
-UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14), Parent = tokenChip })
-UIKit.New("UIStroke", { Color = Color3.fromRGB(255, 196, 64), Transparency = 0.5, Thickness = 1.5, Parent = tokenChip })
-local tokenLabel = UIKit.Label({
-	Size = UDim2.fromScale(0, 1),
+UIKit.New("Frame", {
+	Size = UDim2.fromOffset(18, 18),
+	BackgroundColor3 = T.Amber,
+	BorderSizePixel = 0,
+	LayoutOrder = 1,
+	Parent = tokenChip,
+}, { UIKit.Corner(9) })
+local tokenNumber = UIKit.Label({
+	Size = UDim2.fromOffset(0, 24),
 	AutomaticSize = Enum.AutomaticSize.X,
 	FontFace = Theme.Display,
-	TextSize = 22,
-	TextColor3 = Color3.fromRGB(255, 196, 64),
+	TextSize = 19,
+	TextColor3 = T.Cream,
 	TextWrapped = false,
+	LayoutOrder = 2,
+	Parent = tokenChip,
+})
+local tokenWord = UIKit.Label({
+	Size = UDim2.fromOffset(0, 20),
+	AutomaticSize = Enum.AutomaticSize.X,
+	TextSize = 13,
+	TextColor3 = T.CreamDim,
+	TextWrapped = false,
+	LayoutOrder = 3,
 	Parent = tokenChip,
 })
 local function updateTokens()
 	local tokens = Players.LocalPlayer:GetAttribute("Tokens")
 	tokenChip.Visible = type(tokens) == "number"
 	if type(tokens) == "number" then
-		tokenLabel.Text = Lang.T("lobby.tokens", tokens)
+		tokenNumber.Text = tostring(tokens)
+		tokenWord.Text = Lang.T("lobby.tokensWord")
 	end
 end
 Players.LocalPlayer:GetAttributeChangedSignal("Tokens"):Connect(updateTokens)
@@ -142,28 +176,96 @@ end)
 -- Lift countdown ------------------------------------------------------------------------------------------
 -- The server sets LiftSeconds / LiftCount / LiftCapacity on riders; show them big at the bottom of the screen.
 local player = Players.LocalPlayer
-local liftPanel = UIKit.Panel({
-	Name = "LiftCountdown",
+local compact = UIKit.IsTouch()
+local liftPanel = UIKit.New("Frame", {
+	Name = "LiftCard",
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -24),
-	Size = UDim2.fromOffset(300, 96),
+	Position = UDim2.new(0.5, 0, 1, -10),
+	Size = UDim2.fromOffset(if compact then 420 else 480, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	BackgroundColor3 = T.PanelSolid,
+	BackgroundTransparency = 0.1,
+	BorderSizePixel = 0,
 	Visible = false,
 	Parent = screen,
-})
-local liftSeconds = UIKit.Label({
-	Size = UDim2.new(1, 0, 0, 60),
-	TextXAlignment = Enum.TextXAlignment.Center,
-	FontFace = Theme.Display,
-	TextSize = 44,
-	TextColor3 = C.accent,
+}, { UIKit.Corner(12) })
+UIKit.Padding(14).Parent = liftPanel
+UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = liftPanel })
+local headRow = UIKit.New("Frame", {
+	Size = UDim2.new(1, 0, 0, 32),
+	BackgroundTransparency = 1,
+	LayoutOrder = 1,
 	Parent = liftPanel,
 })
-local liftRiders = UIKit.Label({
-	Position = UDim2.fromOffset(0, 60),
-	Size = UDim2.new(1, 0, 0, 28),
-	TextXAlignment = Enum.TextXAlignment.Center,
+local liftName = UIKit.Label({
+	Size = UDim2.fromScale(0.7, 1),
+	FontFace = Theme.Display,
+	TextSize = 22,
+	TextColor3 = T.Cream,
+	Parent = headRow,
+})
+local liftSeconds = UIKit.Label({
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.fromScale(1, 0),
+	Size = UDim2.fromScale(0.3, 1),
+	TextXAlignment = Enum.TextXAlignment.Right,
+	FontFace = Theme.Display,
+	TextSize = 26,
+	TextColor3 = T.AmberText,
+	Parent = headRow,
+})
+local progress = UIKit.New("Frame", {
+	Size = UDim2.new(1, 0, 0, 6),
+	BackgroundColor3 = T.Cream,
+	BackgroundTransparency = 0.84,
+	BorderSizePixel = 0,
+	LayoutOrder = 2,
+	Parent = liftPanel,
+}, { UIKit.Corner(3) })
+local progressFill = UIKit.New("Frame", {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = T.Amber,
+	BorderSizePixel = 0,
+	Parent = progress,
+}, { UIKit.Corner(3) })
+local riders = UIKit.New("Frame", {
+	Size = UDim2.new(1, 0, 0, 30),
+	BackgroundTransparency = 1,
+	LayoutOrder = 3,
+	Parent = liftPanel,
+})
+UIKit.New("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	Padding = UDim.new(0, 8),
+	Parent = riders,
+})
+local leaveButton = UIKit.Button({
+	Size = UDim2.new(1, 0, 0, 44),
+	BackgroundColor3 = T.PanelSolid,
+	TextColor3 = T.Cream,
+	FontFace = Theme.Bold,
 	TextSize = 16,
-	TextColor3 = C.muted,
+	LayoutOrder = 4,
+	Parent = liftPanel,
+})
+UIKit.New("UIStroke", {
+	ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	Color = T.Stroke,
+	Transparency = 0.65,
+	Parent = leaveButton,
+})
+leaveButton.Activated:Connect(function()
+	local leave = remotes:FindFirstChild("LeaveLift")
+	if leave and leave:IsA("RemoteEvent") then
+		leave:FireServer()
+	end
+end)
+local fullNote = UIKit.Label({
+	Size = UDim2.new(1, 0, 0, 18),
+	TextSize = 13,
+	TextColor3 = T.Muted,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	LayoutOrder = 5,
 	Parent = liftPanel,
 })
 
@@ -171,15 +273,40 @@ local function updateLift()
 	local seconds = player:GetAttribute("LiftSeconds")
 	local count = player:GetAttribute("LiftCount")
 	local capacity = player:GetAttribute("LiftCapacity")
+	local total = player:GetAttribute("LiftTotal")
 	if type(seconds) ~= "number" or type(count) ~= "number" or type(capacity) ~= "number" then
 		liftPanel.Visible = false
 		return
 	end
 	liftPanel.Visible = true
-	liftSeconds.Text = if seconds > 0 then Lang.T("lobby.countdown", seconds) else Lang.T("lobby.starting")
-	liftRiders.Text = Lang.T("lobby.riders", count, capacity)
+	liftName.Text = Lang.T("lobby.lift", capacity)
+	liftSeconds.Text = if seconds > 0 then ("0:%02d"):format(seconds) else Lang.T("lobby.starting")
+	local full = if type(total) == "number" and total > 0 then total else math.max(seconds, 1)
+	progressFill.Size = UDim2.fromScale(math.clamp(1 - seconds / full, 0, 1), 1)
+	for _, child in riders:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	for i = 1, capacity do
+		local filled = i <= count
+		local dot = UIKit.New("Frame", {
+			Size = UDim2.fromOffset(30, 30),
+			BackgroundColor3 = T.Amber,
+			BackgroundTransparency = if filled then 0 else 1,
+			BorderSizePixel = 0,
+			Parent = riders,
+		}, { UIKit.Corner(15) })
+		if not filled then
+			UIKit.New("UIStroke", { Color = T.CreamDim, Transparency = 0.4, Thickness = 1.5, Parent = dot })
+		end
+	end
+	leaveButton.Text = Lang.T("lobby.leaveLift")
+	leaveButton.Visible = seconds > 0
+	fullNote.Text = Lang.T("lobby.fullFaster")
+	fullNote.Visible = count >= capacity and capacity > 1
 end
-for _, name in { "LiftSeconds", "LiftCount", "LiftCapacity" } do
+for _, name in { "LiftSeconds", "LiftCount", "LiftCapacity", "LiftTotal" } do
 	player:GetAttributeChangedSignal(name):Connect(updateLift)
 end
 Lang.Changed:Connect(updateLift)

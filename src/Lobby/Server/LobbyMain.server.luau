@@ -16,6 +16,9 @@ remotes.Name = "Remotes"
 local notifyRemote = Instance.new("RemoteEvent")
 notifyRemote.Name = "Notify"
 notifyRemote.Parent = remotes
+local leaveLift = Instance.new("RemoteEvent")
+leaveLift.Name = "LeaveLift"
+leaveLift.Parent = remotes
 local setLanguage = Instance.new("RemoteEvent")
 setLanguage.Name = "SetLanguage"
 setLanguage.Parent = remotes
@@ -34,6 +37,7 @@ LiftService.Start(world.lifts, function(player, message, kind)
 	notifyRemote:FireClient(player, message, kind or "info")
 end)
 LeaderboardService.Start(world.leaderboardRows)
+leaveLift.OnServerEvent:Connect(LiftService.Leave)
 
 -- Tokens earned in matches, shown in the lobby HUD.
 local MetaProgress = require(ReplicatedStorage.Shared.MetaProgress)

@@ -64,6 +64,7 @@ local function updateStatus(lift: Lift)
 		player:SetAttribute("LiftSeconds", if lift.launching then 0 else seconds)
 		player:SetAttribute("LiftCount", count)
 		player:SetAttribute("LiftCapacity", lift.def.capacity)
+		player:SetAttribute("LiftTotal", lift.def.countdown)
 	end
 end
 
@@ -71,6 +72,7 @@ local function clearRider(player: Player)
 	player:SetAttribute("LiftSeconds", nil)
 	player:SetAttribute("LiftCount", nil)
 	player:SetAttribute("LiftCapacity", nil)
+	player:SetAttribute("LiftTotal", nil)
 end
 
 local function removeMember(lift: Lift, player: Player)
@@ -241,6 +243,16 @@ local function tick()
 				updateStatus(lift)
 			end
 		end
+	end
+end
+
+-- "Leave lift" button: out of the party, and not taken back in until the player steps out of the zone.
+function LiftService.Leave(player: Player)
+	local lift = liftOf(player)
+	if lift and not lift.launching then
+		removeMember(lift, player)
+		lift.blocked[player] = true
+		notify(player, "lobby.left", "info")
 	end
 end
 

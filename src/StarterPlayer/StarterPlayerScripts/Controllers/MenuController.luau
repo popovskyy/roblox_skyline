@@ -27,6 +27,8 @@ local dim: TextButton
 
 -- Set by ClientMain: shows the story / how-to card again.
 MenuController.ShowHowTo = function() end
+-- Set by ClientMain: called whenever the menu opens (brings the gamepad hints back).
+MenuController.OnOpen = function() end
 
 local function bindText(label: TextLabel | TextButton, key: string)
 	label.Text = Lang.T(key)
@@ -43,6 +45,7 @@ local function closeAll()
 end
 
 local function openMenu()
+	MenuController.OnOpen()
 	dim.Visible = true
 	menuPanel.Visible = true
 	dialog.Visible = false

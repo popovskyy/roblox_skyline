@@ -83,7 +83,7 @@ function ObjectiveMarkerController.Start()
 	arrow.Text = "▼"
 	arrow.TextScaled = true
 	arrow.FontFace = Theme.Display
-	arrow.TextColor3 = Color3.fromRGB(255, 196, 64)
+	arrow.TextColor3 = Theme.Colors.Amber
 	arrow.TextStrokeTransparency = 0.3
 	arrow.Parent = billboard
 
@@ -115,7 +115,10 @@ function ObjectiveMarkerController.Start()
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and root:IsA("BasePart") then
 			local distance = math.floor((root.Position - target.Position).Magnitude)
-			distanceLabel.Text = Lang.T("marker.here", distance)
+			-- The way down gets "Stairs · 14 m" (studs shown as metres).
+			distanceLabel.Text = if target.Name == "Ramp0_Down"
+				then Lang.T("hud.stairs", math.floor(distance * 0.28 + 0.5))
+				else Lang.T("marker.here", distance)
 		end
 	end)
 end
