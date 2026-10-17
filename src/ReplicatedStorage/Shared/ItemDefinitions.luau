@@ -11,7 +11,9 @@ export type ItemDef = {
 	icon: string, -- emoji placeholder until real icons are drawn
 	iconImage: string?, -- rbxassetid://... once an icon is uploaded; wins over the emoji
 	color: Color3, -- slot accent colour
-	weapon: WeaponStats?, -- melee weapons; the best one carried is the one in the player's hands
+	weapon: WeaponStats?, -- melee weapons: tapping with one in hand swings it
+	resource: boolean?, -- building materials: counted in the pouch, never shown in the hotbar
+	use: string?, -- what tapping with it in hand does: "heal", "eat" or "light"
 }
 
 export type WeaponStats = {
@@ -67,6 +69,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Scrap = {
 		id = "Scrap",
+		resource = true,
 		icon = "🔩",
 		color = Color3.fromRGB(150, 110, 80),
 		displayName = "Металобрухт",
@@ -77,6 +80,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Electronics = {
 		id = "Electronics",
+		resource = true,
 		icon = "💾",
 		color = Color3.fromRGB(70, 170, 110),
 		displayName = "Електронні деталі",
@@ -87,6 +91,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Food = {
 		id = "Food",
+		use = "eat",
 		icon = "🥫",
 		color = Color3.fromRGB(220, 140, 50),
 		displayName = "Їжа",
@@ -97,6 +102,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Medkit = {
 		id = "Medkit",
+		use = "heal",
 		icon = "💉",
 		color = Color3.fromRGB(220, 70, 70),
 		displayName = "Аптечка",
@@ -107,6 +113,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Cable = {
 		id = "Cable",
+		resource = true,
 		icon = "🧵",
 		color = Color3.fromRGB(90, 90, 100),
 		displayName = "Кабель",
@@ -117,6 +124,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Motor = {
 		id = "Motor",
+		resource = true,
 		icon = "⚙️",
 		color = Color3.fromRGB(100, 130, 170),
 		displayName = "Мотор",
@@ -137,6 +145,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Flashlight = {
 		id = "Flashlight",
+		use = "light",
 		icon = "🔦",
 		color = Color3.fromRGB(230, 200, 60),
 		displayName = "Ліхтарик",

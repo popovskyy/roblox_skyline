@@ -62,7 +62,7 @@ local GameConfig = {
 		AttackRange = 4.5,
 		AggroRange = 45,
 		RespawnSeconds = 45,
-		PerFloor = { 2, 3, 3, 5 }, -- floors 1..4; the roof is always safe
+		PerFloor = { 1, 2, 3, 4 }, -- floors 1..4: one more zombie on every floor down; the roof is always safe
 	},
 
 	-- Downed instead of dead: you lie there until a teammate with a Bandage lifts you up.

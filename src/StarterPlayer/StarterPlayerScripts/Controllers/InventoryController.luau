@@ -1,6 +1,8 @@
 --!strict
--- Always-visible inventory hotbar along the bottom of the screen and the storage panel opened from the roof crate.
--- Clicking a slot (or pressing its number key) uses Medkit / Food; other items just show their name.
+-- Always-visible inventory hotbar along the bottom of the screen, the resource pouch above it and the storage
+-- panel opened from the roof chest. Selecting a slot (click, tap or number key) takes that item in hand and
+-- selecting it again puts it away; what a tap does with it is up to CombatController. Building resources
+-- never take a slot: they are only counted in the pouch.
 -- Buttons only send requests; the server decides and the next snapshot redraws the lists.
 
 local GuiService = game:GetService("GuiService")
@@ -47,6 +49,7 @@ local tooltipToken = 0
 local storagePanel: Frame
 local storageList: Frame
 local storageHeader: TextLabel
+local pouch: Frame
 
 local USE_LABELS: { [string]: string } = {
 	Medkit = "ui.use",
@@ -119,12 +122,62 @@ local function renderInventory(s: { [string]: any })
 	weightFill.Size = UDim2.fromScale(math.clamp(weight / maxWeight, 0, 1), 1)
 	weightFill.BackgroundColor3 = if weight >= maxWeight then C.warn else C.good
 
-	-- Owned items fill the slots in a fixed order; the rest stay empty.
+	-- Owned items fill the slots in a fixed order; the rest stay empty. Resources go to the pouch.
 	table.clear(slotItems)
 	local index = 0
-	for _, itemId in ItemDefinitions.Order do
+	for _, child in pouch:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	for order, itemId in ItemDefinitions.Order do
 		local count = s.inventory and s.inventory[itemId] or 0
-		if count > 0 and index < SLOT_COUNT then
+		local def = ItemDefinitions.Items[itemId]
+		if def.resource then
+			if count > 0 then
+				local chip = UIKit.New("Frame", {
+					Size = UDim2.fromOffset(0, 24),
+					AutomaticSize = Enum.AutomaticSize.X,
+					BackgroundColor3 = C.panel,
+					BackgroundTransparency = 0.25,
+					BorderSizePixel = 0,
+					LayoutOrder = order,
+					Parent = pouch,
+				}, {
+					UIKit.Corner(6),
+					UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 8) }),
+					UIKit.New("UIListLayout", {
+						FillDirection = Enum.FillDirection.Horizontal,
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+						Padding = UDim.new(0, 4),
+					}),
+				})
+				if def.iconImage then
+					UIKit.New("ImageLabel", {
+						Size = UDim2.fromOffset(20, 20),
+						BackgroundTransparency = 1,
+						Image = def.iconImage,
+						Parent = chip,
+					})
+				else
+					UIKit.Label({
+						Size = UDim2.fromOffset(20, 20),
+						Text = def.icon,
+						TextScaled = true,
+						Parent = chip,
+					})
+				end
+				UIKit.Label({
+					Size = UDim2.fromOffset(0, 20),
+					AutomaticSize = Enum.AutomaticSize.X,
+					Text = tostring(count),
+					FontFace = Theme.Bold,
+					TextSize = 15,
+					TextWrapped = false,
+					Parent = chip,
+				})
+			end
+		elseif count > 0 and index < SLOT_COUNT then
 			index += 1
 			slotItems[index] = itemId
 		end
@@ -161,22 +214,19 @@ local function activateSlot(i: number)
 	end
 	local s = ClientState.Get()
 	local count = s and s.inventory and s.inventory[def.id] or 0
+	-- Take it in hand, or put it away when it is already there.
+	(remotes:FindFirstChild(RemoteNames.Equip) :: RemoteEvent):FireServer(def.id)
+	if player:GetAttribute("Equipped") == def.id then
+		return
+	end
 	local useLabel = USE_LABELS[def.id]
-	if def.weapon then
-		-- Weapons: tap to take it in hand, tap again to put it away.
-		(remotes:FindFirstChild(RemoteNames.Equip) :: RemoteEvent):FireServer(def.id)
-		showTooltip(("%s %s"):format(def.icon, Lang.T("item." .. def.id .. ".name")))
-	elseif useLabel then
-		(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(def.id)
-		showTooltip(("%s %s · %s"):format(def.icon, Lang.T("item." .. def.id .. ".name"), Lang.T(useLabel)))
+	if useLabel then
+		showTooltip(("%s · %s"):format(Lang.T("item." .. def.id .. ".name"), Lang.T(useLabel)))
+	elseif def.weapon then
+		showTooltip(Lang.T("item." .. def.id .. ".name"))
 	else
 		showTooltip(
-			("%s %s ×%d · %s"):format(
-				def.icon,
-				Lang.T("item." .. def.id .. ".name"),
-				count,
-				Lang.T("item." .. def.id .. ".desc")
-			)
+			("%s ×%d · %s"):format(Lang.T("item." .. def.id .. ".name"), count, Lang.T("item." .. def.id .. ".desc"))
 		)
 	end
 end
@@ -246,9 +296,24 @@ local function buildHotbar(screen: ScreenGui)
 		end)
 	end
 
+	-- Resource pouch: small counters above the hotbar's left end.
+	pouch = UIKit.New("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromOffset(0, -6),
+		Size = UDim2.new(1, 0, 0, 24),
+		BackgroundTransparency = 1,
+		Parent = holder,
+	})
+	UIKit.New("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = pouch,
+	})
+
 	tooltip = UIKit.Label({
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -6),
+		Position = UDim2.new(0.5, 0, 0, -36),
 		Size = UDim2.new(1.4, 0, 0, 22),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,

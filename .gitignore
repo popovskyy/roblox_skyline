@@ -13,3 +13,6 @@ roblox.yml
 
 # Open Cloud key for rojo upload (never commit)
 /.roblox_api_key
+
+# Built animation models (rebuilt by scripts/build_animations.py)
+assets/animations/*.rbxm

@@ -1,7 +1,7 @@
 --!strict
--- Melee combat. A weapon is in the player's hands only while it is selected in the hotbar (Equip remote);
--- selecting it again puts it away. The client only asks to swing; the server checks the cooldown and
--- hits zombies in front of the player.
+-- What the player holds, and melee combat. The item selected in the hotbar (Equip remote) is in the
+-- player's hands; selecting it again puts it away. Only weapons swing: the client asks, the server checks
+-- the cooldown and hits zombies in front of the player. Resources never go into the hands.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,7 +19,7 @@ local ZombieService = require(script.Parent.ZombieService)
 
 local CombatService = {}
 
-local TOOL_NAME = "Weapon"
+local TOOL_NAME = "Held"
 local lastSwing: { [Player]: number } = {}
 local held: { [Player]: string } = {}
 local equipped: { [Player]: string } = {}
@@ -30,8 +30,25 @@ local MESHES: { [string]: { prop: string, length: number } } = {
 	Machete = { prop = "WeaponMachete", length = 3.4 },
 }
 
--- Simple shapes for each weapon so it reads in the hand without any mesh assets.
+-- Simple shapes for everything without a mesh, so it reads in the hand.
 local LOOKS: { [string]: { size: Vector3, color: Color3, material: Enum.Material } } = {
+	Food = { size = Vector3.new(0.6, 0.8, 0.6), color = Color3.fromRGB(170, 60, 45), material = Enum.Material.Metal },
+	Medkit = {
+		size = Vector3.new(0.9, 0.6, 0.4),
+		color = Color3.fromRGB(225, 222, 210),
+		material = Enum.Material.Plastic,
+	},
+	Bandage = {
+		size = Vector3.new(0.5, 0.5, 0.5),
+		color = Color3.fromRGB(230, 220, 195),
+		material = Enum.Material.Fabric,
+	},
+	Flashlight = {
+		size = Vector3.new(0.35, 0.35, 1.2),
+		color = Color3.fromRGB(60, 62, 66),
+		material = Enum.Material.Metal,
+	},
+	Crowbar = { size = Vector3.new(0.2, 0.2, 3.2), color = Color3.fromRGB(150, 45, 40), material = Enum.Material.Metal },
 	Club = { size = Vector3.new(0.5, 0.5, 3.4), color = Color3.fromRGB(120, 84, 52), material = Enum.Material.Wood },
 	Pipe = { size = Vector3.new(0.4, 0.4, 3.8), color = Color3.fromRGB(130, 135, 140), material = Enum.Material.Metal },
 	Machete = {
@@ -41,15 +58,33 @@ local LOOKS: { [string]: { size: Vector3, color: Color3, material: Enum.Material
 	},
 }
 
--- The weapon in the player's hands, if they still carry it.
-local function equippedWeapon(player: Player): ItemDefinitions.ItemDef?
+-- The item in the player's hands, if they still carry it.
+local function equippedItem(player: Player): ItemDefinitions.ItemDef?
 	local id = equipped[player]
 	local data = PlayerDataService.Get(player)
 	if not id or not data or (data.inventory[id] or 0) <= 0 then
 		return nil
 	end
-	local def = ItemDefinitions.Get(id)
+	return ItemDefinitions.Get(id)
+end
+
+local function equippedWeapon(player: Player): ItemDefinitions.ItemDef?
+	local def = equippedItem(player)
 	return if def and def.weapon then def else nil
+end
+
+-- Where the held item sits relative to the right hand. A weapon comes out of the fist like a real grip
+-- (forward and a little up while the arm hangs), not as an extension of the arm.
+local WEAPON_IN_HAND = CFrame.new(0, -0.25, -0.05) * CFrame.Angles(math.rad(20), 0, 0)
+local ITEM_IN_HAND = CFrame.new(0, -0.35, -0.15)
+
+-- Tool.Grip that puts the handle at `inHand` in the hand's space, whatever the rig's grip attachment is.
+local function gripFor(character: Model, inHand: CFrame): CFrame
+	local hand = character:FindFirstChild("RightHand")
+	local attachment = hand and hand:FindFirstChild("RightGripAttachment")
+	local attach = if attachment and attachment:IsA("Attachment") then attachment.CFrame else CFrame.new()
+	-- handle = hand * attach * Grip:Inverse() = hand * inHand
+	return inHand:Inverse() * attach
 end
 
 -- Lines the Blender mesh up with the tool: grip marker on the handle, the weapon pointing forward.
@@ -98,14 +133,17 @@ local function attachMesh(tool: Tool, handle: BasePart, weaponId: string): boole
 	return true
 end
 
-local function makeTool(weaponId: string): Tool
-	local look = LOOKS[weaponId] or LOOKS.Club
+local function makeTool(character: Model, def: ItemDefinitions.ItemDef): Tool
+	local weaponId = def.id
+	local look = LOOKS[weaponId]
+		or { size = Vector3.new(0.6, 0.6, 0.6), color = def.color, material = Enum.Material.Plastic }
 	local tool = Instance.new("Tool")
 	tool.Name = TOOL_NAME
 	tool.CanBeDropped = false
 	tool.RequiresHandle = true
 	tool.ToolTip = ""
-	tool:SetAttribute("WeaponId", weaponId)
+	tool:SetAttribute("ItemId", weaponId)
+	tool:SetAttribute("Weapon", def.weapon ~= nil)
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
 	handle.CanCollide = false
@@ -115,23 +153,26 @@ local function makeTool(weaponId: string): Tool
 		-- The mesh is the look; the handle is just the point the hand holds.
 		handle.Size = Vector3.new(0.3, 0.3, 0.3)
 		handle.Transparency = 1
-		tool.Grip = CFrame.new()
+		tool.Grip = gripFor(character, WEAPON_IN_HAND)
 	else
 		handle.Size = look.size
 		handle.Color = look.color
 		handle.Material = look.material
-		tool.Grip = CFrame.new(0, 0, look.size.Z / 2 - 0.4)
+		local inHand = if def.weapon or weaponId == "Crowbar"
+			then WEAPON_IN_HAND * CFrame.new(0, 0, -(look.size.Z / 2 - 0.4))
+			else ITEM_IN_HAND
+		tool.Grip = gripFor(character, inHand)
 	end
 	return tool
 end
 
--- Puts the right weapon in the player's hands. Cheap to call often.
+-- Puts the selected item in the player's hands. Cheap to call often.
 local function refreshTool(player: Player)
 	local character = player.Character
 	if not character or not CharacterUtil.GetHumanoid(player) then
 		return
 	end
-	local def = equippedWeapon(player)
+	local def = equippedItem(player)
 	local current = character:FindFirstChild(TOOL_NAME)
 	if not def then
 		if current then
@@ -140,7 +181,7 @@ local function refreshTool(player: Player)
 		held[player] = nil
 		return
 	end
-	if current and current:GetAttribute("WeaponId") == def.id then
+	if current and current:GetAttribute("ItemId") == def.id then
 		return
 	end
 	if current then
@@ -155,7 +196,7 @@ local function refreshTool(player: Player)
 			end
 		end
 	end
-	makeTool(def.id).Parent = character
+	makeTool(character, def).Parent = character
 	held[player] = def.id
 end
 
@@ -174,18 +215,7 @@ local function swing(player: Player)
 		return
 	end
 	lastSwing[player] = now
-
-	-- The classic Animate script plays a slash when a StringValue "toolanim" appears in the held tool.
-	local tool = player.Character and player.Character:FindFirstChild(TOOL_NAME)
-	if tool then
-		local anim = Instance.new("StringValue")
-		anim.Name = "toolanim"
-		anim.Value = "Slash"
-		anim.Parent = tool
-		task.delay(0.3, function()
-			anim:Destroy()
-		end)
-	end
+	-- The swing animation is played by the swinging player's client (it replicates to everyone).
 
 	SfxService.Play("Swing", root, 0.8)
 	local look = root.CFrame.LookVector
@@ -211,10 +241,10 @@ function CombatService.OnCharacterAdded(player: Player)
 	task.defer(refreshTool, player)
 end
 
--- Hotbar selection: equip this weapon, or put it away when it is already in hand (or itemId is nil).
+-- Hotbar selection: take this item in hand, or put it away when it is already there (or itemId is nil).
 local function equip(player: Player, itemId: any)
 	local def = if type(itemId) == "string" then ItemDefinitions.Get(itemId) else nil
-	if not def or not def.weapon or equipped[player] == itemId then
+	if not def or def.resource or equipped[player] == itemId then
 		equipped[player] = nil
 	else
 		local data = PlayerDataService.Get(player)

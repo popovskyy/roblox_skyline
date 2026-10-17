@@ -1,12 +1,12 @@
 --!strict
--- Client side of combat: swing input, the "you are down" screen, revive prompts and the workbench window.
+-- Client side of combat: what the held item does on a tap / click / R2 (Tool.Activated), the hold and
+-- swing animations, the "you are down" screen, revive prompts and the workbench window.
 -- Every decision (hits, damage, revives, crafting) is made by the server.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
-local UserInputService = game:GetService("UserInputService")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
@@ -27,8 +27,77 @@ local function remote(name: string): RemoteEvent
 	return remotes:FindFirstChild(name) :: RemoteEvent
 end
 
-local function attack()
-	remote(RemoteNames.Attack):FireServer()
+-- Uploaded with scripts/build_animations.py.
+local ANIMATIONS = {
+	WeaponHold = "rbxassetid://85303283403730",
+	WeaponSwing = "rbxassetid://106693888316440",
+	ItemHold = "rbxassetid://113741024764678",
+	ItemUse = "rbxassetid://73366190002807",
+}
+
+local tracks: { [string]: AnimationTrack } = {}
+
+local function loadTracks(character: Model)
+	table.clear(tracks)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if not humanoid then
+		return
+	end
+	local animator = humanoid:WaitForChild("Animator", 10)
+	if not animator or not animator:IsA("Animator") then
+		return
+	end
+	for name, id in ANIMATIONS do
+		local animation = Instance.new("Animation")
+		animation.AnimationId = id
+		local ok, track = pcall(function()
+			return animator:LoadAnimation(animation)
+		end)
+		if ok and track then
+			tracks[name] = track
+		end
+	end
+end
+
+local function play(name: string, fade: number?)
+	local track = tracks[name]
+	if track then
+		track:Play(fade or 0.1)
+	end
+end
+
+local function stop(name: string)
+	local track = tracks[name]
+	if track and track.IsPlaying then
+		track:Stop(0.2)
+	end
+end
+
+local lastSwing = 0
+
+-- A tap on the world, a mouse click or R2 with the item in hand.
+local function activate(tool: Tool)
+	if player:GetAttribute("Downed") then
+		return
+	end
+	local def = ItemDefinitions.Get(tool:GetAttribute("ItemId") or "")
+	if not def then
+		return
+	end
+	if def.weapon then
+		local now = os.clock()
+		if now - lastSwing < def.weapon.cooldown then
+			return
+		end
+		lastSwing = now
+		play("WeaponSwing", 0.05)
+		remote(RemoteNames.Attack):FireServer()
+	elseif def.use == "eat" or def.use == "heal" then
+		play("ItemUse")
+		remote(RemoteNames.UseItem):FireServer(def.id)
+	elseif def.use == "light" then
+		remote(RemoteNames.ToggleFlashlight):FireServer()
+	end
 end
 
 -- Our own hotbar replaces the Roblox backpack bar.
@@ -45,15 +114,28 @@ local function hideDefaultBackpack()
 end
 
 local function watchTool(character: Model)
+	loadTracks(character)
 	local function hook(child: Instance)
-		if child:IsA("Tool") and child.Name == "Weapon" then
-			child.Activated:Connect(attack)
+		if child:IsA("Tool") and child.Name == "Held" then
+			local tool = child :: Tool
+			tool.Activated:Connect(function()
+				activate(tool)
+			end)
+			local weapon = tool:GetAttribute("Weapon") == true
+			stop(if weapon then "ItemHold" else "WeaponHold")
+			play(if weapon then "WeaponHold" else "ItemHold", 0.2)
 		end
 	end
 	for _, child in character:GetChildren() do
 		hook(child)
 	end
 	character.ChildAdded:Connect(hook)
+	character.ChildRemoved:Connect(function(child)
+		if child:IsA("Tool") and child.Name == "Held" and not character:FindFirstChild("Held") then
+			stop("WeaponHold")
+			stop("ItemHold")
+		end
+	end)
 end
 
 -- Downed overlay -------------------------------------------------------------------------------------------
@@ -231,33 +313,6 @@ function CombatController.Start(remoteFolder: Folder)
 		end
 		prompt.ActionText = Lang.T("revive.action")
 	end)
-
-	-- A big hit button for touch screens (tapping the world also swings).
-	if UserInputService.TouchEnabled then
-		local hit = UIKit.Button({
-			Name = "AttackButton",
-			AnchorPoint = Vector2.new(1, 1),
-			-- Left of the jump button, above the hotbar's right end.
-			Position = UDim2.new(1, -118, 1, -16),
-			Size = UDim2.fromOffset(84, 84),
-			Text = "",
-			TextSize = 20,
-			BackgroundColor3 = Color3.fromRGB(150, 60, 50),
-			Parent = screen,
-		})
-		-- Round button, only while a weapon is in hand.
-		local corner = hit:FindFirstChildOfClass("UICorner")
-		if corner then
-			corner.CornerRadius = UDim.new(1, 0)
-		end
-		Lang.Bind(hit, "ui.attack")
-		hit.Activated:Connect(attack)
-		local function updateHit()
-			hit.Visible = player:GetAttribute("Equipped") ~= nil
-		end
-		player:GetAttributeChangedSignal("Equipped"):Connect(updateHit)
-		updateHit()
-	end
 
 	ClientState.Changed:Connect(function()
 		if craftPanel.Visible then
