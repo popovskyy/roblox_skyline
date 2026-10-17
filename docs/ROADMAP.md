@@ -35,8 +35,8 @@ Questions for the owner:
 
 1. **Slow survival Phase A** (`docs/design/slow-survival-loop.md`): barricade AI, scrap path, soft rubble,
    loot rarity, pacing. Owner approved (+). No publish until Phase C playtest.
-2. **Remaining LOCAL_AGENT_STEPS** (#2 flicker, #3 weapon replace, #4 blur, #5 text overflow, #6 crates
-   shared — #6 overlaps Phase A). Tablet anim (#1) done locally.
+2. **Remaining LOCAL_AGENT_STEPS** (#2 flicker, #4 blur, #5 text overflow). Done locally: #1 tablet anim,
+   #3 weapon replace, #6 shared/rarer crates (Phase A).
 3. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
    model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
    sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent). **Only after**

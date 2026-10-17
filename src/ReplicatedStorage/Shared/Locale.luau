@@ -911,6 +911,11 @@ local S: { [string]: Entry } = {
 		ru = "Металлолом — для построек на крыше. Лом — отдельный инструмент для завалов.",
 		en = "Scrap is for roof builds. The Crowbar is a separate tool for rubble.",
 	},
+	["inv.weaponReplaced"] = {
+		uk = "Нова зброя замінила стару слабшу.",
+		ru = "Новое оружие заменило старое слабое.",
+		en = "New weapon replaced your weaker one.",
+	},
 	["results.floor"] = {
 		uk = "Найглибший поверх",
 		ru = "Самый глубокий этаж",

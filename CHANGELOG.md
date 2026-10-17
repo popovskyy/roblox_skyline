@@ -5,6 +5,12 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 ## Unreleased (local) · 17.10
 
+### Better melee replaces weaker (LOCAL #3)
+- Picking up or crafting a stronger melee (Club→Bat→Pipe→Machete) removes weaker ones from the
+  backpack; a weaker duplicate is refused. Equipped hand switches to the new weapon when the old one
+  was held. Server-only (loot, craft, class grants).
+- Check in game: craft Bat with Club — only Bat remains, still in hand; cannot hold Club+Pipe together.
+
 ### Loot rarity, shared crates, slower build (Phase A5–A8)
 - Fewer crates; opening one empties it for the whole party. Loot tables: Common crumbs only (no Bat);
   Rare carries Bat; Gold/Diamond keep identity; lower upgrade chance; F1 odds Common-heavy. Build costs

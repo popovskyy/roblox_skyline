@@ -304,6 +304,18 @@ function CombatService.Start()
 			equip(player, itemId)
 		end
 	end)
+	-- InventoryService may set Equipped when a better melee replaces a weaker one.
+	local function watchEquipped(player: Player)
+		player:GetAttributeChangedSignal("Equipped"):Connect(function()
+			local id = player:GetAttribute("Equipped")
+			equipped[player] = if type(id) == "string" then id else nil
+			refreshTool(player)
+		end)
+	end
+	for _, player in Players:GetPlayers() do
+		watchEquipped(player)
+	end
+	Players.PlayerAdded:Connect(watchEquipped)
 	-- Losing the equipped weapon (game reset) clears the hands within a second.
 	task.spawn(function()
 		while true do
