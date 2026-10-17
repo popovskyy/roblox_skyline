@@ -1,6 +1,6 @@
 # Skyline Zero — handoff
 
-State on 2026-10-16, build `b13`, both places published at version 15.
+State on 2026-10-17, build `b15`, both places published at version 17.
 
 ## What the game is
 
@@ -60,16 +60,25 @@ Edit multi-line Cyrillic strings with a real editor, not shell heredocs (they br
   Crowbar 100896719402218, Electronics 80217654901506, Flashlight 118270124098599, Food 115729061047678,
   Machete 71739707913931, Motor 130637537634065, Pipe 121452932787349, Scrap 72009556714655.
 
+## Recent systems
+
+- Animations: `python scripts/build_animations.py --upload` writes R15 KeyframeSequences and uploads them as
+  Animation assets (Open Cloud supports it); ids live in `CombatController.ANIMATIONS`.
+- Held item: any non-resource hotbar item goes into the hand (`CombatService`, tool "Held"); a tap / click / R2
+  swings a weapon, eats/heals, or toggles the flashlight. Resources live in the pouch above the hotbar.
+- Icons: `python scripts/build_icons.py [names]` draws worn cream SVGs and renders PNGs with headless Chrome;
+  upload as Image and set `iconImage`.
+- Loot: tiers rolled per floor (`GameConfig.Loot`), upgrade/pity on open, diamond crates locked (Key or crowbar
+  break-in that alerts zombies). Effects are client-only in `LootFxController`. Crates stay opened for the match.
+- QA reports from the tester thread are in `QA/` (not committed).
+
 ## In progress / next
 
-1. **Item icons** — user wants stylish flat vector icons in TLOU / Days Gone style (cream/off-white silhouettes,
-   slightly worn, on dark slots), not emoji and not 3D renders. Plan: generate SVG silhouettes, render to
-   256px transparent PNG (Blender can import SVG), upload as Image, set `iconImage` in `ItemDefinitions`
-   (ItemSlot already prefers `iconImage` over the emoji). Restyle slots to match (dark, thin cream border).
-2. **Floors, deeper rework** — holes in ceilings, collapsed walls, more TLOU detail; props are placed from
+1. **Floors, deeper rework** — holes in ceilings, collapsed walls, more TLOU detail; props are placed from
    `FURNISHING` in `WorldBuilder.luau`; verify prop orientation/scale in game (not yet seen in-engine).
-3. Check weapon mesh orientation in hand (`CombatService.attachMesh`) — not yet confirmed by the user.
-4. Mobile UI polish continues from user screenshots; the user reports bugs in Ukrainian with phone screenshots.
+2. Confirm in game: weapon grip angle and the new hold/swing animations, loot effects.
+3. Optional from the design review: one elite zombie per floor dropping a gold chest or a key.
+4. Lobby decor.
 
 ## Working with the user
 
