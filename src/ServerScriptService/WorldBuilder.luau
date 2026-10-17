@@ -967,6 +967,7 @@ local function furnish(floor: Folder, level: number)
 		sun.Angle = 60
 		sun.Range = 24
 		sun.Brightness = 1.4
+		sun.Shadows = false
 		sun.Color = Color3.fromRGB(255, 226, 180)
 		sun:SetAttribute("BlackoutFloor", level)
 		sun.Parent = beam

@@ -39,13 +39,15 @@ local function getBeam(player: Player, create: boolean): SpotLight?
 	if not create then
 		return nil
 	end
+	-- Dim SpotLight, no shadows: casting shadows made light strobe when walking into
+	-- corridors / doorways as occluders entered the beam. Interior lamps already leave shadows off.
 	local light = Instance.new("SpotLight")
 	light.Name = BEAM_NAME
-	light.Brightness = 3
-	light.Range = 40
-	light.Angle = 70
+	light.Brightness = 1.8
+	light.Range = 32
+	light.Angle = 75
 	light.Face = Enum.NormalId.Front
-	light.Shadows = true
+	light.Shadows = false
 	light.Color = Color3.fromRGB(255, 240, 210)
 	light.Enabled = false
 	light.Parent = head
