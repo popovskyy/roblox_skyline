@@ -143,6 +143,8 @@ local function makeTool(character: Model, def: ItemDefinitions.ItemDef): Tool
 	tool.Name = TOOL_NAME
 	tool.CanBeDropped = false
 	tool.RequiresHandle = true
+	-- Clients handle tap / click / R2 themselves (CombatController.attackInput).
+	tool.ManualActivationOnly = true
 	tool.ToolTip = ""
 	tool:SetAttribute("ItemId", weaponId)
 	tool:SetAttribute("Weapon", def.weapon ~= nil)

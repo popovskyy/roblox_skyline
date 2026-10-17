@@ -139,14 +139,29 @@ local function punch()
 	remote(RemoteNames.Attack):FireServer()
 end
 
+-- Every attack input (tap, click, R2) lands here: use what is in hand, or punch.
+-- The held Tool is ManualActivationOnly, so Roblox never fires its own Activated on top of this.
+local lastUse = 0
+local function attackInput()
+	local character = player.Character
+	local held = character and character:FindFirstChild("Held")
+	if held and held:IsA("Tool") then
+		local now = os.clock()
+		if now - lastUse < 0.25 then
+			return
+		end
+		lastUse = now
+		activate(held)
+	else
+		punch()
+	end
+end
+
 local function watchTool(character: Model)
 	loadTracks(character)
 	local function hook(child: Instance)
 		if child:IsA("Tool") and child.Name == "Held" then
 			local tool = child :: Tool
-			tool.Activated:Connect(function()
-				activate(tool)
-			end)
 			local weapon = tool:GetAttribute("Weapon") == true
 			stop(if weapon then "ItemHold" else "WeaponHold")
 			play(if weapon then "WeaponHold" else "ItemHold", 0.2)
@@ -428,7 +443,7 @@ function CombatController.OpenCraft()
 end
 
 function CombatController.Start(remoteFolder: Folder)
-	-- Unarmed attacks: a tap on the world (not a camera drag), a click or R2.
+	-- Attack input (weapon, item or fist): a tap on the world, a click or R2.
 	-- Phones: a short tap that barely moves (not a camera drag). Tracked by hand because TouchTapInWorld
 	-- does not fire reliably next to the touch controls.
 	local touches: { [InputObject]: { at: Vector3, started: number } } = {}
@@ -444,7 +459,7 @@ function CombatController.Start(remoteFolder: Folder)
 		end
 		touches[input] = nil
 		if os.clock() - start.started < 0.35 and (input.Position - start.at).Magnitude < 14 then
-			punch()
+			attackInput()
 		end
 	end)
 	UserInputService.InputBegan:Connect(function(input, processed)
@@ -452,7 +467,7 @@ function CombatController.Start(remoteFolder: Folder)
 			return
 		end
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2 then
-			punch()
+			attackInput()
 		end
 	end)
 	-- First time down the stairs: say how to fight.
