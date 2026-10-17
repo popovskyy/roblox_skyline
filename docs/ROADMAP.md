@@ -1,37 +1,33 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build b33 · 17.10 19:05 published.
-One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
-to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
-`docs/design/brainstorm-hooks.md` instead.
+Owner: Popovskyi. Updated 17.10 · live **b33** · epic branch `cursor/roadmap-final-pass` (no publish until
+owner says merge). One list for every agent; work top to bottom unless the owner says otherwise. When an
+item ships, move it to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put
+ideas in `docs/design/brainstorm-hooks.md` instead.
 
-## Now: Phase C playtest gate (owner)
+## Now: final roadmap pass (epic branch)
 
-Code readiness for Phase B/C is live as **b32**: `Horde.Enabled` kill-switch, Scrap≠Лом tip same beat,
-Gold/Diamond open juice. **Owner signs Phase C** before any Phase D / polish.
+Owner waived mid-pass Phase C wait for this haul. Plan: Project `docs/roadmap-final-pass.md`.
 
-Focus in game (solo + 2–3 co-op):
-- First Scrap tip visible with pickup; F1 scrap path + soft rubble still obvious.
-- Barricade before ~8–10 min → horde stuck behind boards (video); if not → set `Horde.Enabled = false`.
-- Gold/Diamond open clearly louder than Common; crates stay party-shared and scarce.
-- Co-op Bridge typically **≥ 25 min**; solo **≥ 30 min** without AFK.
+**Already live (skip on this branch):** Phase A A1–A10 + LOCAL #1–#6 + lobby L1 Classes (b28–b33). Audit
+confirmed §8 numbers and barricade/rubble/loot knobs match design.
 
-Still OK from b31: crisp hotbar tooltip / touch caption; soft rubble hold-clear; stair shaft; no yellow Health.
+**In progress on `cursor/roadmap-final-pass`:**
 
-Shipped in **b33**: lobby gamepad **L1 / LB** opens Classes. Owner question closed.
+1. **HUD declutter (P0)** — fewer tips/toasts/junk interrupts; remove/gate/merge only (no new toast
+   systems). Waiting on designer `internal/final-pass-design.md` declutter section, then implement.
+2. **Phase D Blender polish** — Bat/Crowbar meshes, crate/node/rubble/barricade/roof fidelity; upload only
+   with real `upload_model.sh` ids (never invent). Scaffold scripts on branch if Blender/upload blocked.
+3. **Launch prep (docs only)** — align `marketing-draft.md` + banner checklist; heartbeat SFX stays blocked
+   until a Creator Store / HANDOFF id exists. **Do not** upload Creator Hub art.
 
-## Next (in this order)
+**Do not** merge or publish mid-pass. Owner merge + optional Public after Blocks 1–3 are ready.
 
-1. **Slow survival Phase B/C** — owner Phase C sign-off on **b32** (`docs/design/slow-survival-loop.md` §10).
-   LOCAL #2–#5 and C-gate hardening are published; do not pull brainstorm ideas or Phase D ahead of that
-   sign-off.
-2. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
-   model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
-   sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent). **Only after**
-   Phase C loop feels right.
-3. **Launch**: store copy drafted in `docs/design/marketing-draft.md` (uk/ru/en, roof→bridge fantasy).
-   Store art concepts in `assets/store/` + `docs/design/banner-art-brief.md` — do **not** upload to
-   Creator Hub until owner + Art approve. Then Creator Dashboard → Public when owner says so.
+## Later (after owner merge)
+
+- Creator Dashboard → Public when owner + Art approve store art.
+- Heartbeat SFX once a real sound id is in HANDOFF.
+- Brainstorm hooks stay in `docs/design/brainstorm-hooks.md` until owner pulls them forward.
 
 ## Rules that stay
 

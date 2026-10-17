@@ -3,6 +3,17 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## Unreleased · `cursor/roadmap-final-pass`
+
+Epic final-pass branch (no publish until owner merge). Phase A A1–A10 already live on master (b28–b32);
+this branch continues HUD declutter + Phase D Blender scaffolds + launch-prep docs.
+
+### Branch hygiene
+- ROADMAP rewritten for the epic pass; Phase A leftovers audited as already shipped.
+- Blender `build_weapons.py`: own **WeaponBat** + **WeaponCrowbar** meshes (scaffold). CombatService wires
+  them when the Weapons pack contains those props; until a real re-upload, Club tint / Part Crowbar still
+  fall back. **No invented PropLibrary ids.**
+
 ## b33 · 17.10 19:05
 ### Lobby: gamepad opens Classes
 - On a controller, **L1 / LB** opens the Classes panel (same toggle as the Класи button). X still
