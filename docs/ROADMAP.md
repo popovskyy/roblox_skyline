@@ -18,8 +18,7 @@ Focus in game (solo + 2–3 co-op):
 
 Still OK from b31: crisp hotbar tooltip / touch caption; soft rubble hold-clear; stair shaft; no yellow Health.
 
-Questions for the owner:
-- A gamepad has no button to open the Classes panel in the lobby. Add one?
+Done (awaiting publish): lobby gamepad **Select / View** opens Classes (Unreleased). Owner question closed.
 
 ## Next (in this order)
 

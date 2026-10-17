@@ -342,7 +342,8 @@ end
 
 -- Classes ----------------------------------------------------------------------------------------------------
 local Classes = require(Shared:WaitForChild("Classes"))
-local classesButton = topButton("ClassesButton", 120, 3)
+-- Select / View on a gamepad (X and Y already open Records and How to play).
+local classesButton = topButton("ClassesButton", 120, 3, Enum.KeyCode.ButtonSelect)
 
 local classPanel = UIKit.New("Frame", {
 	Name = "Classes",
@@ -476,11 +477,12 @@ local function renderClasses()
 	end
 end
 
-classesButton.Activated:Connect(function()
+local function toggleClasses()
 	if togglePanel(classPanel) then
 		renderClasses()
 	end
-end)
+end
+classesButton.Activated:Connect(toggleClasses)
 for _, attribute in { "Tokens", "ClassesOwned", "ClassSelected" } do
 	Players.LocalPlayer:GetAttributeChangedSignal(attribute):Connect(function()
 		classesButton.Text = Lang.T("lobby.classes")
@@ -744,7 +746,7 @@ Lang.Changed:Connect(function()
 	end
 end)
 
--- Gamepad: X opens Records, Y opens How to play, B closes whatever is open.
+-- Gamepad: X opens Records, Y opens How to play, Select/View opens Classes, B closes whatever is open.
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed or not usingGamepad() then
 		return
@@ -753,6 +755,8 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		toggleRecords()
 	elseif input.KeyCode == Enum.KeyCode.ButtonY then
 		toggleHow()
+	elseif input.KeyCode == Enum.KeyCode.ButtonSelect then
+		toggleClasses()
 	elseif input.KeyCode == Enum.KeyCode.ButtonB and anyPanelOpen() then
 		closePanels()
 	end
