@@ -1,49 +1,69 @@
 # SkylineZero
 
-Co-op post-apoc Roblox tower (main place + lobby). Scripts live in a Rojo-style tree; `.rbxlx` place backups keep world/assets.
+Co-op post-apoc Roblox tower (main place + lobby). Canonical repo: [popovskyy/roblox_skyline](https://github.com/popovskyy/roblox_skyline).
+
+Scripts live in a Rojo-style tree; `.rbxlx` place backups keep injected scripts + greybox builders.
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| `src/` | Tower place Luau (extracted + edited) |
+| `src/` | Tower place Luau |
 | `src_lobby/` | Lobby place Luau |
-| `places/` | Source-of-truth place backups (`.rbxlx`) |
-| `tools/` | Extract / inject helpers for `.rbxlx` ↔ tree |
-| `default.project.json` | Rojo map for the tower |
-| `lobby.project.json` | Rojo map for the lobby |
+| `places/` | Place backups (`.rbxlx`) — scripts + procedural world |
+| `tools/` | `extract_rbxlx.py` / `inject_scripts.py` |
+| `default.project.json` | Rojo map — tower |
+| `lobby.project.json` | Rojo map — lobby |
 
-**Note:** The checked-in places are scripts + greybox builders (~630KB / ~92KB). Full mesh/map packs are not in these files — `WorldBuilder` / `LobbyWorld` generate the playable greybox at runtime.
+**Note:** Places are ~650KB / ~100KB. Full mesh packs are not in the rbxlx — `WorldBuilder` / `LobbyWorld` build the greybox at runtime. Floor plate is **240×240** studs.
 
 ## Place IDs
 
-From `PlacesConfig`:
+From `PlacesConfig` (universe `10771270901`):
 
 - Lobby: `128619231370772`
 - Tower: `104145307601846`
 
-Open Cloud key (local only, never commit): store `secrets/.roblox_api_key` or `/workspace/.secrets/.roblox_api_key`.
+Open Cloud API key: keep only under `.secrets/.roblox_api_key` (gitignored). Never commit it.
 
-## Local workflow
+## Open in Studio with Rojo
+
+1. Install [Rojo](https://rojo.space/docs/installation/) and the Rojo Studio plugin.
+2. Clone this repo.
+3. Tower:
+   ```bash
+   rojo serve default.project.json
+   ```
+   In Studio: Plugins → Rojo → Connect (default port 34872).
+4. Lobby (second Studio instance or switch project):
+   ```bash
+   rojo serve lobby.project.json
+   ```
+5. Or sync scripts back into the place XML and open the file:
+   ```bash
+   python3 tools/inject_scripts.py places/SkylineZero.rbxlx src -o places/SkylineZero.rbxlx
+   python3 tools/inject_scripts.py places/SkylineZero_Lobby.rbxlx src_lobby -o places/SkylineZero_Lobby.rbxlx
+   ```
+   Then File → Open from File → `places/*.rbxlx`.
+
+## Extract / inject
 
 ```bash
-# Re-extract from places (overwrites src trees)
 python3 tools/extract_rbxlx.py places/SkylineZero.rbxlx src
 python3 tools/extract_rbxlx.py places/SkylineZero_Lobby.rbxlx src_lobby
-
-# Write edited sources back into place XML
 python3 tools/inject_scripts.py places/SkylineZero.rbxlx src -o places/SkylineZero.rbxlx
 python3 tools/inject_scripts.py places/SkylineZero_Lobby.rbxlx src_lobby -o places/SkylineZero_Lobby.rbxlx
-
-# Rojo (if installed)
-rojo serve default.project.json
-rojo serve lobby.project.json
 ```
 
-## First slice (this branch)
+## Shipped so far
 
-1. **Elevators:** removed Solo/2/4/6 capacity cabins; two identical lifts; dialog to pick party size **2–6**.
-2. **Rubble / electronics:** rubble parented under `Interactables`; shared server collision clear; electronics prompts gated until rubble cleared; clearer copy (`res.needRubble`).
-3. **Floor scale:** plate **240×240** (from 70); denser scrap; tutorial scrap near stairs; zombie spawn counts scaled.
+- Elevators: 2–6 party-size dialog (no Solo/2/4/6 signs)
+- Rubble clearable + electronics prompt gating; shared server collision
+- Floor scale 240 + denser loot / tutorial scrap path
+- Ground item drop (G / long-press) for teammates
+- Shared team chest
+- Live loot `n/m` HUD; objective marker → nearest scrap/electronics
+- Downed teammate markers (dir + meters)
+- No zombie respawn after floor clear
 
-Remaining backlog items stay open (drops, team chest, live loot HUD, zombie no-respawn-after-clear, atmosphere, onboarding polish, melee mobile anims, …).
+Still open: atmosphere/lighting/roof, weather, onboarding polish, medkit craft balance, tokens, mobile melee anims.

@@ -390,6 +390,16 @@ local S: { [string]: Entry } = {
 		en = "Tower complete. Keep exploring if you like",
 	},
 	["tutorial.new"] = { uk = "Нова ціль: %s", ru = "Новая цель: %s", en = "New objective: %s" },
+	["tutorial.scrapProgress"] = {
+		uk = "Металобрухт %d/%d",
+		ru = "Металлолом %d/%d",
+		en = "Scrap %d/%d",
+	},
+	["tutorial.elecProgress"] = {
+		uk = "Електроніка %d/%d",
+		ru = "Электроника %d/%d",
+		en = "Electronics %d/%d",
+	},
 
 	-- Notes
 	["note.terminal.title"] = {
@@ -502,11 +512,17 @@ local S: { [string]: Entry } = {
 	["ui.flashlight"] = { uk = "Ліхтарик", ru = "Фонарик", en = "Flashlight" },
 	["ui.use"] = { uk = "Використати", ru = "Использовать", en = "Use" },
 	["ui.eat"] = { uk = "З'їсти", ru = "Съесть", en = "Eat" },
-	["ui.storage"] = { uk = "Скриня", ru = "Сундук", en = "Chest" },
+	["ui.storage"] = { uk = "Скриня команди", ru = "Сундук команды", en = "Team chest" },
+	["ui.teamStorage"] = { uk = "Скриня команди", ru = "Сундук команды", en = "Team chest" },
 	["ui.storageHeader"] = {
 		uk = "Скриня %d / %d   ·   рюкзак %d / %d",
 		ru = "Сундук %d / %d   ·   рюкзак %d / %d",
 		en = "Chest %d / %d   ·   backpack %d / %d",
+	},
+	["ui.teamStorageHeader"] = {
+		uk = "Скриня команди %d / %d   ·   рюкзак %d / %d",
+		ru = "Сундук команды %d / %d   ·   рюкзак %d / %d",
+		en = "Team chest %d / %d   ·   backpack %d / %d",
 	},
 	["ui.storageRow"] = {
 		uk = "%s %s\nз собою %d · у скрині %d",
@@ -518,6 +534,56 @@ local S: { [string]: Entry } = {
 		ru = "Нажми на предмет, чтобы переложить его",
 		en = "Tap an item to move it across",
 	},
+	["ui.teamChestHint"] = {
+		uk = "Спільна для всієї групи. Натисни предмет, щоб перекласти.",
+		ru = "Общий для всей группы. Нажми предмет, чтобы переложить.",
+		en = "Shared by the whole squad. Tap an item to move it.",
+	},
+	["sign.teamChest"] = {
+		uk = "СКРИНЯ КОМАНДИ",
+		ru = "СУНДУК КОМАНДЫ",
+		en = "TEAM CHEST",
+	},
+	["party.stored"] = {
+		uk = "%s поклав: %s",
+		ru = "%s положил: %s",
+		en = "%s stored: %s",
+	},
+	["prompt.drop"] = { uk = "Кинути", ru = "Выбросить", en = "Drop" },
+	["prompt.pickupDrop"] = { uk = "Підібрати", ru = "Поднять", en = "Pick up" },
+	["toast.dropHint"] = {
+		uk = "Можеш кинути річ на землю — тіммейт підбере.",
+		ru = "Можешь выбросить вещь на землю — тиммейт подберёт.",
+		en = "Drop an item on the ground — a teammate can pick it up.",
+	},
+	["drop.cantDrop"] = {
+		uk = "Це не можна кинути",
+		ru = "Это нельзя выбросить",
+		en = "You can't drop that",
+	},
+	["drop.none"] = {
+		uk = "Немає що кинути",
+		ru = "Нечего выбросить",
+		en = "Nothing to drop",
+	},
+	["drop.dropped"] = {
+		uk = "Кинуто: %s ×%d",
+		ru = "Выброшено: %s ×%d",
+		en = "Dropped: %s ×%d",
+	},
+	["drop.picked"] = {
+		uk = "Підібрано: %s ×%d",
+		ru = "Поднято: %s ×%d",
+		en = "Picked up: %s ×%d",
+	},
+	["drop.gone"] = {
+		uk = "Вже підібрано",
+		ru = "Уже подобрано",
+		en = "Already taken",
+	},
+	["drop.badItem"] = { uk = "Невідомий предмет", ru = "Неизвестный предмет", en = "Unknown item" },
+	["drop.badAmount"] = { uk = "Невірна кількість", ru = "Неверное количество", en = "Bad amount" },
+	["marker.downed"] = { uk = "%s · %d м", ru = "%s · %d м", en = "%s · %d m" },
 	["ui.backpack"] = { uk = "Рюкзак", ru = "Рюкзак", en = "Backpack" },
 	["ui.emptyBackpack"] = {
 		uk = "У рюкзаку нічого класти",

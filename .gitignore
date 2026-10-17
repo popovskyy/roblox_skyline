@@ -1,8 +1,19 @@
+# Secrets — never commit Roblox / cloud keys
 .secrets/
+**/.secrets/
+**/.roblox_api_key
+*.roblox_api_key
+.env
+.env.*
+
+# Roblox binary places (keep .rbxlx in places/)
 *.rbxl
 *.rbxm
 *.rbxmx
+
+# Tooling
 --sourcemap.json
 sourcemap.json
 node_modules/
 .DS_Store
+.rojo/

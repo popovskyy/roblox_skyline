@@ -7640,6 +7640,8 @@ local GameConfig = {
 		Machete = true,
 	} :: { [string]: boolean },
 	BackpackDropLifetimeSeconds = 900,
+	-- Intentional party drops (not death backpacks).
+	GroundDropLifetimeSeconds = 120,
 	RespawnDelaySeconds = 3,
 
 	-- Combat and zombies
@@ -8323,6 +8325,16 @@ local S: { [string]: Entry } = {
 		en = "Tower complete. Keep exploring if you like",
 	},
 	["tutorial.new"] = { uk = "Нова ціль: %s", ru = "Новая цель: %s", en = "New objective: %s" },
+	["tutorial.scrapProgress"] = {
+		uk = "Металобрухт %d/%d",
+		ru = "Металлолом %d/%d",
+		en = "Scrap %d/%d",
+	},
+	["tutorial.elecProgress"] = {
+		uk = "Електроніка %d/%d",
+		ru = "Электроника %d/%d",
+		en = "Electronics %d/%d",
+	},
 
 	-- Notes
 	["note.terminal.title"] = {
@@ -8435,11 +8447,17 @@ local S: { [string]: Entry } = {
 	["ui.flashlight"] = { uk = "Ліхтарик", ru = "Фонарик", en = "Flashlight" },
 	["ui.use"] = { uk = "Використати", ru = "Использовать", en = "Use" },
 	["ui.eat"] = { uk = "З'їсти", ru = "Съесть", en = "Eat" },
-	["ui.storage"] = { uk = "Скриня", ru = "Сундук", en = "Chest" },
+	["ui.storage"] = { uk = "Скриня команди", ru = "Сундук команды", en = "Team chest" },
+	["ui.teamStorage"] = { uk = "Скриня команди", ru = "Сундук команды", en = "Team chest" },
 	["ui.storageHeader"] = {
 		uk = "Скриня %d / %d   ·   рюкзак %d / %d",
 		ru = "Сундук %d / %d   ·   рюкзак %d / %d",
 		en = "Chest %d / %d   ·   backpack %d / %d",
+	},
+	["ui.teamStorageHeader"] = {
+		uk = "Скриня команди %d / %d   ·   рюкзак %d / %d",
+		ru = "Сундук команды %d / %d   ·   рюкзак %d / %d",
+		en = "Team chest %d / %d   ·   backpack %d / %d",
 	},
 	["ui.storageRow"] = {
 		uk = "%s %s\nз собою %d · у скрині %d",
@@ -8451,6 +8469,56 @@ local S: { [string]: Entry } = {
 		ru = "Нажми на предмет, чтобы переложить его",
 		en = "Tap an item to move it across",
 	},
+	["ui.teamChestHint"] = {
+		uk = "Спільна для всієї групи. Натисни предмет, щоб перекласти.",
+		ru = "Общий для всей группы. Нажми предмет, чтобы переложить.",
+		en = "Shared by the whole squad. Tap an item to move it.",
+	},
+	["sign.teamChest"] = {
+		uk = "СКРИНЯ КОМАНДИ",
+		ru = "СУНДУК КОМАНДЫ",
+		en = "TEAM CHEST",
+	},
+	["party.stored"] = {
+		uk = "%s поклав: %s",
+		ru = "%s положил: %s",
+		en = "%s stored: %s",
+	},
+	["prompt.drop"] = { uk = "Кинути", ru = "Выбросить", en = "Drop" },
+	["prompt.pickupDrop"] = { uk = "Підібрати", ru = "Поднять", en = "Pick up" },
+	["toast.dropHint"] = {
+		uk = "Можеш кинути річ на землю — тіммейт підбере.",
+		ru = "Можешь выбросить вещь на землю — тиммейт подберёт.",
+		en = "Drop an item on the ground — a teammate can pick it up.",
+	},
+	["drop.cantDrop"] = {
+		uk = "Це не можна кинути",
+		ru = "Это нельзя выбросить",
+		en = "You can't drop that",
+	},
+	["drop.none"] = {
+		uk = "Немає що кинути",
+		ru = "Нечего выбросить",
+		en = "Nothing to drop",
+	},
+	["drop.dropped"] = {
+		uk = "Кинуто: %s ×%d",
+		ru = "Выброшено: %s ×%d",
+		en = "Dropped: %s ×%d",
+	},
+	["drop.picked"] = {
+		uk = "Підібрано: %s ×%d",
+		ru = "Поднято: %s ×%d",
+		en = "Picked up: %s ×%d",
+	},
+	["drop.gone"] = {
+		uk = "Вже підібрано",
+		ru = "Уже подобрано",
+		en = "Already taken",
+	},
+	["drop.badItem"] = { uk = "Невідомий предмет", ru = "Неизвестный предмет", en = "Unknown item" },
+	["drop.badAmount"] = { uk = "Невірна кількість", ru = "Неверное количество", en = "Bad amount" },
+	["marker.downed"] = { uk = "%s · %d м", ru = "%s · %d м", en = "%s · %d m" },
 	["ui.backpack"] = { uk = "Рюкзак", ru = "Рюкзак", en = "Backpack" },
 	["ui.emptyBackpack"] = {
 		uk = "У рюкзаку нічого класти",
@@ -8822,7 +8890,7 @@ return MusicConfig
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b14 · elevators-rubble-240",
+	Build = "b15 · drop-chest-hud-zombies",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
@@ -9651,6 +9719,7 @@ local PlayerDataService = require(Services.PlayerDataService)
 local MonetizationService = require(Services.MonetizationService)
 local ResourceService = require(Services.ResourceService)
 local StorageService = require(Services.StorageService)
+local DropService = require(Services.DropService)
 local FlashlightService = require(Services.FlashlightService)
 local HazardService = require(Services.HazardService)
 local TutorialService = require(Services.TutorialService)
@@ -9667,12 +9736,14 @@ Net.Init()
 PlayerDataService.Init()
 PlayerLifecycleService.Init()
 ResourceService.Init()
+StorageService.Init()
 FlashlightService.Init()
 TutorialService.Init()
 
 if GameConfig.World.Mode == "Generated" then
 	local world = WorldBuilder.Build()
 	InteractionService.SetInteractables(world.interactables)
+	DropService.SetInteractables(world.interactables)
 	StorageService.SetStoragePart(world.storagePart)
 	FlashlightService.SetGeneratorPart(world.generatorPart)
 	HazardService.SetToxicZones(world.toxicZones)
@@ -9689,6 +9760,7 @@ HazardService.OnReturnedToRoof(ResourceService.OnReturnedToRoof)
 PlayerDataService.Start()
 MonetizationService.Start()
 StorageService.Start()
+DropService.Start()
 FlashlightService.Start()
 HazardService.Start()
 TutorialService.Start()
@@ -10867,6 +10939,7 @@ local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlayerLifecycleService = require(script.Parent.PlayerLifecycleService)
 local RateLimiter = require(script.Parent.RateLimiter)
+local DropService = require(script.Parent.DropService)
 local ResourceService = require(script.Parent.ResourceService)
 local TutorialService = require(script.Parent.TutorialService)
 
@@ -10914,6 +10987,9 @@ local handlers: { [string]: Handler } = {
 	end,
 	LootChest = function(player, target)
 		return ResourceService.OpenCrate(player, target)
+	end,
+	GroundDrop = function(player, target)
+		return DropService.Pickup(player, target)
 	end,
 	Workbench = function(player)
 		return CraftService.Open(player)
@@ -11295,7 +11371,8 @@ return Net
 -- under game.PrivateServerId. Here:
 --   * the base starts from the leader's saved upgrades (members keep anything extra they had),
 --   * anything a member builds is written into every member's save,
---   * inventory, storage and resource nodes stay personal.
+--   * inventory stays personal; the roof chest is shared (StorageService team stash);
+--   * resource nodes stay personal (co-op loot duplication still TBD).
 -- With no party record (Studio, a public server, a failed read) every player plays solo.
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
@@ -12069,12 +12146,10 @@ function PlayerLifecycleService.Init()
 			return
 		end
 		snapshot.inventory = table.clone(data.inventory)
-		snapshot.storage = table.clone(data.storage)
+		-- Team chest contents come from StorageService.Init provider (shared).
 		snapshot.upgrades = table.clone(data.upgrades)
 		snapshot.weight = InventoryService.WeightOf(data.inventory)
 		snapshot.maxWeight = InventoryService.GetCapacity(player)
-		snapshot.storageWeight = InventoryService.WeightOf(data.storage)
-		snapshot.storageCapacity = GameConfig.StorageCapacity
 		snapshot.saveEnabled = PlayerDataService.CanSave(player)
 		local costs = {}
 		for id, def in UpgradeDefinitions.Upgrades do
@@ -12520,13 +12595,15 @@ return StateSyncService
         <Properties>
           <string name="Name">StorageService</string>
           <string name="Source">--!strict
--- Moves items between the carried inventory and the base storage.
--- Each transfer is checked and applied without yielding, so repeated requests cannot duplicate items.
+-- Team chest: one shared stash for everyone on this tower server (party or solo session).
+-- Transfers are checked and applied without yielding, so repeated requests cannot duplicate items.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
@@ -12538,30 +12615,41 @@ local StateSyncService = require(script.Parent.StateSyncService)
 local StorageService = {}
 
 local storagePart: BasePart? = nil
+-- Shared session chest (not per-player).
+local teamStorage: { [string]: number } = {}
+local lastDepositToastAt: { [Player]: number } = {}
 
 function StorageService.SetStoragePart(part: BasePart)
 	storagePart = part
 end
 
-function StorageService.GetWeight(player: Player): number
-	local data = PlayerDataService.Get(player)
-	return data and InventoryService.WeightOf(data.storage) or 0
+function StorageService.GetTeamStorage(): { [string]: number }
+	return teamStorage
+end
+
+function StorageService.GetWeight(_player: Player?): number
+	return InventoryService.WeightOf(teamStorage)
 end
 
 function StorageService.Total(player: Player, itemId: string): number
 	local data = PlayerDataService.Get(player)
 	if not data then
-		return 0
+		return teamStorage[itemId] or 0
 	end
-	return (data.inventory[itemId] or 0) + (data.storage[itemId] or 0)
+	return (data.inventory[itemId] or 0) + (teamStorage[itemId] or 0)
+end
+
+local function syncEveryone()
+	for _, player in Players:GetPlayers() do
+		StateSyncService.Request(player)
+	end
 end
 
 local function isNearStorage(player: Player): boolean
-	-- A little slack over the prompt distance because the UI stays open while the player shuffles around.
 	return storagePart ~= nil and CharacterUtil.IsNear(player, storagePart, GameConfig.InteractionDistance + 4)
 end
 
--- direction: "Deposit" moves inventory -&gt; storage, "Withdraw" moves storage -&gt; inventory.
+-- direction: "Deposit" moves inventory -&gt; team chest, "Withdraw" moves team chest -&gt; inventory.
 function StorageService.Transfer(player: Player, direction: any, itemId: any, amount: any): (boolean, any)
 	local data = PlayerDataService.Get(player)
 	if not data then
@@ -12596,23 +12684,39 @@ function StorageService.Transfer(player: Player, direction: any, itemId: any, am
 			return false, if have &lt;= 0 then "storage.nothing" else "storage.full"
 		end
 		data.inventory[id] = have - count
-		data.storage[id] = (data.storage[id] or 0) + count
+		teamStorage[id] = (teamStorage[id] or 0) + count
+		-- Keep legacy personal mirror empty so old saves don't diverge mid-session.
+		data.storage[id] = 0
+		PlayerDataService.MarkDirty(player)
+		syncEveryone()
+		local now = os.clock()
+		if (lastDepositToastAt[player] or 0) + 3 &lt;= now then
+			lastDepositToastAt[player] = now
+			for _, other in Players:GetPlayers() do
+				if other ~= player then
+					Net.Notify(other, { "party.stored", player.DisplayName, Locale.Cost({ [id] = count }) }, "info")
+				end
+			end
+		end
 	else
-		local stored = data.storage[id] or 0
+		local stored = teamStorage[id] or 0
 		count = math.min(count, stored, InventoryService.SpaceFor(player, id))
 		if count &lt;= 0 then
 			return false, if stored &lt;= 0 then "storage.notInStorage" else "storage.invFull"
 		end
-		data.storage[id] = stored - count
+		teamStorage[id] = stored - count
+		if teamStorage[id] &lt;= 0 then
+			teamStorage[id] = nil
+		end
 		data.inventory[id] = (data.inventory[id] or 0) + count
+		PlayerDataService.MarkDirty(player)
+		syncEveryone()
 	end
 
-	PlayerDataService.MarkDirty(player)
-	StateSyncService.Request(player)
 	return true, nil
 end
 
--- Takes cost from inventory first, then storage. Returns false and changes nothing if it is not affordable.
+-- Takes cost from inventory first, then the team chest.
 function StorageService.TrySpend(player: Player, cost: { [string]: number }): boolean
 	local data = PlayerDataService.Get(player)
 	if not data then
@@ -12626,11 +12730,26 @@ function StorageService.TrySpend(player: Player, cost: { [string]: number }): bo
 	for id, amount in cost do
 		local fromInventory = math.min(amount, data.inventory[id] or 0)
 		data.inventory[id] = (data.inventory[id] or 0) - fromInventory
-		data.storage[id] = (data.storage[id] or 0) - (amount - fromInventory)
+		local fromChest = amount - fromInventory
+		if fromChest &gt; 0 then
+			teamStorage[id] = (teamStorage[id] or 0) - fromChest
+			if (teamStorage[id] or 0) &lt;= 0 then
+				teamStorage[id] = nil
+			end
+		end
 	end
 	PlayerDataService.MarkDirty(player)
-	StateSyncService.Request(player)
+	syncEveryone()
 	return true
+end
+
+function StorageService.Init()
+	StateSyncService.RegisterProvider(function(_player, snapshot)
+		snapshot.storage = table.clone(teamStorage)
+		snapshot.storageWeight = InventoryService.WeightOf(teamStorage)
+		snapshot.storageCapacity = GameConfig.StorageCapacity
+		snapshot.teamChest = true
+	end)
 end
 
 function StorageService.Start()
@@ -12642,6 +12761,9 @@ function StorageService.Start()
 		if not ok and reason then
 			Net.Notify(player, reason, "warning")
 		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		lastDepositToastAt[player] = nil
 	end)
 end
 
@@ -12893,6 +13015,9 @@ type Zombie = {
 local zombies: { Zombie } = {}
 local folder: Folder? = nil
 local spawnPoints: { [number]: { Vector3 } } = {}
+-- Once a floor's wave is wiped, no more respawns for the rest of this visit (design loops §3).
+local floorCleared: { [number]: boolean } = {}
+local floorAlive: { [number]: number } = {}
 
 -- Open spots on each floor, away from the stairwell and rubble wings (scaled to 240 plate).
 local function sp(x: number, z: number): Vector2
@@ -13036,6 +13161,7 @@ spawnZombie = function(level: number)
 		wanderAt = 0,
 	}
 	table.insert(zombies, z)
+	floorAlive[level] = (floorAlive[level] or 0) + 1
 	playAnimations(z)
 
 	humanoid.Died:Once(function()
@@ -13043,10 +13169,14 @@ spawnZombie = function(level: number)
 		if index then
 			table.remove(zombies, index)
 		end
+		floorAlive[level] = math.max(0, (floorAlive[level] or 1) - 1)
+		if (floorAlive[level] or 0) &lt;= 0 then
+			floorCleared[level] = true
+		end
 		task.delay(3, function()
 			model:Destroy()
 		end)
-		task.delay(Z.RespawnSeconds, spawnZombie, level)
+		-- No timed respawn: initial PerFloor wave only. Cleared floors stay clear (design loops §3).
 	end)
 end
 
@@ -13193,7 +13323,153 @@ return ZombieService
 </string>
         </Properties>
       </Item>
-    </Item>
+    <Item class="ModuleScript" referent="new_DropService_83739160"><Properties><string name="Name">DropService</string><ProtectedString name="Source">--!strict
+-- Intentional ground drops: party members can pick them up. Death backpacks stay personal.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
+local Locale = require(ReplicatedStorage.Shared.Locale)
+local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
+local CharacterUtil = require(script.Parent.CharacterUtil)
+local InventoryService = require(script.Parent.InventoryService)
+local Net = require(script.Parent.Net)
+local RateLimiter = require(script.Parent.RateLimiter)
+local StateSyncService = require(script.Parent.StateSyncService)
+
+local DropService = {}
+
+local interactables: Folder? = nil
+local nextId = 0
+
+type GroundDrop = {
+	part: BasePart,
+	itemId: string,
+	amount: number,
+	ownerUserId: number,
+}
+
+local drops: { [BasePart]: GroundDrop } = {}
+
+function DropService.SetInteractables(folder: Folder)
+	interactables = folder
+end
+
+local function destroyDrop(part: BasePart)
+	local entry = drops[part]
+	if not entry then
+		return
+	end
+	drops[part] = nil
+	if part.Parent then
+		part:Destroy()
+	end
+end
+
+function DropService.Drop(player: Player, itemId: any, amount: any): (boolean, any)
+	local dataFolder = interactables
+	if not dataFolder then
+		return false, nil
+	end
+	if type(itemId) ~= "string" or not ItemDefinitions.IsValid(itemId) then
+		return false, "drop.badItem"
+	end
+	local def = ItemDefinitions.Items[itemId]
+	-- Storable loot only (meds, scrap, electronics…). Tools/weapons stay equipped.
+	if not def or not def.storable then
+		return false, "drop.cantDrop"
+	end
+	local count = if type(amount) == "number" then amount else 1
+	if not InventoryService.IsPositiveInt(count) or count &gt; 50 then
+		return false, "drop.badAmount"
+	end
+	local root = CharacterUtil.GetRoot(player)
+	if not root then
+		return false, nil
+	end
+	if not InventoryService.Remove(player, itemId, count) then
+		return false, "drop.none"
+	end
+
+	nextId += 1
+	local part = Instance.new("Part")
+	part.Name = "GroundDrop_" .. tostring(nextId)
+	part.Size = Vector3.new(1.6, 0.8, 1.6)
+	part.Color = Color3.fromRGB(90, 88, 82)
+	part.Material = Enum.Material.Metal
+	part.Anchored = true
+	part.CanCollide = false
+	part.Position = root.Position + root.CFrame.LookVector * 3 - Vector3.new(0, 2.2, 0)
+	part:SetAttribute("InteractType", "GroundDrop")
+	part:SetAttribute("ItemId", itemId)
+	part:SetAttribute("Amount", count)
+	part:SetAttribute("DropOwnerUserId", player.UserId)
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = Locale.T("en", "prompt.pickupDrop")
+	prompt:SetAttribute("ActionKey", "prompt.pickupDrop")
+	prompt.ObjectText = Locale.T("en", "item." .. itemId .. ".name")
+	prompt:SetAttribute("ObjectKey", "item." .. itemId .. ".name")
+	prompt.MaxActivationDistance = GameConfig.PromptActivationDistance
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = part
+	part.Parent = dataFolder
+
+	local entry: GroundDrop = {
+		part = part,
+		itemId = itemId,
+		amount = count,
+		ownerUserId = player.UserId,
+	}
+	drops[part] = entry
+
+	local ttl = GameConfig.GroundDropLifetimeSeconds or 120
+	task.delay(ttl, function()
+		if drops[part] == entry then
+			destroyDrop(part)
+		end
+	end)
+
+	StateSyncService.Request(player)
+	Net.Notify(player, { "drop.dropped", Locale.Item(itemId), count }, "info")
+	return true, nil
+end
+
+function DropService.Pickup(player: Player, part: BasePart): (boolean, any)
+	local entry = drops[part]
+	if not entry or entry.part ~= part then
+		return false, "drop.gone"
+	end
+	if not InventoryService.CanAdd(player, entry.itemId, entry.amount) then
+		return false, "res.full"
+	end
+	drops[part] = nil
+	InventoryService.Add(player, entry.itemId, entry.amount)
+	part:Destroy()
+	StateSyncService.Request(player)
+	Net.Notify(player, { "drop.picked", Locale.Item(entry.itemId), entry.amount }, "success")
+	return true, nil
+end
+
+function DropService.Start()
+	Net.Get(RemoteNames.DropItem).OnServerEvent:Connect(function(player, itemId, amount)
+		if not RateLimiter.Allow(player, "DropItem", 0.35) then
+			return
+		end
+		local ok, reason = DropService.Drop(player, itemId, amount)
+		if not ok and reason then
+			Net.Notify(player, reason, "warning")
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(_player)
+		-- Drops stay in the world for teammates; no owner cleanup.
+	end)
+end
+
+return DropService
+</ProtectedString><bool name="Disabled">false</bool></Properties></Item></Item>
     <Item class="ModuleScript" referent="99">
       <Properties>
         <string name="Name">WorldBuilder</string>
@@ -14654,7 +14930,13 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	storageVisual.Parent = interactables
 	storageVisual.Name = "StorageCrate"
 	storageVisual:SetAttribute("InteractType", "Storage")
-	addPrompt(storageVisual, "prompt.open", "ui.storage")
+	addPrompt(storageVisual, "prompt.open", "sign.teamChest")
+	sign(
+		storageVisual,
+		"sign.teamChest",
+		storageVisual.CFrame * CFrame.new(0, 4, 0) * CFrame.Angles(0, math.pi, 0),
+		Vector2.new(10, 1.6)
+	)
 	upgradePad(
 		interactables,
 		visuals,
@@ -15011,6 +15293,7 @@ local InventoryController = require(Controllers:WaitForChild("InventoryControlle
 local InteractionController = require(Controllers:WaitForChild("InteractionController"))
 local MusicController = require(Controllers:WaitForChild("MusicController"))
 local ObjectiveMarkerController = require(Controllers:WaitForChild("ObjectiveMarkerController"))
+local DownedMarkerController = require(Controllers:WaitForChild("DownedMarkerController"))
 local CombatController = require(Controllers:WaitForChild("CombatController"))
 local IntroController = require(Controllers:WaitForChild("IntroController"))
 local TutorialController = require(Controllers:WaitForChild("TutorialController"))
@@ -15028,6 +15311,7 @@ TutorialController.Start()
 WorldVisualsController.Start()
 MusicController.Start()
 ObjectiveMarkerController.Start()
+DownedMarkerController.Start()
 CombatController.Start(remotes)
 IntroController.Start()
 
@@ -15638,10 +15922,31 @@ local function updateFlashlight()
 	flashlightText.TextColor3 = if seconds &lt;= 0 then C.bad elseif on then C.accent else C.muted
 end
 
-local function onState(s: { [string]: any })
-	if s.tutorial then
-		objectiveText.Text = Lang.T("hud.objective", { ref = s.tutorial.text })
+local function objectiveLine(s: { [string]: any }): string
+	local tutorial = s.tutorial
+	if not tutorial then
+		return ""
 	end
+	if tutorial.done then
+		return Lang.T("hud.objective", { ref = "tutorial.done" })
+	end
+	local step = tutorial.step
+	local inv = s.inventory or {}
+	local storage = s.storage or {}
+	local function total(id: string): number
+		return (inv[id] or 0) + (storage[id] or 0)
+	end
+	-- Live n/m for loot steps (gap-report G1.1 / first-session-ux §3).
+	if step == 2 then
+		return Lang.T("hud.objective", Lang.T("tutorial.scrapProgress", math.min(total("Scrap"), 3), 3))
+	elseif step == 5 then
+		return Lang.T("hud.objective", Lang.T("tutorial.elecProgress", math.min(total("Electronics"), 4), 4))
+	end
+	return Lang.T("hud.objective", { ref = tutorial.text })
+end
+
+local function onState(s: { [string]: any })
+	objectiveText.Text = objectiveLine(s)
 	actsText.Text = Lang.T("hud.systems", s.acts or 0)
 	updateFlashlight()
 end
@@ -16074,6 +16379,11 @@ local USE_LABELS: { [string]: string } = {
 	Food = "ui.eat",
 }
 
+local lastSlotItem: string? = nil
+local dropHintShown = false
+local teamChestHintShown = false
+local LONG_PRESS = 0.55
+
 local function clearRows(list: Frame)
 	for _, child in list:GetChildren() do
 		if child:IsA("Frame") then
@@ -16174,12 +16484,26 @@ local function useItem(itemId: string)
 	(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(itemId)
 end
 
+local function dropItem(itemId: string)
+	local def = ItemDefinitions.Get(itemId)
+	if not def or not def.storable then
+		showTooltip(Lang.T("drop.cantDrop"))
+		return
+	end
+	(remotes:FindFirstChild(RemoteNames.DropItem) :: RemoteEvent):FireServer(itemId, 1)
+	if not dropHintShown then
+		dropHintShown = true
+		showTooltip(Lang.T("toast.dropHint"))
+	end
+end
+
 local function activateSlot(i: number)
 	local itemId = slotItems[i]
 	local def = if itemId then ItemDefinitions.Get(itemId) else nil
 	if not def then
 		return
 	end
+	lastSlotItem = def.id
 	local s = ClientState.Get()
 	local count = s and s.inventory and s.inventory[def.id] or 0
 	local useLabel = USE_LABELS[def.id]
@@ -16192,11 +16516,12 @@ local function activateSlot(i: number)
 		showTooltip(("%s %s · %s"):format(def.icon, Lang.T("item." .. def.id .. ".name"), Lang.T(useLabel)))
 	else
 		showTooltip(
-			("%s %s ×%d · %s"):format(
+			("%s %s ×%d · %s · [G] %s"):format(
 				def.icon,
 				Lang.T("item." .. def.id .. ".name"),
 				count,
-				Lang.T("item." .. def.id .. ".desc")
+				Lang.T("item." .. def.id .. ".desc"),
+				Lang.T("prompt.drop")
 			)
 		)
 	end
@@ -16264,6 +16589,35 @@ local function buildHotbar(screen: ScreenGui)
 		end
 		slot.frame.Activated:Connect(function()
 			activateSlot(i)
+		end)
+		-- Long-press a storable stack to drop one for teammates (mobile-friendly).
+		local pressToken = 0
+		slot.frame.InputBegan:Connect(function(input)
+			if
+				input.UserInputType ~= Enum.UserInputType.Touch
+				and input.UserInputType ~= Enum.UserInputType.MouseButton1
+			then
+				return
+			end
+			pressToken += 1
+			local token = pressToken
+			task.delay(LONG_PRESS, function()
+				if token ~= pressToken then
+					return
+				end
+				local itemId = slotItems[i]
+				if itemId then
+					dropItem(itemId)
+				end
+			end)
+		end)
+		slot.frame.InputEnded:Connect(function(input)
+			if
+				input.UserInputType == Enum.UserInputType.Touch
+				or input.UserInputType == Enum.UserInputType.MouseButton1
+			then
+				pressToken += 1
+			end
 		end)
 	end
 
@@ -16348,16 +16702,21 @@ local function storageSection(
 end
 
 local function renderStorage(s: { [string]: any })
-	storageHeader.Text =
-		Lang.T("ui.storageHeader", s.storageWeight or 0, s.storageCapacity or 0, s.weight or 0, s.maxWeight or 0)
+	storageHeader.Text = Lang.T(
+		"ui.teamStorageHeader",
+		s.storageWeight or 0,
+		s.storageCapacity or 0,
+		s.weight or 0,
+		s.maxWeight or 0
+	)
 	clearRows(storageList)
 	UIKit.New(
 		"Frame",
-		{ Size = UDim2.new(1, -8, 0, 24), BackgroundTransparency = 1, LayoutOrder = 0, Parent = storageList },
+		{ Size = UDim2.new(1, -8, 0, 36), BackgroundTransparency = 1, LayoutOrder = 0, Parent = storageList },
 		{
 			UIKit.Label({
 				Size = UDim2.fromScale(1, 1),
-				Text = Lang.T("ui.chestHint"),
+				Text = Lang.T("ui.teamChestHint"),
 				TextColor3 = C.muted,
 				TextSize = 15,
 			}),
@@ -16366,7 +16725,7 @@ local function renderStorage(s: { [string]: any })
 	storageSection(1, "ui.backpack", "ui.emptyBackpack", s.inventory or {}, function(itemId, count)
 		transfer("Deposit", itemId, count)
 	end)
-	storageSection(2, "ui.storage", "ui.emptyChest", s.storage or {}, function(itemId, count)
+	storageSection(2, "ui.teamStorage", "ui.emptyChest", s.storage or {}, function(itemId, count)
 		transfer("Withdraw", itemId, count)
 	end)
 end
@@ -16376,6 +16735,10 @@ function InventoryController.OpenStorage()
 	local s = ClientState.Get()
 	if s then
 		renderStorage(s)
+	end
+	if not teamChestHintShown then
+		teamChestHintShown = true
+		showTooltip(Lang.T("ui.teamChestHint"))
 	end
 	-- Gamepads navigate menus through the selected object, so focus the first button.
 	if UserInputService.GamepadEnabled then
@@ -16391,8 +16754,13 @@ function InventoryController.Start(remoteFolder: Folder)
 	local screen = UIKit.Screen()
 
 	buildHotbar(screen)
-	storagePanel, storageList, storageHeader =
-		makeWindow("Storage", "ui.storage", UDim2.new(0, 560, 0.8, 0), UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
+	storagePanel, storageList, storageHeader = makeWindow(
+		"Storage",
+		"ui.teamStorage",
+		UDim2.new(0, 560, 0.8, 0),
+		UDim2.fromScale(0.5, 0.5),
+		Vector2.new(0.5, 0.5)
+	)
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then
@@ -16401,6 +16769,10 @@ function InventoryController.Start(remoteFolder: Folder)
 		local slotIndex = table.find(NUMBER_KEYS, input.KeyCode)
 		if slotIndex then
 			activateSlot(slotIndex)
+		elseif input.KeyCode == Enum.KeyCode.G then
+			if lastSlotItem then
+				dropItem(lastSlotItem)
+			end
 		elseif input.KeyCode == Enum.KeyCode.DPadUp then
 			useItem("Medkit")
 		elseif input.KeyCode == Enum.KeyCode.DPadDown then
@@ -16738,7 +17110,7 @@ return MusicController
             <string name="Name">ObjectiveMarkerController</string>
             <string name="Source">--!strict
 -- A floating "here" arrow over the place the current tutorial step needs: the terminal, the stairs,
--- the chest spot, the generator, the bridge. Visible through walls, with the distance under it.
+-- nearest scrap/electronics, the chest spot, the generator, the bridge. Visible through walls.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16769,6 +17141,59 @@ end
 
 local STAIRS = { "Stairwell", "Ramp0_Down" }
 
+local function playerRoot(): BasePart?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		return root
+	end
+	return nil
+end
+
+local function isTaken(part: BasePart, s: { [string]: any }): boolean
+	local nodeId = part:GetAttribute("NodeId")
+	if type(nodeId) ~= "string" then
+		return true
+	end
+	if part:GetAttribute("Unique") == true then
+		return s.uniqueNodesTaken ~= nil and s.uniqueNodesTaken[nodeId] == true
+	end
+	return s.depletedNodes ~= nil and s.depletedNodes[nodeId] == true
+end
+
+local function rubbleOk(part: BasePart, s: { [string]: any }): boolean
+	local required = part:GetAttribute("RequiresRubble")
+	if type(required) ~= "string" then
+		return true
+	end
+	return s.clearedRubble ~= nil and s.clearedRubble[required] == true
+end
+
+-- Nearest available resource node of the given item (not depleted, rubble cleared if gated).
+local function nearestResource(itemId: string, s: { [string]: any }): BasePart?
+	local world = workspace:FindFirstChild(GameConfig.World.FolderName)
+	local folder = world and world:FindFirstChild("Interactables")
+	if not folder then
+		return nil
+	end
+	local root = playerRoot()
+	local best: BasePart? = nil
+	local bestDist = math.huge
+	local origin = if root then root.Position else Vector3.zero
+	for _, d in folder:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("InteractType") == "Resource" and d:GetAttribute("ItemId") == itemId then
+			if not isTaken(d, s) and rubbleOk(d, s) then
+				local dist = (d.Position - origin).Magnitude
+				if dist &lt; bestDist then
+					best = d
+					bestDist = dist
+				end
+			end
+		end
+	end
+	return best
+end
+
 -- Which part the marker points at for each tutorial step (see TutorialService).
 local function targetFor(s: { [string]: any }): BasePart?
 	local tutorial = s.tutorial
@@ -16778,8 +17203,11 @@ local function targetFor(s: { [string]: any }): BasePart?
 	local step = tutorial.step
 	if step == 1 then
 		return find({ "Interactables", "EmergencyTerminal" })
-	elseif step == 2 or step == 5 then
-		return find(STAIRS)
+	elseif step == 2 then
+		-- Point at nearest scrap, not the stairs (gap-report G1.2).
+		return nearestResource("Scrap", s) or find(STAIRS)
+	elseif step == 5 then
+		return nearestResource("Electronics", s) or find(STAIRS)
 	elseif step == 3 then
 		return find({ "RoofBase", "RoofSpawn" })
 	elseif step == 4 then
@@ -16841,17 +17269,22 @@ function ObjectiveMarkerController.Start()
 		refresh()
 	end)
 
-	-- Gentle bob and the live distance.
+	-- Gentle bob and the live distance; re-pick nearest loot periodically.
 	local clock = 0
+	local retargetAt = 0
 	RunService.RenderStepped:Connect(function(dt)
+		clock += dt
+		retargetAt += dt
+		if retargetAt &gt; 0.5 then
+			retargetAt = 0
+			refresh()
+		end
 		if not target then
 			return
 		end
-		clock += dt
 		billboard.StudsOffsetWorldSpace = Vector3.new(0, 7 + math.sin(clock * 3) * 0.6, 0)
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if root and root:IsA("BasePart") then
+		local root = playerRoot()
+		if root then
 			local distance = math.floor((root.Position - target.Position).Magnitude)
 			distanceLabel.Text = Lang.T("marker.here", distance)
 		end
@@ -17502,7 +17935,203 @@ return WorldVisualsController
 </string>
           </Properties>
         </Item>
-      </Item>
+      <Item class="ModuleScript" referent="new_DownedMarkerController_50607329"><Properties><string name="Name">DownedMarkerController</string><ProtectedString name="Source">--!strict
+-- Screen-edge + world markers for downed teammates (dir + meters). Cap closest 2; mobile-readable.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Theme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Theme"))
+local Lang = require(script.Parent.Lang)
+local UIKit = require(script.Parent.UIKit)
+
+local DownedMarkerController = {}
+
+local player = Players.LocalPlayer
+local MAX_SHOW = 2
+local MAX_DIST = 250
+local AMBER = Color3.fromRGB(255, 196, 64)
+
+type Marker = {
+	userId: number,
+	billboard: BillboardGui,
+	label: TextLabel,
+	edge: Frame,
+	edgeLabel: TextLabel,
+}
+
+local markers: { [number]: Marker } = {}
+local screen: ScreenGui
+
+local function destroyMarker(userId: number)
+	local m = markers[userId]
+	if not m then
+		return
+	end
+	markers[userId] = nil
+	m.billboard:Destroy()
+	m.edge:Destroy()
+end
+
+local function ensureMarker(other: Player): Marker
+	local existing = markers[other.UserId]
+	if existing then
+		return existing
+	end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "DownedMarker_" .. other.UserId
+	billboard.Size = UDim2.fromOffset(160, 90)
+	billboard.StudsOffsetWorldSpace = Vector3.new(0, 5, 0)
+	billboard.AlwaysOnTop = true
+	billboard.LightInfluence = 0
+	billboard.MaxDistance = MAX_DIST
+	billboard.Parent = player:WaitForChild("PlayerGui")
+
+	local arrow = Instance.new("TextLabel")
+	arrow.BackgroundTransparency = 1
+	arrow.Size = UDim2.fromScale(1, 0.45)
+	arrow.Text = "▼"
+	arrow.TextScaled = true
+	arrow.FontFace = Theme.Display
+	arrow.TextColor3 = AMBER
+	arrow.TextStrokeTransparency = 0.25
+	arrow.Parent = billboard
+
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Position = UDim2.fromScale(0, 0.45)
+	label.Size = UDim2.fromScale(1, 0.55)
+	label.TextScaled = true
+	label.FontFace = Theme.Bold
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeTransparency = 0.25
+	label.Parent = billboard
+
+	local edge = UIKit.New("Frame", {
+		Name = "DownedEdge_" .. other.UserId,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(44, 44),
+		BackgroundColor3 = Color3.fromRGB(18, 16, 14),
+		BackgroundTransparency = 0.15,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 20,
+		Parent = screen,
+	}, { UIKit.Corner(8) })
+	local edgeLabel = UIKit.Label({
+		Size = UDim2.fromScale(1, 1),
+		Text = "◀",
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextSize = 22,
+		TextColor3 = AMBER,
+		FontFace = Theme.Display,
+		ZIndex = 21,
+		Parent = edge,
+	})
+
+	local m: Marker = {
+		userId = other.UserId,
+		billboard = billboard,
+		label = label,
+		edge = edge,
+		edgeLabel = edgeLabel,
+	}
+	markers[other.UserId] = m
+	return m
+end
+
+local function rootOf(p: Player): BasePart?
+	local character = p.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		return root
+	end
+	return nil
+end
+
+function DownedMarkerController.Start()
+	screen = UIKit.Screen()
+	local clock = 0
+	RunService.RenderStepped:Connect(function(dt)
+		clock += dt
+		local myRoot = rootOf(player)
+		local camera = Workspace.CurrentCamera
+		if not myRoot or not camera then
+			for id in markers do
+				destroyMarker(id)
+			end
+			return
+		end
+
+		type Candidate = { player: Player, root: BasePart, dist: number }
+		local list: { Candidate } = {}
+		for _, other in Players:GetPlayers() do
+			if other ~= player and other:GetAttribute("Downed") == true then
+				local root = rootOf(other)
+				if root then
+					local dist = (root.Position - myRoot.Position).Magnitude
+					if dist &lt;= MAX_DIST then
+						table.insert(list, { player = other, root = root, dist = dist })
+					end
+				end
+			end
+		end
+		table.sort(list, function(a, b)
+			return a.dist &lt; b.dist
+		end)
+
+		local keep: { [number]: boolean } = {}
+		for i = 1, math.min(MAX_SHOW, #list) do
+			local c = list[i]
+			keep[c.player.UserId] = true
+			local m = ensureMarker(c.player)
+			m.billboard.Adornee = c.root
+			m.billboard.Enabled = true
+			local meters = math.floor(c.dist)
+			local name = string.sub(c.player.DisplayName, 1, 10)
+			m.label.Text = Lang.T("marker.downed", name, meters)
+			-- Gentle pulse when close.
+			local pulse = if c.dist &lt; 30 then 0.85 + 0.15 * math.sin(clock * math.pi * 2) else 1
+			m.billboard.Size = UDim2.fromOffset(160 * pulse, 90 * pulse)
+
+			local screenPos, onScreen = camera:WorldToViewportPoint(c.root.Position + Vector3.new(0, 3, 0))
+			local viewport = camera.ViewportSize
+			if onScreen and screenPos.Z &gt; 0 then
+				m.edge.Visible = false
+			else
+				-- Edge chevron toward off-screen teammate.
+				local dir = Vector2.new(screenPos.X - viewport.X / 2, screenPos.Y - viewport.Y / 2)
+				if dir.Magnitude &lt; 1 then
+					dir = Vector2.new(0, -1)
+				end
+				dir = dir.Unit
+				local margin = 36
+				local edgePos = Vector2.new(viewport.X / 2, viewport.Y / 2) + dir * (math.min(viewport.X, viewport.Y) * 0.42)
+				edgePos = Vector2.new(
+					math.clamp(edgePos.X, margin, viewport.X - margin),
+					math.clamp(edgePos.Y, margin + 40, viewport.Y - margin)
+				)
+				m.edge.Position = UDim2.fromOffset(edgePos.X, edgePos.Y)
+				m.edge.Visible = true
+				m.edgeLabel.Text = Lang.T("marker.downed", name, meters)
+				m.edge.Size = UDim2.fromOffset(120, 40)
+			end
+		end
+		for id in markers do
+			if not keep[id] then
+				destroyMarker(id)
+			end
+		end
+	end)
+
+	Players.PlayerRemoving:Connect(function(leaving)
+		destroyMarker(leaving.UserId)
+	end)
+end
+
+return DownedMarkerController
+</ProtectedString><bool name="Disabled">false</bool></Properties></Item></Item>
     </Item>
   </Item>
   <Item class="Workspace" referent="120">

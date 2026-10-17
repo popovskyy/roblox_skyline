@@ -252,12 +252,10 @@ function PlayerLifecycleService.Init()
 			return
 		end
 		snapshot.inventory = table.clone(data.inventory)
-		snapshot.storage = table.clone(data.storage)
+		-- Team chest contents come from StorageService.Init provider (shared).
 		snapshot.upgrades = table.clone(data.upgrades)
 		snapshot.weight = InventoryService.WeightOf(data.inventory)
 		snapshot.maxWeight = InventoryService.GetCapacity(player)
-		snapshot.storageWeight = InventoryService.WeightOf(data.storage)
-		snapshot.storageCapacity = GameConfig.StorageCapacity
 		snapshot.saveEnabled = PlayerDataService.CanSave(player)
 		local costs = {}
 		for id, def in UpgradeDefinitions.Upgrades do

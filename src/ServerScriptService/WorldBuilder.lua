@@ -1455,7 +1455,13 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	storageVisual.Parent = interactables
 	storageVisual.Name = "StorageCrate"
 	storageVisual:SetAttribute("InteractType", "Storage")
-	addPrompt(storageVisual, "prompt.open", "ui.storage")
+	addPrompt(storageVisual, "prompt.open", "sign.teamChest")
+	sign(
+		storageVisual,
+		"sign.teamChest",
+		storageVisual.CFrame * CFrame.new(0, 4, 0) * CFrame.Angles(0, math.pi, 0),
+		Vector2.new(10, 1.6)
+	)
 	upgradePad(
 		interactables,
 		visuals,

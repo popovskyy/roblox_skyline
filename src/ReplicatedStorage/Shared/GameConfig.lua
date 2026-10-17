@@ -51,6 +51,8 @@ local GameConfig = {
 		Machete = true,
 	} :: { [string]: boolean },
 	BackpackDropLifetimeSeconds = 900,
+	-- Intentional party drops (not death backpacks).
+	GroundDropLifetimeSeconds = 120,
 	RespawnDelaySeconds = 3,
 
 	-- Combat and zombies

@@ -53,6 +53,11 @@ local USE_LABELS: { [string]: string } = {
 	Food = "ui.eat",
 }
 
+local lastSlotItem: string? = nil
+local dropHintShown = false
+local teamChestHintShown = false
+local LONG_PRESS = 0.55
+
 local function clearRows(list: Frame)
 	for _, child in list:GetChildren() do
 		if child:IsA("Frame") then
@@ -153,12 +158,26 @@ local function useItem(itemId: string)
 	(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(itemId)
 end
 
+local function dropItem(itemId: string)
+	local def = ItemDefinitions.Get(itemId)
+	if not def or not def.storable then
+		showTooltip(Lang.T("drop.cantDrop"))
+		return
+	end
+	(remotes:FindFirstChild(RemoteNames.DropItem) :: RemoteEvent):FireServer(itemId, 1)
+	if not dropHintShown then
+		dropHintShown = true
+		showTooltip(Lang.T("toast.dropHint"))
+	end
+end
+
 local function activateSlot(i: number)
 	local itemId = slotItems[i]
 	local def = if itemId then ItemDefinitions.Get(itemId) else nil
 	if not def then
 		return
 	end
+	lastSlotItem = def.id
 	local s = ClientState.Get()
 	local count = s and s.inventory and s.inventory[def.id] or 0
 	local useLabel = USE_LABELS[def.id]
@@ -171,11 +190,12 @@ local function activateSlot(i: number)
 		showTooltip(("%s %s · %s"):format(def.icon, Lang.T("item." .. def.id .. ".name"), Lang.T(useLabel)))
 	else
 		showTooltip(
-			("%s %s ×%d · %s"):format(
+			("%s %s ×%d · %s · [G] %s"):format(
 				def.icon,
 				Lang.T("item." .. def.id .. ".name"),
 				count,
-				Lang.T("item." .. def.id .. ".desc")
+				Lang.T("item." .. def.id .. ".desc"),
+				Lang.T("prompt.drop")
 			)
 		)
 	end
@@ -243,6 +263,35 @@ local function buildHotbar(screen: ScreenGui)
 		end
 		slot.frame.Activated:Connect(function()
 			activateSlot(i)
+		end)
+		-- Long-press a storable stack to drop one for teammates (mobile-friendly).
+		local pressToken = 0
+		slot.frame.InputBegan:Connect(function(input)
+			if
+				input.UserInputType ~= Enum.UserInputType.Touch
+				and input.UserInputType ~= Enum.UserInputType.MouseButton1
+			then
+				return
+			end
+			pressToken += 1
+			local token = pressToken
+			task.delay(LONG_PRESS, function()
+				if token ~= pressToken then
+					return
+				end
+				local itemId = slotItems[i]
+				if itemId then
+					dropItem(itemId)
+				end
+			end)
+		end)
+		slot.frame.InputEnded:Connect(function(input)
+			if
+				input.UserInputType == Enum.UserInputType.Touch
+				or input.UserInputType == Enum.UserInputType.MouseButton1
+			then
+				pressToken += 1
+			end
 		end)
 	end
 
@@ -327,16 +376,21 @@ local function storageSection(
 end
 
 local function renderStorage(s: { [string]: any })
-	storageHeader.Text =
-		Lang.T("ui.storageHeader", s.storageWeight or 0, s.storageCapacity or 0, s.weight or 0, s.maxWeight or 0)
+	storageHeader.Text = Lang.T(
+		"ui.teamStorageHeader",
+		s.storageWeight or 0,
+		s.storageCapacity or 0,
+		s.weight or 0,
+		s.maxWeight or 0
+	)
 	clearRows(storageList)
 	UIKit.New(
 		"Frame",
-		{ Size = UDim2.new(1, -8, 0, 24), BackgroundTransparency = 1, LayoutOrder = 0, Parent = storageList },
+		{ Size = UDim2.new(1, -8, 0, 36), BackgroundTransparency = 1, LayoutOrder = 0, Parent = storageList },
 		{
 			UIKit.Label({
 				Size = UDim2.fromScale(1, 1),
-				Text = Lang.T("ui.chestHint"),
+				Text = Lang.T("ui.teamChestHint"),
 				TextColor3 = C.muted,
 				TextSize = 15,
 			}),
@@ -345,7 +399,7 @@ local function renderStorage(s: { [string]: any })
 	storageSection(1, "ui.backpack", "ui.emptyBackpack", s.inventory or {}, function(itemId, count)
 		transfer("Deposit", itemId, count)
 	end)
-	storageSection(2, "ui.storage", "ui.emptyChest", s.storage or {}, function(itemId, count)
+	storageSection(2, "ui.teamStorage", "ui.emptyChest", s.storage or {}, function(itemId, count)
 		transfer("Withdraw", itemId, count)
 	end)
 end
@@ -355,6 +409,10 @@ function InventoryController.OpenStorage()
 	local s = ClientState.Get()
 	if s then
 		renderStorage(s)
+	end
+	if not teamChestHintShown then
+		teamChestHintShown = true
+		showTooltip(Lang.T("ui.teamChestHint"))
 	end
 	-- Gamepads navigate menus through the selected object, so focus the first button.
 	if UserInputService.GamepadEnabled then
@@ -370,8 +428,13 @@ function InventoryController.Start(remoteFolder: Folder)
 	local screen = UIKit.Screen()
 
 	buildHotbar(screen)
-	storagePanel, storageList, storageHeader =
-		makeWindow("Storage", "ui.storage", UDim2.new(0, 560, 0.8, 0), UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
+	storagePanel, storageList, storageHeader = makeWindow(
+		"Storage",
+		"ui.teamStorage",
+		UDim2.new(0, 560, 0.8, 0),
+		UDim2.fromScale(0.5, 0.5),
+		Vector2.new(0.5, 0.5)
+	)
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then
@@ -380,6 +443,10 @@ function InventoryController.Start(remoteFolder: Folder)
 		local slotIndex = table.find(NUMBER_KEYS, input.KeyCode)
 		if slotIndex then
 			activateSlot(slotIndex)
+		elseif input.KeyCode == Enum.KeyCode.G then
+			if lastSlotItem then
+				dropItem(lastSlotItem)
+			end
 		elseif input.KeyCode == Enum.KeyCode.DPadUp then
 			useItem("Medkit")
 		elseif input.KeyCode == Enum.KeyCode.DPadDown then

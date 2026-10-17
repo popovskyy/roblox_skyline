@@ -3,7 +3,8 @@
 -- under game.PrivateServerId. Here:
 --   * the base starts from the leader's saved upgrades (members keep anything extra they had),
 --   * anything a member builds is written into every member's save,
---   * inventory, storage and resource nodes stay personal.
+--   * inventory stays personal; the roof chest is shared (StorageService team stash);
+--   * resource nodes stay personal (co-op loot duplication still TBD).
 -- With no party record (Studio, a public server, a failed read) every player plays solo.
 
 local MemoryStoreService = game:GetService("MemoryStoreService")

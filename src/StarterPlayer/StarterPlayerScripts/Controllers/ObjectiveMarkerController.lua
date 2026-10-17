@@ -1,6 +1,6 @@
 --!strict
 -- A floating "here" arrow over the place the current tutorial step needs: the terminal, the stairs,
--- the chest spot, the generator, the bridge. Visible through walls, with the distance under it.
+-- nearest scrap/electronics, the chest spot, the generator, the bridge. Visible through walls.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,6 +31,59 @@ end
 
 local STAIRS = { "Stairwell", "Ramp0_Down" }
 
+local function playerRoot(): BasePart?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		return root
+	end
+	return nil
+end
+
+local function isTaken(part: BasePart, s: { [string]: any }): boolean
+	local nodeId = part:GetAttribute("NodeId")
+	if type(nodeId) ~= "string" then
+		return true
+	end
+	if part:GetAttribute("Unique") == true then
+		return s.uniqueNodesTaken ~= nil and s.uniqueNodesTaken[nodeId] == true
+	end
+	return s.depletedNodes ~= nil and s.depletedNodes[nodeId] == true
+end
+
+local function rubbleOk(part: BasePart, s: { [string]: any }): boolean
+	local required = part:GetAttribute("RequiresRubble")
+	if type(required) ~= "string" then
+		return true
+	end
+	return s.clearedRubble ~= nil and s.clearedRubble[required] == true
+end
+
+-- Nearest available resource node of the given item (not depleted, rubble cleared if gated).
+local function nearestResource(itemId: string, s: { [string]: any }): BasePart?
+	local world = workspace:FindFirstChild(GameConfig.World.FolderName)
+	local folder = world and world:FindFirstChild("Interactables")
+	if not folder then
+		return nil
+	end
+	local root = playerRoot()
+	local best: BasePart? = nil
+	local bestDist = math.huge
+	local origin = if root then root.Position else Vector3.zero
+	for _, d in folder:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("InteractType") == "Resource" and d:GetAttribute("ItemId") == itemId then
+			if not isTaken(d, s) and rubbleOk(d, s) then
+				local dist = (d.Position - origin).Magnitude
+				if dist < bestDist then
+					best = d
+					bestDist = dist
+				end
+			end
+		end
+	end
+	return best
+end
+
 -- Which part the marker points at for each tutorial step (see TutorialService).
 local function targetFor(s: { [string]: any }): BasePart?
 	local tutorial = s.tutorial
@@ -40,8 +93,11 @@ local function targetFor(s: { [string]: any }): BasePart?
 	local step = tutorial.step
 	if step == 1 then
 		return find({ "Interactables", "EmergencyTerminal" })
-	elseif step == 2 or step == 5 then
-		return find(STAIRS)
+	elseif step == 2 then
+		-- Point at nearest scrap, not the stairs (gap-report G1.2).
+		return nearestResource("Scrap", s) or find(STAIRS)
+	elseif step == 5 then
+		return nearestResource("Electronics", s) or find(STAIRS)
 	elseif step == 3 then
 		return find({ "RoofBase", "RoofSpawn" })
 	elseif step == 4 then
@@ -103,17 +159,22 @@ function ObjectiveMarkerController.Start()
 		refresh()
 	end)
 
-	-- Gentle bob and the live distance.
+	-- Gentle bob and the live distance; re-pick nearest loot periodically.
 	local clock = 0
+	local retargetAt = 0
 	RunService.RenderStepped:Connect(function(dt)
+		clock += dt
+		retargetAt += dt
+		if retargetAt > 0.5 then
+			retargetAt = 0
+			refresh()
+		end
 		if not target then
 			return
 		end
-		clock += dt
 		billboard.StudsOffsetWorldSpace = Vector3.new(0, 7 + math.sin(clock * 3) * 0.6, 0)
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if root and root:IsA("BasePart") then
+		local root = playerRoot()
+		if root then
 			local distance = math.floor((root.Position - target.Position).Magnitude)
 			distanceLabel.Text = Lang.T("marker.here", distance)
 		end

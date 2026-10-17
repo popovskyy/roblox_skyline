@@ -39,6 +39,9 @@ type Zombie = {
 local zombies: { Zombie } = {}
 local folder: Folder? = nil
 local spawnPoints: { [number]: { Vector3 } } = {}
+-- Once a floor's wave is wiped, no more respawns for the rest of this visit (design loops §3).
+local floorCleared: { [number]: boolean } = {}
+local floorAlive: { [number]: number } = {}
 
 -- Open spots on each floor, away from the stairwell and rubble wings (scaled to 240 plate).
 local function sp(x: number, z: number): Vector2
@@ -182,6 +185,7 @@ spawnZombie = function(level: number)
 		wanderAt = 0,
 	}
 	table.insert(zombies, z)
+	floorAlive[level] = (floorAlive[level] or 0) + 1
 	playAnimations(z)
 
 	humanoid.Died:Once(function()
@@ -189,10 +193,14 @@ spawnZombie = function(level: number)
 		if index then
 			table.remove(zombies, index)
 		end
+		floorAlive[level] = math.max(0, (floorAlive[level] or 1) - 1)
+		if (floorAlive[level] or 0) <= 0 then
+			floorCleared[level] = true
+		end
 		task.delay(3, function()
 			model:Destroy()
 		end)
-		task.delay(Z.RespawnSeconds, spawnZombie, level)
+		-- No timed respawn: initial PerFloor wave only. Cleared floors stay clear (design loops §3).
 	end)
 end
 

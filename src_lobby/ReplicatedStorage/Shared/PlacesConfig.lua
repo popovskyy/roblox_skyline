@@ -5,7 +5,7 @@
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b14 · elevators-party-size",
+	Build = "b15 · drop-chest-hud-zombies",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,

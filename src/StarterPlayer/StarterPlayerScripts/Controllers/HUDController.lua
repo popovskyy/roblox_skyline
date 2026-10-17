@@ -243,10 +243,31 @@ local function updateFlashlight()
 	flashlightText.TextColor3 = if seconds <= 0 then C.bad elseif on then C.accent else C.muted
 end
 
-local function onState(s: { [string]: any })
-	if s.tutorial then
-		objectiveText.Text = Lang.T("hud.objective", { ref = s.tutorial.text })
+local function objectiveLine(s: { [string]: any }): string
+	local tutorial = s.tutorial
+	if not tutorial then
+		return ""
 	end
+	if tutorial.done then
+		return Lang.T("hud.objective", { ref = "tutorial.done" })
+	end
+	local step = tutorial.step
+	local inv = s.inventory or {}
+	local storage = s.storage or {}
+	local function total(id: string): number
+		return (inv[id] or 0) + (storage[id] or 0)
+	end
+	-- Live n/m for loot steps (gap-report G1.1 / first-session-ux §3).
+	if step == 2 then
+		return Lang.T("hud.objective", Lang.T("tutorial.scrapProgress", math.min(total("Scrap"), 3), 3))
+	elseif step == 5 then
+		return Lang.T("hud.objective", Lang.T("tutorial.elecProgress", math.min(total("Electronics"), 4), 4))
+	end
+	return Lang.T("hud.objective", { ref = tutorial.text })
+end
+
+local function onState(s: { [string]: any })
+	objectiveText.Text = objectiveLine(s)
 	actsText.Text = Lang.T("hud.systems", s.acts or 0)
 	updateFlashlight()
 end

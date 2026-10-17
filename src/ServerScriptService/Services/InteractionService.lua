@@ -15,6 +15,7 @@ local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlayerLifecycleService = require(script.Parent.PlayerLifecycleService)
 local RateLimiter = require(script.Parent.RateLimiter)
+local DropService = require(script.Parent.DropService)
 local ResourceService = require(script.Parent.ResourceService)
 local TutorialService = require(script.Parent.TutorialService)
 
@@ -62,6 +63,9 @@ local handlers: { [string]: Handler } = {
 	end,
 	LootChest = function(player, target)
 		return ResourceService.OpenCrate(player, target)
+	end,
+	GroundDrop = function(player, target)
+		return DropService.Pickup(player, target)
 	end,
 	Workbench = function(player)
 		return CraftService.Open(player)
