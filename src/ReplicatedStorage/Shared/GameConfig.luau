@@ -70,13 +70,15 @@ local GameConfig = {
 	-- Combat and zombies
 	Zombie = {
 		MaxHealth = 60,
-		WalkSpeed = 11, -- players run at 16, so running away works
+		WalkSpeed = 10, -- players run at 16; slightly slower so kite/flee reads
 		Damage = 12,
 		AttackCooldown = 1.2,
 		AttackRange = 4.5,
-		AggroRange = 45,
+		AggroRange = 32, -- less magnet across the whole plate
 		RespawnSeconds = 0, -- unused: zombies do not respawn
-		PerFloor = { 1, 2, 3, 4 }, -- floors 1..4: one more zombie on every floor down; the roof is always safe
+		-- Group counts; solo uses PerFloorSolo (−1 each, min 1) when only one player is in the server.
+		PerFloor = { 2, 4, 5, 6 },
+		PerFloorSolo = { 1, 3, 4, 5 },
 	},
 
 	-- Timed roof horde: does not respawn floor zombies; only spawns a new wave up the stairs.
@@ -113,35 +115,32 @@ local GameConfig = {
 	ReviveHoldSeconds = 3,
 
 	-- Loot crates: each roll picks "count" from min..max; "chance" makes the item optional.
+	-- Rarity identity (slow-survival-loop): Common = crumbs; Rare = mats+Bat; Gold = Elec+heals+Pipe;
+	-- Diamond = Cable-adjacent + Machete chance.
 	LootTables = {
 		Common = {
-			{ item = "Scrap", min = 1, max = 3 },
-			{ item = "Food", min = 1, max = 2, chance = 0.7 },
-			{ item = "Bandage", min = 1, max = 1, chance = 0.25 },
-			{ item = "Bat", min = 1, max = 1, chance = 0.08 },
+			{ item = "Scrap", min = 1, max = 2 },
+			{ item = "Food", min = 1, max = 1, chance = 0.35 },
+			{ item = "Bandage", min = 1, max = 1, chance = 0.15 },
 		},
 		Rare = {
-			{ item = "Scrap", min = 2, max = 4 },
-			{ item = "Electronics", min = 1, max = 2 },
-			{ item = "Bandage", min = 1, max = 1, chance = 0.5 },
-			{ item = "Medkit", min = 1, max = 1, chance = 0.3 },
-			{ item = "Bat", min = 1, max = 1, chance = 0.3 },
-			{ item = "Pipe", min = 1, max = 1, chance = 0.2 },
+			{ item = "Scrap", min = 1, max = 3 },
+			{ item = "Electronics", min = 1, max = 1 },
+			{ item = "Bandage", min = 1, max = 1, chance = 0.45 },
+			{ item = "Bat", min = 1, max = 1, chance = 0.28 },
 		},
 		Gold = {
 			{ item = "Electronics", min = 2, max = 3 },
-			{ item = "Bandage", min = 1, max = 2 },
-			{ item = "Medkit", min = 1, max = 1 },
-			{ item = "Pipe", min = 1, max = 1, chance = 0.35 },
-			{ item = "Machete", min = 1, max = 1, chance = 0.2 },
-			{ item = "Key", min = 1, max = 1, chance = 0.25 },
+			{ item = "Bandage", min = 1, max = 1, chance = 0.6 },
+			{ item = "Medkit", min = 1, max = 1, chance = 0.4 },
+			{ item = "Pipe", min = 1, max = 1, chance = 0.3 },
+			{ item = "Key", min = 1, max = 1, chance = 0.22 },
 		},
 		Diamond = {
-			{ item = "Electronics", min = 3, max = 4 },
+			{ item = "Electronics", min = 2, max = 4 },
 			{ item = "Cable", min = 1, max = 1 },
-			{ item = "Bandage", min = 2, max = 2 },
 			{ item = "Medkit", min = 1, max = 1 },
-			{ item = "Machete", min = 1, max = 1, chance = 0.6 },
+			{ item = "Machete", min = 1, max = 1, chance = 0.55 },
 		},
 	} :: { [string]: { { item: string, min: number, max: number, chance: number? } } },
 
@@ -150,13 +149,13 @@ local GameConfig = {
 	Loot = {
 		TierOrder = { "Common", "Rare", "Gold", "Diamond" },
 		TierOdds = {
-			{ 80, 18, 2, 0 },
-			{ 65, 28, 6, 1 },
-			{ 50, 32, 14, 4 },
-			{ 35, 35, 20, 10 },
+			{ 88, 11, 1, 0 },
+			{ 70, 24, 5, 1 },
+			{ 48, 32, 16, 4 },
+			{ 25, 35, 25, 15 },
 		},
 		-- Chance that a crate turns one tier better at the end of the opening hold.
-		UpgradeChance = 0.12,
+		UpgradeChance = 0.08,
 		-- Bad-luck protection: a player who has not seen a gold crate by this floor gets one next.
 		PityFloor = 3,
 		HoldSeconds = 0.8,
@@ -195,8 +194,8 @@ local GameConfig = {
 		{ id = "Bandage", cost = { Food = 1, Scrap = 1 } },
 		-- Medkits are rare in the floors; two bandages and a can make one.
 		{ id = "Medkit", cost = { Bandage = 2, Food = 1 } },
-		{ id = "Bat", cost = { Scrap = 2 } },
-		{ id = "Pipe", cost = { Scrap = 4 } },
+		{ id = "Bat", cost = { Scrap = 5 } },
+		{ id = "Pipe", cost = { Scrap = 6 } },
 		{ id = "Machete", cost = { Scrap = 5, Electronics = 2 } },
 	} :: { { id: string, cost: { [string]: number } } },
 

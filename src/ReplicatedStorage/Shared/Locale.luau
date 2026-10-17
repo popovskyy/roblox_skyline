@@ -223,9 +223,9 @@ local S: { [string]: Entry } = {
 	},
 
 	["interact.noStorage"] = {
-		uk = "Скрині ще немає. Збудуй її за 8 металобрухту",
-		ru = "Сундука ещё нет. Построй его за 8 металлолома",
-		en = "No chest yet. Build it for 8 scrap",
+		uk = "Скрині ще немає. Збудуй її за 10 металобрухту",
+		ru = "Сундука ещё нет. Построй его за 10 металлолома",
+		en = "No chest yet. Build it for 10 scrap",
 	},
 	["interact.gateLocked"] = {
 		uk = "Двері заблоковано. Потрібен генератор на даху",
@@ -383,9 +383,9 @@ local S: { [string]: Entry } = {
 		en = "Find the emergency terminal on the roof",
 	},
 	["tutorial.2"] = {
-		uk = "Спустись сходами й збери 8 металобрухту на технічному поверсі",
-		ru = "Спустись по лестнице и собери 8 металлолома на техническом этаже",
-		en = "Take the stairs down and collect 8 scrap on the technical floor",
+		uk = "Спустись сходами й збери 10 металобрухту на технічному поверсі",
+		ru = "Спустись по лестнице и собери 10 металлолома на техническом этаже",
+		en = "Take the stairs down and collect 10 scrap on the technical floor",
 	},
 	["tutorial.3"] = {
 		uk = "Повернись на дах",
@@ -393,14 +393,14 @@ local S: { [string]: Entry } = {
 		en = "Return to the roof",
 	},
 	["tutorial.4"] = {
-		uk = "Збудуй скриню на даху (8 металобрухту)",
-		ru = "Построй сундук на крыше (8 металлолома)",
-		en = "Build the chest on the roof (8 scrap)",
+		uk = "Збудуй скриню на даху (10 металобрухту)",
+		ru = "Построй сундук на крыше (10 металлолома)",
+		en = "Build the chest on the roof (10 scrap)",
 	},
 	["tutorial.5"] = {
-		uk = "Знайди 4 електроніки",
-		ru = "Найди 4 электроники",
-		en = "Find 4 electronics",
+		uk = "Знайди 5 електроніки",
+		ru = "Найди 5 электроники",
+		en = "Find 5 electronics",
 	},
 	["tutorial.6"] = {
 		uk = "Увімкни генератор на даху",

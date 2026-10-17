@@ -48,12 +48,12 @@ local Steps: { Step } = {
 	{
 		text = "tutorial.2",
 		sticky = false,
-		-- Enough for the chest right away, so the next steps follow without a second trip for scrap.
+		-- Chest costs 10 Scrap: one careful F1 (path 8 + soft wing 2).
 		complete = function(player)
-			return StorageService.Total(player, "Scrap") >= 8
+			return StorageService.Total(player, "Scrap") >= 10
 		end,
 		progress = function(player)
-			return math.min(StorageService.Total(player, "Scrap"), 8), 8
+			return math.min(StorageService.Total(player, "Scrap"), 10), 10
 		end,
 	},
 	{
@@ -74,10 +74,10 @@ local Steps: { Step } = {
 		text = "tutorial.5",
 		sticky = false,
 		complete = function(player)
-			return StorageService.Total(player, "Electronics") >= 4
+			return StorageService.Total(player, "Electronics") >= 5
 		end,
 		progress = function(player)
-			return math.min(StorageService.Total(player, "Electronics"), 4), 4
+			return math.min(StorageService.Total(player, "Electronics"), 5), 5
 		end,
 	},
 	{

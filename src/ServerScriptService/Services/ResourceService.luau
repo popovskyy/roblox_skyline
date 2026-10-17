@@ -1,5 +1,6 @@
 --!strict
--- Resource nodes and rubble. Node state is kept per player, so co-op players never take each other's loot.
+-- Resource nodes and rubble. Node state is kept per player for floor scrap/food nodes.
+-- Loot crates and rubble are shared: once opened/cleared, the whole party sees them empty.
 -- Resources are handed out only after every server check passes.
 --
 -- Node attributes:  NodeId, ItemId, Amount, Unique?, RequiresUpgrade?, RequiresRubble?
@@ -24,8 +25,7 @@ local ZombieService = require(script.Parent.ZombieService)
 local ResourceService = {}
 
 type PlayerNodes = {
-	depleted: { [string]: boolean }, -- normal nodes, refilled on roof return
-	opened: { [string]: boolean }, -- loot crates, opened once per match
+	depleted: { [string]: boolean }, -- normal nodes (no roof refill in Phase A)
 	seenGold: boolean, -- opened a gold or diamond crate this match (bad-luck protection)
 	holdStart: number?, -- when the player started holding a locked crate's prompt
 	holdCrate: Instance?,
@@ -34,16 +34,24 @@ type PlayerNodes = {
 local state: { [Player]: PlayerNodes } = {}
 -- Rubble is shared: once anyone clears a pile it is gone for the whole team.
 local clearedRubble: { [string]: boolean } = {}
+-- Loot crates are shared: one open empties the crate for every teammate.
+local openedCrates: { [string]: boolean } = {}
 -- One-shot toast: Scrap (металобрухт) ≠ Crowbar (лом).
 local scrapHinted: { [Player]: boolean } = {}
 
 local function getState(player: Player): PlayerNodes
 	local s = state[player]
 	if not s then
-		s = { depleted = {}, opened = {}, seenGold = false }
+		s = { depleted = {}, seenGold = false }
 		state[player] = s
 	end
 	return s
+end
+
+local function syncEveryone()
+	for _, other in Players:GetPlayers() do
+		StateSyncService.Request(other)
+	end
 end
 
 -- Checks the access attributes a node or rubble may carry. Returns a reason when access is denied.
@@ -152,9 +160,7 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 		Net.Notify(player, "rubble.cleared", "success")
 	end
 	-- Everyone's world updates: the pile disappears for all players.
-	for _, other in Players:GetPlayers() do
-		StateSyncService.Request(other)
-	end
+	syncEveryone()
 	return true, nil
 end
 
@@ -213,7 +219,7 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 		return false, nil
 	end
 	local s = getState(player)
-	if s.opened[nodeId] then
+	if openedCrates[nodeId] then
 		return false, "loot.empty"
 	end
 	local denied = ResourceService.CheckAccess(player, crate)
@@ -248,7 +254,7 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 	if useKey and not InventoryService.Remove(player, "Key", 1) then
 		return false, "loot.locked"
 	end
-	s.opened[nodeId] = true
+	openedCrates[nodeId] = true
 	s.holdStart = nil
 	s.holdCrate = nil
 	if tierIndex(final) >= tierIndex("Gold") then
@@ -266,8 +272,8 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 	for id, amount in loot do
 		InventoryService.ForceAdd(player, id, amount)
 	end
-	StateSyncService.Request(player)
-	-- Everyone sees the burst; only the opener gets the items flying out. Gold and diamond get a banner.
+	-- Everyone sees the crate empty; only the opener gets the items.
+	syncEveryone()
 	Net.Get(RemoteNames.LootOpened):FireAllClients(crate, tier, final, player.UserId, player.DisplayName, loot)
 	return true, nil
 end
@@ -276,6 +282,7 @@ end
 function ResourceService.ResetMatch(player: Player)
 	state[player] = nil
 	table.clear(clearedRubble)
+	table.clear(openedCrates)
 	StateSyncService.Request(player)
 end
 
@@ -296,7 +303,7 @@ function ResourceService.Init()
 		local s = getState(player)
 		local data = PlayerDataService.Get(player)
 		local depleted = table.clone(s.depleted)
-		for nodeId in s.opened do
+		for nodeId in openedCrates do
 			depleted[nodeId] = true
 		end
 		snapshot.depletedNodes = depleted

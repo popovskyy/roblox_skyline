@@ -391,7 +391,9 @@ function ZombieService.Start(root: Folder)
 		end
 		spawnPoints[level] = list
 	end
-	for level, count in Z.PerFloor do
+	local solo = #Players:GetPlayers() <= 1
+	local perFloor = if solo and Z.PerFloorSolo then Z.PerFloorSolo else Z.PerFloor
+	for level, count in perFloor do
 		for _ = 1, count do
 			task.spawn(spawnZombie, level)
 		end

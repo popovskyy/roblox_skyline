@@ -5,6 +5,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 ## Unreleased (local) · 17.10
 
+### Loot rarity, shared crates, slower build (Phase A5–A8)
+- Fewer crates; opening one empties it for the whole party. Loot tables: Common crumbs only (no Bat);
+  Rare carries Bat; Gold/Diamond keep identity; lower upgrade chance; F1 odds Common-heavy. Build costs
+  up (Chest 10 / Gen 8+5 / Filter 6+6 / Bridge 12); Barricade cheaper (6+1). Bat craft 5 scrap, Pipe 6.
+  Tutorial 10 scrap / 5 electronics. Zombies 2/4/5/6 (solo −1), WalkSpeed 10, Aggro 32.
+- Check in game: co-op — teammate cannot re-loot an opened crate; Common feels weak vs Rare/Gold;
+  Chest needs a full F1 trip; Barricade is affordable insurance; floors feel more populated.
+
 ### Scrap path, soft rubble, scarcity (Phase A2–A4)
 - Scrap nodes are larger, warmer metal with a glow; F1 has fixed scrap by the stairs (6) plus 2 behind a
   new soft-rubble wing; F1 Crowbar room stays soft clear. Soft rubble hold 3 s, Crowbar/hard 5 s. F2 soft
