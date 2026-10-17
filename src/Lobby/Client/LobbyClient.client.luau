@@ -53,6 +53,39 @@ task.spawn(function()
 	end)
 end)
 
+-- Tokens -----------------------------------------------------------------------------------------------
+local tokenChip = UIKit.Panel({
+	Name = "Tokens",
+	-- Under the Roblox menu buttons in the top-left corner.
+	Position = UDim2.fromOffset(12, 64),
+	Size = UDim2.fromOffset(0, 40),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundColor3 = Color3.fromRGB(18, 19, 21),
+	Visible = false,
+	Parent = screen,
+})
+UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14), Parent = tokenChip })
+UIKit.New("UIStroke", { Color = Color3.fromRGB(255, 196, 64), Transparency = 0.5, Thickness = 1.5, Parent = tokenChip })
+local tokenLabel = UIKit.Label({
+	Size = UDim2.fromScale(0, 1),
+	AutomaticSize = Enum.AutomaticSize.X,
+	FontFace = Theme.Display,
+	TextSize = 22,
+	TextColor3 = Color3.fromRGB(255, 196, 64),
+	TextWrapped = false,
+	Parent = tokenChip,
+})
+local function updateTokens()
+	local tokens = Players.LocalPlayer:GetAttribute("Tokens")
+	tokenChip.Visible = type(tokens) == "number"
+	if type(tokens) == "number" then
+		tokenLabel.Text = Lang.T("lobby.tokens", tokens)
+	end
+end
+Players.LocalPlayer:GetAttributeChangedSignal("Tokens"):Connect(updateTokens)
+Lang.Changed:Connect(updateTokens)
+updateTokens()
+
 -- Messages ---------------------------------------------------------------------------------------------
 local toastHolder = UIKit.New("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),

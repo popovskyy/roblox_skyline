@@ -35,5 +35,18 @@ LiftService.Start(world.lifts, function(player, message, kind)
 end)
 LeaderboardService.Start(world.leaderboardRows)
 
+-- Tokens earned in matches, shown in the lobby HUD.
+local MetaProgress = require(ReplicatedStorage.Shared.MetaProgress)
+local function loadTokens(player: Player)
+	local meta = MetaProgress.Load(player.UserId)
+	if player.Parent == Players then
+		player:SetAttribute("Tokens", meta.tokens)
+	end
+end
+Players.PlayerAdded:Connect(loadTokens)
+for _, player in Players:GetPlayers() do
+	task.spawn(loadTokens, player)
+end
+
 local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
 print(("[Skyline Zero] Lobby ready, build %s, tower place %d"):format(PlacesConfig.Build, PlacesConfig.TowerPlaceId))

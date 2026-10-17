@@ -10,9 +10,8 @@ local TeleportService = game:GetService("TeleportService")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
-local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local DamageService = require(script.Parent.DamageService)
-local Net = require(script.Parent.Net)
+local MatchStatsService = require(script.Parent.MatchStatsService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local ResourceService = require(script.Parent.ResourceService)
 
@@ -30,6 +29,7 @@ local function restartPlayer(player: Player)
 	end
 	PlayerDataService.Reset(player)
 	ResourceService.ResetMatch(player)
+	MatchStatsService.Reset(player)
 	player:LoadCharacter()
 end
 
@@ -57,13 +57,9 @@ local function onAllDown()
 		return
 	end
 	ending = true
+	-- The results screen (tokens counted up) doubles as the "you lost" screen.
 	for _, player in Players:GetPlayers() do
-		Net.Get(RemoteNames.ShowNote):FireClient(player, {
-			kind = "ending",
-			title = "gameover.title",
-			body = "gameover.body",
-			footer = "gameover.footer",
-		})
+		task.spawn(MatchStatsService.Finish, player, false, true)
 	end
 	task.wait(GameConfig.GameOverSeconds)
 	if not sendToLobby() then

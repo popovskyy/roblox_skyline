@@ -10,6 +10,7 @@ local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
 local HazardService = require(script.Parent.HazardService)
+local MatchStatsService = require(script.Parent.MatchStatsService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local StateSyncService = require(script.Parent.StateSyncService)
@@ -158,12 +159,8 @@ local function onZoneChanged(player: Player, newZone: string)
 		task.spawn(PlayerDataService.Save, player)
 		task.spawn(recordCompletion, player)
 	end
-	Net.Get(RemoteNames.ShowNote):FireClient(player, {
-		kind = "ending",
-		title = "ending.title",
-		body = "ending.body",
-		footer = "ending.footer",
-	})
+	-- The results screen shows the win and the doubled tokens.
+	task.spawn(MatchStatsService.Finish, player, true, true)
 end
 
 function TutorialService.Init()

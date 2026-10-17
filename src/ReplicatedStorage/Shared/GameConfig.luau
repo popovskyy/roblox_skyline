@@ -68,7 +68,7 @@ local GameConfig = {
 	-- Downed instead of dead: you lie there until a teammate with a Bandage lifts you up.
 	-- Everyone down = the match is lost; after GameOverSeconds the party goes back to the lobby.
 	ReviveHealth = 35,
-	GameOverSeconds = 8,
+	GameOverSeconds = 11, -- long enough for the results screen to count up
 	ReviveHoldSeconds = 3,
 
 	-- Loot crates: each roll picks "count" from min..max; "chance" makes the item optional.
@@ -121,6 +121,16 @@ local GameConfig = {
 		BreakInSeconds = 5,
 		BreakInNoiseRadius = 45,
 		BreakInAlertSeconds = 12,
+	},
+
+	-- Tokens earned in a match (kept even when the match is lost; doubled for a win).
+	Tokens = {
+		PerFloor = 5, -- for the deepest floor reached (floor 3 = 15)
+		Chest = { Common = 2, Rare = 4, Gold = 8, Diamond = 15 } :: { [string]: number },
+		Zombie = 3,
+		Build = 6,
+		Revive = 5,
+		WinMultiplier = 2,
 	},
 
 	-- Workbench on the roof.

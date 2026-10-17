@@ -26,6 +26,8 @@ local ZombieService = require(Services.ZombieService)
 local CombatService = require(Services.CombatService)
 local CraftService = require(Services.CraftService)
 local MatchService = require(Services.MatchService)
+local MatchStatsService = require(Services.MatchStatsService)
+local BaseUpgradeService = require(Services.BaseUpgradeService)
 
 Net.Init()
 PlayerDataService.Init()
@@ -49,6 +51,12 @@ else
 end
 
 HazardService.OnReturnedToRoof(ResourceService.OnReturnedToRoof)
+HazardService.OnZoneChanged(function(player, newZone)
+	MatchStatsService.ReachedZone(player, newZone)
+end)
+BaseUpgradeService.OnPurchased(function(player)
+	MatchStatsService.Built(player)
+end)
 
 PlayerDataService.Start()
 MonetizationService.Start()
@@ -62,6 +70,7 @@ DamageService.Start()
 CombatService.Start()
 CraftService.Start()
 MatchService.Start()
+MatchStatsService.Start()
 PlayerLifecycleService.Start() -- last: it loads characters, so everything above must be ready
 
 print(("[Skyline Zero] Server ready, build %s"):format(require(ReplicatedStorage.Shared.PlacesConfig).Build))

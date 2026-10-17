@@ -11,6 +11,7 @@ local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local DamageService = require(script.Parent.DamageService)
+local MatchStatsService = require(script.Parent.MatchStatsService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PropLibrary = require(script.Parent.Parent.PropLibrary)
@@ -232,7 +233,11 @@ local function swing(player: Player)
 			if flat.Magnitude <= weapon.range and math.abs(offset.Y) < 5 then
 				local facing = if flat.Magnitude > 0.1 then look:Dot(flat.Unit) else 1
 				if facing > 0.2 then
+					local wasAlive = z.humanoid.Health > 0
 					z.humanoid:TakeDamage(weapon.damage)
+					if wasAlive and z.humanoid.Health <= 0 then
+						MatchStatsService.KilledZombie(player)
+					end
 					SfxService.Play("HitBlunt", z.root)
 					-- A little shove so hits feel solid.
 					local push = if flat.Magnitude > 0.1 then flat.Unit else look

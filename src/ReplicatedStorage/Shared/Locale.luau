@@ -676,6 +676,41 @@ local S: { [string]: Entry } = {
 		ru = "Возвращаемся в лобби…",
 		en = "Back to the lobby…",
 	},
+	["results.floor"] = {
+		uk = "Найглибший поверх",
+		ru = "Самый глубокий этаж",
+		en = "Deepest floor",
+	},
+	["results.chests"] = {
+		uk = "Відкрито скринь",
+		ru = "Открыто сундуков",
+		en = "Chests opened",
+	},
+	["results.zombies"] = { uk = "Убито зомбі", ru = "Убито зомби", en = "Zombies killed" },
+	["results.builds"] = { uk = "Збудовано", ru = "Построено", en = "Built" },
+	["results.revives"] = {
+		uk = "Піднято тіммейтів",
+		ru = "Поднято тиммейтов",
+		en = "Teammates lifted",
+	},
+	["results.winBonus"] = { uk = "Перемога ×%d", ru = "Победа ×%d", en = "Victory ×%d" },
+	["results.earned"] = { uk = "+%d жетонів", ru = "+%d жетонов", en = "+%d tokens" },
+	["results.total"] = {
+		uk = "Усього жетонів: %d",
+		ru = "Всего жетонов: %d",
+		en = "Total tokens: %d",
+	},
+	["results.best"] = {
+		uk = "Найкраща скриня: %s",
+		ru = "Лучший сундук: %s",
+		en = "Best chest: %s",
+	},
+	["results.lostSub"] = {
+		uk = "Жетони за матч усе одно твої.",
+		ru = "Жетоны за матч всё равно твои.",
+		en = "You keep the tokens you earned.",
+	},
+	["lobby.tokens"] = { uk = "Жетони: %d", ru = "Жетоны: %d", en = "Tokens: %d" },
 	["intro.kicker"] = { uk = "SKYLINE ZERO", ru = "SKYLINE ZERO", en = "SKYLINE ZERO" },
 	["intro.title"] = { uk = "МІСТО ВПАЛО", ru = "ГОРОД ПАЛ", en = "THE CITY FELL" },
 	["intro.body"] = {

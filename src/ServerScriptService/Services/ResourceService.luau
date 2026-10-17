@@ -17,6 +17,7 @@ local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
+local MatchStatsService = require(script.Parent.MatchStatsService)
 local StateSyncService = require(script.Parent.StateSyncService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -241,6 +242,7 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 	if tierIndex(final) >= tierIndex("Gold") then
 		s.seenGold = true
 	end
+	MatchStatsService.OpenedChest(player, final)
 	SfxService.Play("CrateOpen", crate.Position)
 	if breakIn then
 		SfxService.Play("BreakIn", crate.Position)
