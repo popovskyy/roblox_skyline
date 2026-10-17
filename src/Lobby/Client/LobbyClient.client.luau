@@ -228,15 +228,13 @@ TeleportService:SetTeleportGui(teleportGui)
 local musicGroup = Instance.new("SoundGroup")
 musicGroup.Name = "Music"
 musicGroup.Parent = SoundService
-local muted = false
-local track: Sound? = nil
 local index = math.random(1, #MusicConfig.Roof)
 
 local function playNext()
 	index = index % #MusicConfig.Roof + 1
 	local sound = Instance.new("Sound")
 	sound.SoundId = "rbxassetid://" .. tostring(MusicConfig.Roof[index])
-	sound.Volume = if muted then 0 else MusicConfig.Volume
+	sound.Volume = MusicConfig.Volume
 	sound.SoundGroup = musicGroup
 	sound.Parent = SoundService
 	sound.Ended:Once(function()
@@ -244,22 +242,5 @@ local function playNext()
 		playNext()
 	end)
 	sound:Play()
-	track = sound
 end
 playNext()
-
-local musicButton = UIKit.Button({
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -12, 0, 8),
-	Size = UDim2.fromOffset(44, 44),
-	Text = "♪",
-	TextSize = 22,
-	Parent = screen,
-})
-musicButton.Activated:Connect(function()
-	muted = not muted
-	musicButton.Text = if muted then "✕♪" else "♪"
-	if track then
-		track.Volume = if muted then 0 else MusicConfig.Volume
-	end
-end)

@@ -287,6 +287,9 @@ function CombatService.Start()
 			task.wait(1)
 			for _, player in Players:GetPlayers() do
 				refreshTool(player)
+				-- Teammates' downed screens show who can lift them.
+				local data = PlayerDataService.Get(player)
+				player:SetAttribute("HasBandage", data ~= nil and (data.inventory.Bandage or 0) > 0)
 			end
 		end
 	end)

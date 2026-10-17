@@ -63,8 +63,13 @@ function UIKit.Panel(props: { [string]: any }): Frame
 	return UIKit.New("Frame", merged, { UIKit.Corner(10) })
 end
 
--- Phones scale the whole UI down (see Screen), so small labels get a floor to stay readable.
-local TOUCH_MIN_TEXT = 17
+-- Phones use their own layout at scale 1; nothing smaller than this stays readable there.
+local TOUCH_MIN_TEXT = 13
+
+-- A phone or tablet without a keyboard: gets the touch layout.
+function UIKit.IsTouch(): boolean
+	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
 
 function UIKit.Label(props: { [string]: any }): TextLabel
 	local merged = {
@@ -78,7 +83,7 @@ function UIKit.Label(props: { [string]: any }): TextLabel
 	for k, v in props do
 		merged[k] = v
 	end
-	if UserInputService.TouchEnabled and not merged.TextScaled and merged.TextSize < TOUCH_MIN_TEXT then
+	if UIKit.IsTouch() and not merged.TextScaled and merged.TextSize < TOUCH_MIN_TEXT then
 		merged.TextSize = TOUCH_MIN_TEXT
 	end
 	return UIKit.New("TextLabel", merged)
@@ -133,22 +138,17 @@ function UIKit.Screen(): ScreenGui
 		Name = "SkylineUI",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets,
 		Parent = playerGui,
 	})
-	-- Scale the whole UI down on small screens (phones) and keep it 1:1 on PC, tablets and TVs.
+	-- Phones keep scale 1 with their own layout; PC and consoles scale with the screen height.
 	local scale = UIKit.New("UIScale", { Parent = gui })
 	local function updateScale()
 		local camera = workspace.CurrentCamera
 		if not camera then
 			return
 		end
-		local viewport = camera.ViewportSize
-		if UserInputService.TouchEnabled then
-			-- Phones and tablets: keep buttons finger-sized without letting panels cover the screen.
-			scale.Scale = math.clamp(math.min(viewport.X / 900, viewport.Y / 480), 0.65, 1)
-		else
-			scale.Scale = math.clamp(math.min(viewport.X / 1280, viewport.Y / 720), 0.8, 1.2)
-		end
+		scale.Scale = if UIKit.IsTouch() then 1 else math.clamp(camera.ViewportSize.Y / 1080, 0.9, 1.25)
 	end
 	updateScale()
 	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(updateScale)
@@ -156,6 +156,44 @@ function UIKit.Screen(): ScreenGui
 		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
 	end
 	screen = gui
+	return gui
+end
+
+-- A second layer that reaches into the Roblox top bar row (vitals on phones, the menu button).
+local topScreen: ScreenGui? = nil
+function UIKit.TopScreen(): ScreenGui
+	if topScreen then
+		return topScreen
+	end
+	local gui = UIKit.New("ScreenGui", {
+		Name = "SkylineTop",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		DisplayOrder = 2,
+		Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
+	})
+	topScreen = gui
+	return gui
+end
+
+-- Full-screen effects (vignettes, the downed screen): no insets at all.
+local fullScreen: ScreenGui? = nil
+function UIKit.FullScreen(): ScreenGui
+	if fullScreen then
+		return fullScreen
+	end
+	local gui = UIKit.New("ScreenGui", {
+		Name = "SkylineFull",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		ScreenInsets = Enum.ScreenInsets.None,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		DisplayOrder = 1,
+		Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
+	})
+	fullScreen = gui
 	return gui
 end
 

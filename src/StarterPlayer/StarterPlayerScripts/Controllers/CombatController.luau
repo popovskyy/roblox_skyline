@@ -164,47 +164,158 @@ local function watchTool(character: Model)
 	end)
 end
 
--- Downed overlay -------------------------------------------------------------------------------------------
+-- Downed screen (ui/HUD_SPEC.md, section 7) ---------------------------------------------------------------
+-- Grey world, red edges, "YOU'RE DOWN", and every teammate with distance and whether they carry a bandage.
 local downedFrame: Frame
-local downedTimer: TextLabel
+local downedList: Frame
+local downedGrade: ColorCorrectionEffect? = nil
+local downedToken = 0
 
-local function buildDowned(screen: ScreenGui)
+local function buildDowned(_screen: ScreenGui)
+	local T = Theme.Colors
+	local compact = UIKit.IsTouch()
 	downedFrame = UIKit.New("Frame", {
 		Name = "Downed",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(90, 0, 0),
-		BackgroundTransparency = 0.6,
+		BackgroundTransparency = 1,
 		Visible = false,
 		ZIndex = 5,
-		Parent = screen,
+		Parent = UIKit.FullScreen(),
 	})
+	for _, e in
+		{
+			{ UDim2.fromScale(1, 0.3), UDim2.fromScale(0, 0), 90 },
+			{ UDim2.fromScale(1, 0.3), UDim2.fromScale(0, 0.7), -90 },
+			{ UDim2.fromScale(0.22, 1), UDim2.fromScale(0, 0), 0 },
+			{ UDim2.fromScale(0.22, 1), UDim2.fromScale(0.78, 0), 180 },
+		}
+	do
+		local edge = UIKit.New("Frame", {
+			Size = e[1],
+			Position = e[2],
+			BackgroundColor3 = T.Danger,
+			BorderSizePixel = 0,
+			ZIndex = 5,
+			Parent = downedFrame,
+		})
+		UIKit.New("UIGradient", { Rotation = e[3], Transparency = NumberSequence.new(0.45, 1), Parent = edge })
+	end
 	local title = UIKit.Label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.4),
-		Size = UDim2.new(0.8, 0, 0, 70),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 92),
+		Size = UDim2.new(0.9, 0, 0, if compact then 46 else 64),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Display,
-		TextSize = 56,
-		TextColor3 = Color3.fromRGB(255, 120, 110),
+		TextSize = if compact then 40 else 56,
+		TextColor3 = T.DangerText,
 		ZIndex = 6,
 		Parent = downedFrame,
 	})
 	Lang.Bind(title, "downed.title")
-	downedTimer = UIKit.Label({
+	local sub = UIKit.Label({
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0.4, 44),
-		Size = UDim2.new(0.8, 0, 0, 30),
+		Position = UDim2.new(0.5, 0, 0, if compact then 140 else 160),
+		Size = UDim2.new(0.9, 0, 0, 24),
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextSize = 20,
+		FontFace = Theme.Semi,
+		TextSize = 17,
+		TextColor3 = T.Cream,
 		ZIndex = 6,
 		Parent = downedFrame,
 	})
+	Lang.Bind(sub, "downed.sub")
+	downedList = UIKit.New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, if compact then 172 else 198),
+		Size = UDim2.fromOffset(340, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = T.Panel,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		ZIndex = 6,
+		Parent = downedFrame,
+	}, { UIKit.Corner(10) })
+	UIKit.Padding(10).Parent = downedList
+	UIKit.New("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = downedList })
+end
+
+local function renderTeammates()
+	local T = Theme.Colors
+	for _, child in downedList:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local any = false
+	for i, other in Players:GetPlayers() do
+		if other ~= player then
+			any = true
+			local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			local meters = if root
+					and myRoot
+					and root:IsA("BasePart")
+					and myRoot:IsA("BasePart")
+				then math.floor((root.Position - myRoot.Position).Magnitude * 0.28 + 0.5)
+				else nil
+			local hasBandage = other:GetAttribute("HasBandage") == true
+			local row = UIKit.New("Frame", {
+				Size = UDim2.new(1, 0, 0, 22),
+				BackgroundTransparency = 1,
+				LayoutOrder = i,
+				ZIndex = 6,
+				Parent = downedList,
+			})
+			UIKit.Label({
+				Size = UDim2.fromScale(0.5, 1),
+				Text = other.DisplayName .. (if meters then "  ·  " .. Lang.T("downed.meters", meters) else ""),
+				FontFace = Theme.Bold,
+				TextSize = 16,
+				TextColor3 = T.Cream,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				ZIndex = 6,
+				Parent = row,
+			})
+			UIKit.Label({
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.fromScale(1, 0),
+				Size = UDim2.fromScale(0.5, 1),
+				Text = Lang.T(if hasBandage then "downed.hasBandage" else "downed.noBandage"),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				TextSize = 15,
+				TextColor3 = if hasBandage then T.Hunger else T.CreamDim,
+				ZIndex = 6,
+				Parent = row,
+			})
+		end
+	end
+	downedList.Visible = any
 end
 
 local function updateDowned()
 	local down = player:GetAttribute("Downed") == true
 	downedFrame.Visible = down
-	downedTimer.Text = Lang.T("downed.waitTeam")
+	downedToken += 1
+	local token = downedToken
+	if down then
+		if not downedGrade then
+			local grade = Instance.new("ColorCorrectionEffect")
+			grade.Name = "DownedGrade"
+			grade.Saturation = -0.6
+			grade.Contrast = 0.1
+			grade.Parent = game:GetService("Lighting")
+			downedGrade = grade
+		end
+		task.spawn(function()
+			while downedToken == token do
+				renderTeammates()
+				task.wait(0.5)
+			end
+		end)
+	elseif downedGrade then
+		downedGrade:Destroy()
+		downedGrade = nil
+	end
 end
 
 -- Workbench window ---------------------------------------------------------------------------------------

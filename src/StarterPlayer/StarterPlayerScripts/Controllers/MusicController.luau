@@ -1,6 +1,5 @@
 --!strict
 -- Local background music: a calm playlist on the roof, tense drones below. Crossfades when the zone changes.
--- A small button in the top-right corner mutes it.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,12 +7,10 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local MusicConfig = require(ReplicatedStorage.Shared:WaitForChild("MusicConfig"))
-local UIKit = require(script.Parent.UIKit)
 
 local MusicController = {}
 
 local player = Players.LocalPlayer
-local muted = false
 local currentSet: string? = nil
 local current: Sound? = nil
 local indices: { [string]: number } = {}
@@ -67,7 +64,7 @@ playNext = function(setName: string)
 	end)
 	sound:Play()
 	TweenService:Create(sound, TweenInfo.new(MusicConfig.FadeSeconds), {
-		Volume = if muted then 0 else MusicConfig.Volume,
+		Volume = MusicConfig.Volume,
 	}):Play()
 end
 
@@ -85,23 +82,6 @@ local function onZoneChanged()
 end
 
 function MusicController.Start()
-	local button = UIKit.Button({
-		Name = "MusicToggle",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 8),
-		Size = UDim2.fromOffset(44, 44),
-		Text = "♪",
-		TextSize = 22,
-		Parent = UIKit.Screen(),
-	})
-	button.Activated:Connect(function()
-		muted = not muted
-		button.Text = if muted then "✕♪" else "♪"
-		if current then
-			current.Volume = if muted then 0 else MusicConfig.Volume
-		end
-	end)
-
 	player:GetAttributeChangedSignal("Zone"):Connect(onZoneChanged)
 	applyZone()
 end

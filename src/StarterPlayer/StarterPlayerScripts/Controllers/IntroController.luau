@@ -144,6 +144,12 @@ local function build(screen: ScreenGui)
 	start.Activated:Connect(close)
 end
 
+-- Shows the story / how-to card again (from the menu).
+function IntroController.Show()
+	overlay.BackgroundTransparency = 0.25
+	overlay.Visible = true
+end
+
 function IntroController.Start()
 	build(UIKit.Screen())
 	-- One showing per match: the ScreenGui survives respawns, so it is not shown again after being closed.

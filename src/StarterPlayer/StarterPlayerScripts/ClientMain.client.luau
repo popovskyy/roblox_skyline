@@ -24,6 +24,8 @@ local ObjectiveMarkerController = require(Controllers:WaitForChild("ObjectiveMar
 local CombatController = require(Controllers:WaitForChild("CombatController"))
 local LootFxController = require(Controllers:WaitForChild("LootFxController"))
 local ResultsController = require(Controllers:WaitForChild("ResultsController"))
+local VitalsController = require(Controllers:WaitForChild("VitalsController"))
+local MenuController = require(Controllers:WaitForChild("MenuController"))
 local IntroController = require(Controllers:WaitForChild("IntroController"))
 local TutorialController = require(Controllers:WaitForChild("TutorialController"))
 local WorldVisualsController = require(Controllers:WaitForChild("WorldVisualsController"))
@@ -34,6 +36,12 @@ local function remote(name: string): RemoteEvent
 end
 
 HUDController.Start()
+VitalsController.Hint = function(text)
+	HUDController.Toast(text, "warning")
+end
+VitalsController.Start()
+MenuController.ShowHowTo = IntroController.Show
+MenuController.Start(remotes)
 InventoryController.Start(remotes)
 InteractionController.Start(remotes)
 TutorialController.Start()

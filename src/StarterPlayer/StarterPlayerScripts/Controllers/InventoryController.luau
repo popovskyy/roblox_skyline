@@ -25,9 +25,19 @@ local player = Players.LocalPlayer
 local C = UIKit.Colors
 local remotes: Folder
 
-local SLOT_COUNT = 10
-local SLOT_SIZE = if UserInputService.TouchEnabled then 54 else 60
-local SLOT_GAP = if UserInputService.TouchEnabled then 4 else 6
+local touch = UIKit.IsTouch()
+local T = Theme.Colors
+-- Phone: 6 slots (5 on narrow screens) between the thumbstick and the jump button. PC / console: 8.
+local function slotCountFor(): number
+	if not touch then
+		return 8
+	end
+	local camera = workspace.CurrentCamera
+	return if camera and camera.ViewportSize.X < 760 then 5 else 6
+end
+local SLOT_COUNT = slotCountFor()
+local SLOT_SIZE = if touch then 54 else 68
+local SLOT_GAP = if touch then 6 else 8
 local NUMBER_KEYS = {
 	Enum.KeyCode.One,
 	Enum.KeyCode.Two,
@@ -42,7 +52,9 @@ local NUMBER_KEYS = {
 }
 
 local weightLabel: TextLabel
-local weightFill: Frame
+local bagButton: TextButton
+local page = 1
+local ownedItems: { string } = {}
 local slots: { ItemSlot.Slot } = {}
 local slotItems: { [number]: string } = {}
 local tooltip: TextLabel
@@ -116,73 +128,92 @@ local function makeWindow(
 	return panel, list, header
 end
 
+local function pouchChip(def: ItemDefinitions.ItemDef, count: number, order: number)
+	local chip = UIKit.New("Frame", {
+		Name = def.id,
+		Size = UDim2.fromOffset(0, if touch then 28 else 32),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = T.Panel,
+		BackgroundTransparency = if count > 0 then 0.35 else 0.6,
+		BorderSizePixel = 0,
+		LayoutOrder = order,
+		Parent = pouch,
+	}, {
+		UIKit.Corner(6),
+		UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 10) }),
+		UIKit.New("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	local dim = if count > 0 then 0 else 0.5
+	UIKit.New("ImageLabel", {
+		Size = UDim2.fromOffset(if touch then 16 else 18, if touch then 16 else 18),
+		BackgroundTransparency = 1,
+		Image = def.iconImage or "",
+		ImageTransparency = dim,
+		LayoutOrder = 1,
+		Parent = chip,
+	})
+	if not touch then
+		UIKit.Label({
+			Size = UDim2.fromOffset(0, 20),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Text = Lang.T("item." .. def.id .. ".name"),
+			TextSize = 15,
+			TextColor3 = T.CreamDim,
+			TextTransparency = dim,
+			TextWrapped = false,
+			LayoutOrder = 2,
+			Parent = chip,
+		})
+	end
+	UIKit.Label({
+		Size = UDim2.fromOffset(0, 22),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Text = tostring(count),
+		FontFace = Theme.Display,
+		TextSize = if touch then 17 else 18,
+		TextColor3 = T.Cream,
+		TextTransparency = dim,
+		TextWrapped = false,
+		LayoutOrder = 3,
+		Parent = chip,
+	})
+end
+
 local function renderInventory(s: { [string]: any })
 	local weight = s.weight or 0
 	local maxWeight = math.max(s.maxWeight or 1, 1)
 	weightLabel.Text = Lang.T("hud.weight", weight, maxWeight)
-	weightFill.Size = UDim2.fromScale(math.clamp(weight / maxWeight, 0, 1), 1)
-	weightFill.BackgroundColor3 = if weight >= maxWeight then C.warn else C.good
+	weightLabel.TextColor3 = if weight >= maxWeight then T.Amber else T.CreamDim
 
-	-- Owned items fill the slots in a fixed order; the rest stay empty. Resources go to the pouch.
-	table.clear(slotItems)
-	local index = 0
+	-- Owned items fill the slots in a fixed order (paged when there are more than slots).
+	-- Building resources are only counted in the pouch.
 	for _, child in pouch:GetChildren() do
-		if child:IsA("Frame") then
+		if child:IsA("Frame") and child.Name ~= "Weight" then
 			child:Destroy()
 		end
 	end
+	table.clear(ownedItems)
 	for order, itemId in ItemDefinitions.Order do
 		local count = s.inventory and s.inventory[itemId] or 0
 		local def = ItemDefinitions.Items[itemId]
 		if def.resource then
-			if count > 0 then
-				local chip = UIKit.New("Frame", {
-					Name = itemId,
-					Size = UDim2.fromOffset(0, 24),
-					AutomaticSize = Enum.AutomaticSize.X,
-					BackgroundColor3 = C.panel,
-					BackgroundTransparency = 0.25,
-					BorderSizePixel = 0,
-					LayoutOrder = order,
-					Parent = pouch,
-				}, {
-					UIKit.Corner(6),
-					UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 8) }),
-					UIKit.New("UIListLayout", {
-						FillDirection = Enum.FillDirection.Horizontal,
-						VerticalAlignment = Enum.VerticalAlignment.Center,
-						Padding = UDim.new(0, 4),
-					}),
-				})
-				if def.iconImage then
-					UIKit.New("ImageLabel", {
-						Size = UDim2.fromOffset(20, 20),
-						BackgroundTransparency = 1,
-						Image = def.iconImage,
-						Parent = chip,
-					})
-				else
-					UIKit.Label({
-						Size = UDim2.fromOffset(20, 20),
-						Text = def.icon,
-						TextScaled = true,
-						Parent = chip,
-					})
-				end
-				UIKit.Label({
-					Size = UDim2.fromOffset(0, 20),
-					AutomaticSize = Enum.AutomaticSize.X,
-					Text = tostring(count),
-					FontFace = Theme.Bold,
-					TextSize = 15,
-					TextWrapped = false,
-					Parent = chip,
-				})
-			end
-		elseif count > 0 and index < SLOT_COUNT then
-			index += 1
-			slotItems[index] = itemId
+			pouchChip(def, count, order)
+		elseif count > 0 then
+			table.insert(ownedItems, itemId)
 		end
+	end
+	local pages = math.max(1, math.ceil(#ownedItems / SLOT_COUNT))
+	page = math.clamp(page, 1, pages)
+	bagButton.Visible = pages > 1
+	bagButton.Text = ("+ %d/%d"):format(page, pages)
+	table.clear(slotItems)
+	for i = 1, SLOT_COUNT do
+		slotItems[i] = ownedItems[(page - 1) * SLOT_COUNT + i]
 	end
 	for i, slot in slots do
 		local itemId = slotItems[i]
@@ -191,14 +222,29 @@ local function renderInventory(s: { [string]: any })
 	end
 end
 
-local function showTooltip(text: string)
+-- The name of what was just taken in hand, above its slot, for 1.5 s.
+local function showTooltip(text: string, slotIndex: number?)
 	tooltipToken += 1
 	local token = tooltipToken
 	tooltip.Text = text
+	local index = slotIndex or math.ceil(SLOT_COUNT / 2)
+	local x = (index - 0.5) * SLOT_SIZE + (index - 1) * SLOT_GAP
+	tooltip.Position = UDim2.fromOffset(x, if touch then -42 else -48)
+	tooltip.TextTransparency = 0
+	tooltip.BackgroundTransparency = 0.2
+	local stroke = tooltip:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Transparency = 0
+	end
 	tooltip.Visible = true
-	task.delay(2.5, function()
-		if tooltipToken == token then
-			tooltip.Visible = false
+	task.delay(1.5, function()
+		if tooltipToken ~= token then
+			return
+		end
+		local info = TweenInfo.new(0.4)
+		TweenService:Create(tooltip, info, { TextTransparency = 1, BackgroundTransparency = 1 }):Play()
+		if stroke then
+			TweenService:Create(stroke, info, { Transparency = 1 }):Play()
 		end
 	end)
 end
@@ -223,14 +269,13 @@ local function activateSlot(i: number)
 		return
 	end
 	local useLabel = USE_LABELS[def.id]
+	local name = Lang.T("item." .. def.id .. ".name")
 	if useLabel then
-		showTooltip(("%s · %s"):format(Lang.T("item." .. def.id .. ".name"), Lang.T(useLabel)))
+		showTooltip(("%s · %s"):format(name, Lang.T(useLabel)), i)
 	elseif def.weapon then
-		showTooltip(Lang.T("item." .. def.id .. ".name"))
+		showTooltip(name, i)
 	else
-		showTooltip(
-			("%s ×%d · %s"):format(Lang.T("item." .. def.id .. ".name"), count, Lang.T("item." .. def.id .. ".desc"))
-		)
+		showTooltip(if count > 1 then ("%s ×%d"):format(name, count) else name, i)
 	end
 end
 
@@ -251,43 +296,18 @@ local function stepSlot(direction: number)
 end
 
 local function buildHotbar(screen: ScreenGui)
-	local width = SLOT_COUNT * SLOT_SIZE + (SLOT_COUNT - 1) * SLOT_GAP
+	local rowWidth = SLOT_COUNT * SLOT_SIZE + (SLOT_COUNT - 1) * SLOT_GAP
 	local holder = UIKit.New("Frame", {
 		Name = "Hotbar",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.fromOffset(width, SLOT_SIZE + 26),
+		Position = UDim2.new(0.5, 0, 1, if touch then -10 else -24),
+		Size = UDim2.fromOffset(rowWidth, SLOT_SIZE),
 		BackgroundTransparency = 1,
 		Parent = screen,
 	})
 
-	weightLabel = UIKit.Label({
-		Size = UDim2.fromOffset(120, 18),
-		Text = "",
-		TextSize = 13,
-		TextColor3 = C.muted,
-		TextStrokeTransparency = 0.5,
-		Parent = holder,
-	})
-	local bar = UIKit.New("Frame", {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 5),
-		Size = UDim2.new(1, -130, 0, 6),
-		BackgroundColor3 = C.panelLight,
-		BorderSizePixel = 0,
-		Parent = holder,
-	}, { UIKit.Corner(3) })
-	weightFill = UIKit.New("Frame", {
-		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = C.good,
-		BorderSizePixel = 0,
-		Parent = bar,
-	}, { UIKit.Corner(3) })
-
 	local row = UIKit.New("Frame", {
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, 0, 0, SLOT_SIZE),
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		Parent = holder,
 	})
@@ -300,13 +320,14 @@ local function buildHotbar(screen: ScreenGui)
 	for i = 1, SLOT_COUNT do
 		local slot = ItemSlot.New(row, SLOT_SIZE, i)
 		slots[i] = slot
-		if not UserInputService.TouchEnabled then
+		if not touch then
 			UIKit.Label({
-				Position = UDim2.fromOffset(5, 2),
-				Size = UDim2.fromOffset(14, 14),
-				Text = tostring(i % 10),
-				TextSize = 11,
-				TextColor3 = C.muted,
+				Position = UDim2.fromOffset(6, 3),
+				Size = UDim2.fromOffset(14, 16),
+				Text = tostring(i),
+				FontFace = Theme.Display,
+				TextSize = 14,
+				TextColor3 = T.Muted,
 				Parent = slot.frame,
 			})
 		end
@@ -315,32 +336,95 @@ local function buildHotbar(screen: ScreenGui)
 		end)
 	end
 
-	-- Resource pouch: small counters above the hotbar's left end.
-	pouch = UIKit.New("Frame", {
+	-- "More" button right of the slots: flips to the next page of items.
+	bagButton = UIKit.Button({
+		Name = "Bag",
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromOffset(0, -6),
-		Size = UDim2.new(1, 0, 0, 24),
+		Position = UDim2.new(1, SLOT_GAP, 1, 0),
+		Size = UDim2.fromOffset(if touch then 44 else 56, SLOT_SIZE),
+		BackgroundColor3 = T.Slot,
+		BackgroundTransparency = 0.18,
+		Text = "+",
+		FontFace = Theme.Display,
+		TextSize = 15,
+		TextColor3 = T.Cream,
+		Visible = false,
+		Parent = holder,
+	})
+	bagButton.Activated:Connect(function()
+		page += 1
+		if page > math.max(1, math.ceil(#ownedItems / SLOT_COUNT)) then
+			page = 1
+		end
+		local s = ClientState.Get()
+		if s then
+			renderInventory(s)
+		end
+	end)
+
+	-- Pouch (resources) and carry weight, centred above the slots.
+	pouch = UIKit.New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -6),
+		Size = UDim2.fromOffset(0, if touch then 28 else 32),
+		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 1,
 		Parent = holder,
 	})
 	UIKit.New("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Padding = UDim.new(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = pouch,
 	})
+	local weightChip = UIKit.New("Frame", {
+		Name = "Weight",
+		Size = UDim2.fromOffset(0, if touch then 28 else 32),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = T.Panel,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		LayoutOrder = 100,
+		Parent = pouch,
+	}, { UIKit.Corner(6), UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+	weightLabel = UIKit.Label({
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Text = "",
+		FontFace = Theme.Semi,
+		TextSize = if touch then 15 else 16,
+		TextColor3 = T.CreamDim,
+		TextWrapped = false,
+		Parent = weightChip,
+	})
 
+	-- Name of the item just taken in hand, floating above its slot.
 	tooltip = UIKit.Label({
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -36),
-		Size = UDim2.new(1.4, 0, 0, 22),
+		Size = UDim2.fromOffset(0, 26),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = T.Panel,
+		BackgroundTransparency = 0.2,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,
-		TextSize = 15,
-		TextStrokeTransparency = 0.3,
+		TextSize = if touch then 15 else 17,
+		TextColor3 = T.AmberText,
+		TextWrapped = false,
 		Visible = false,
+		ZIndex = 3,
 		Parent = holder,
 	})
+	UIKit.Corner(6).Parent = tooltip
+	UIKit.New("UIStroke", { Color = T.Amber, Thickness = 1.5, Parent = tooltip })
+	UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = tooltip })
+
+	-- Nothing to hold while lying down.
+	local function updateDowned()
+		holder.Visible = player:GetAttribute("Downed") ~= true
+	end
+	player:GetAttributeChangedSignal("Downed"):Connect(updateDowned)
+	updateDowned()
 end
 
 local function transfer(direction: string, itemId: string, amount: number)
@@ -492,7 +576,7 @@ function InventoryController.Start(remoteFolder: Folder)
 			return
 		end
 		local slotIndex = table.find(NUMBER_KEYS, input.KeyCode)
-		if slotIndex then
+		if slotIndex and slotIndex <= SLOT_COUNT then
 			activateSlot(slotIndex)
 		elseif input.KeyCode == Enum.KeyCode.ButtonR1 or input.KeyCode == Enum.KeyCode.DPadRight then
 			stepSlot(1)
