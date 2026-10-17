@@ -15,6 +15,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local Theme = require(ReplicatedStorage.Shared.Theme)
 local ClientState = require(script.Parent.ClientState)
+local IntroController = require(script.Parent.IntroController)
 local Lang = require(script.Parent.Lang)
 local UIKit = require(script.Parent.UIKit)
 
@@ -645,17 +646,33 @@ function CombatController.Start(remoteFolder: Folder)
 			attackInput()
 		end
 	end)
-	-- First time down the stairs: say how to fight.
+	-- First time down the stairs: say how to fight. Do not mark done if intro soft-silence
+	-- drops the toast (otherwise Floor entry during silence loses the tip for the match).
 	local hinted = false
-	player:GetAttributeChangedSignal("Zone"):Connect(function()
+	local function tryAttackHint()
+		if hinted then
+			return
+		end
 		local zone = player:GetAttribute("Zone")
-		if not hinted and type(zone) == "string" and string.sub(zone, 1, 5) == "Floor" then
+		if type(zone) ~= "string" or string.sub(zone, 1, 5) ~= "Floor" then
+			return
+		end
+		if IntroController.BlocksSoftToasts() then
+			return
+		end
+		local key = if UserInputService.TouchEnabled
+			then "hint.attackTouch"
+			elseif UserInputService.GamepadEnabled then "hint.attackPad"
+			else "hint.attackPc"
+		if CombatController.Hint(Lang.T(key)) then
 			hinted = true
-			local key = if UserInputService.TouchEnabled
-				then "hint.attackTouch"
-				elseif UserInputService.GamepadEnabled then "hint.attackPad"
-				else "hint.attackPc"
-			CombatController.Hint(Lang.T(key))
+		end
+	end
+	player:GetAttributeChangedSignal("Zone"):Connect(tryAttackHint)
+	task.spawn(function()
+		while not hinted and player.Parent do
+			tryAttackHint()
+			task.wait(0.4)
 		end
 	end)
 	remotes = remoteFolder

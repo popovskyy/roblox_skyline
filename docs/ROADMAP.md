@@ -10,7 +10,7 @@ Branch `cursor/roadmap-final-pass` · draft PR — **do not merge/publish mid-pa
 
 | Block | State on branch |
 |-------|-----------------|
-| **0 HUD declutter (P0)** | **Done** — soft spam killed; blackout one warning; 1 soft + 1 danger toast cap; intro silence |
+| **0 HUD declutter (P0)** | **Done** (tip `d4a6314`+): soft spam killed; blackout one warning; 1+1 toast cap; intro silence; **attack tip silence race fixed** (retry until Toast succeeds) |
 | **1 Phase A leftovers** | **Verified** — A1–A8 + holds already live on master (b28–b32); no §8 retune |
 | **2 Phase D Blender** | **Scaffolded** — Bat/Crowbar + interior props in scripts; CombatService fallback. **Upload blocked** on Cloud VM (no Blender / API key). Owner-PC `upload_model.sh` → paste real ids only |
 | **3 Launch prep** | **Docs done** — marketing fantasy aligned; `assets/store/` checklist ready for Art; heartbeat SFX documented as blocker |
