@@ -3,6 +3,23 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## b29 · 17.10 16:22
+Stair Z-fighting + sharp eat prompt (owner retest after b28).
+
+### No more stair/passage floor flicker
+- Root cause was geometry, not the flashlight: diamond-plate ramps used `length + 0.6` and sat
+  coplanar on the concrete slab at the stair mouth (classic Z-fighting). Ramps now exact-span,
+  sit 0.08 above the slab, start inside an inset hole; landings lifted the same way; interior /
+  outer wall bases dig slightly into the slab so wall/floor seams do not flicker.
+- Check in game: stand at the F1 stair mouth and walk the ramps — no jagged diamond/concrete
+  flicker; corridor wall bases stay clean. Flashlight still no strobe (b28).
+
+### Sharp "Їжа · З'їсти" hotbar prompt
+- Eat/use tooltip was soft amber on a semi-transparent plate. Now opaque `PanelSolid`, dark
+  TextStroke, taller plate, TextSize 16 on touch. Touch world-action caption uses the same plate.
+- Check in game: tap Food on phone — "Їжа · З'їсти" (and Medkit use) crisp; action-button caption
+  sharp too.
+
 ## b28 · 17.10 16:08
 Phase A slow-survival loop + LOCAL fixes (tablet anim, flashlight, weapon replace, readable plates).
 

@@ -124,11 +124,13 @@ local function wallBetween(
 	local thickness = 1
 	local sx = math.max(math.abs(x2 - x1), thickness)
 	local sz = math.max(math.abs(z2 - z1), thickness)
+	-- Dig slightly into the slab so the wall base does not Z-fight the floor top.
+	local dig = 0.12
 	return block(
 		parent,
 		name,
-		Vector3.new(sx, height, sz),
-		CFrame.new((x1 + x2) / 2, levelY(level) + height / 2, (z1 + z2) / 2),
+		Vector3.new(sx, height + dig, sz),
+		CFrame.new((x1 + x2) / 2, levelY(level) + (height + dig) / 2 - dig, (z1 + z2) / 2),
 		color or COLORS.concrete
 	)
 end
@@ -225,6 +227,11 @@ local function pointLight(
 	return light
 end
 
+-- Diamond-plate stair tops sit a hair above the concrete slab so coplanar seams never Z-fight.
+local METAL_LIFT = 0.08
+-- Floor hole / ramp mouth inset so metal never sits coplanar on the concrete strip edge.
+local MOUTH_INSET = 0.3
+
 -- Slab with the stairwell hole (and any collapsed spot) cut out, built from solid strips around them.
 local function slab(
 	parent: Instance,
@@ -240,7 +247,13 @@ local function slab(
 	local half = size / 2
 	local holes: { Ruins.Rect } = {}
 	if withHole then
-		table.insert(holes, { minX = -HOLE_X, maxX = HOLE_X, minZ = HOLE_MIN_Z, maxZ = HOLE_MAX_Z })
+		-- Cut the slab a hair past the stair mouth so concrete never shares a plane with the ramps.
+		table.insert(holes, {
+			minX = -HOLE_X,
+			maxX = HOLE_X,
+			minZ = HOLE_MIN_Z - MOUTH_INSET,
+			maxZ = HOLE_MAX_Z,
+		})
 	end
 	if extraHole then
 		table.insert(holes, extraHole)
@@ -260,12 +273,12 @@ local function slab(
 	end
 end
 
--- A sloped walkway whose top surface runs exactly from a to b.
+-- A sloped walkway whose top surface runs from a to b (raised by METAL_LIFT).
 local function ramp(parent: Instance, name: string, a: Vector3, b: Vector3, width: number)
 	local length = (b - a).Magnitude
-	local frame = CFrame.lookAt((a + b) / 2, b) * CFrame.new(0, -0.5, 0)
-	local part =
-		block(parent, name, Vector3.new(width, 1, length + 0.6), frame, COLORS.metal, Enum.Material.DiamondPlate)
+	-- Exact span: the old length+0.6 overhang sat coplanar on the concrete floor and flickered.
+	local frame = CFrame.lookAt((a + b) / 2, b) * CFrame.new(0, -0.5 + METAL_LIFT, 0)
+	local part = block(parent, name, Vector3.new(width, 1, length), frame, COLORS.metal, Enum.Material.DiamondPlate)
 	return part
 end
 
@@ -338,23 +351,23 @@ local function buildStairwell(parent: Folder)
 		ramp(
 			stairs,
 			("Ramp%d_Down"):format(flight),
-			Vector3.new(-LANE_CENTER, upper, HOLE_MIN_Z),
-			Vector3.new(-LANE_CENTER, mid, LANDING_Z),
+			Vector3.new(-LANE_CENTER, upper, HOLE_MIN_Z - MOUTH_INSET + 0.05),
+			Vector3.new(-LANE_CENTER, mid, LANDING_Z - 0.12),
 			LANE_WIDTH
 		)
 		block(
 			stairs,
 			("Landing%d"):format(flight),
 			Vector3.new(HOLE_X * 2, 1, HOLE_MAX_Z - LANDING_Z),
-			CFrame.new(0, mid - 0.5, (LANDING_Z + HOLE_MAX_Z) / 2),
+			CFrame.new(0, mid - 0.5 + METAL_LIFT, (LANDING_Z + HOLE_MAX_Z) / 2),
 			COLORS.metal,
 			Enum.Material.DiamondPlate
 		)
 		ramp(
 			stairs,
 			("Ramp%d_Up"):format(flight),
-			Vector3.new(LANE_CENTER, mid, LANDING_Z),
-			Vector3.new(LANE_CENTER, lower, HOLE_MIN_Z),
+			Vector3.new(LANE_CENTER, mid, LANDING_Z - 0.12),
+			Vector3.new(LANE_CENTER, lower, HOLE_MIN_Z - MOUTH_INSET + 0.05),
 			LANE_WIDTH
 		)
 		-- Lamps along the way down: caged wall lamps at the top, the landing and the exit, plus a green
@@ -422,14 +435,17 @@ local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 	end
 
 	-- Outer walls: solid band, a band of unbreakable glass, solid band.
+	-- Bottom band digs into the slab so the wall/floor seam does not Z-fight.
+	local wallDig = 0.12
 	local bands = {
 		{ from = 0, to = 4, glass = false },
 		{ from = 4, to = 14, glass = true },
 		{ from = 14, to = WALL_HEIGHT, glass = false },
 	}
 	for _, band in bands do
-		local h = band.to - band.from
-		local y = floorY + band.from + h / 2
+		local dig = if band.from == 0 then wallDig else 0
+		local h = band.to - band.from + dig
+		local y = floorY + band.from + (band.to - band.from) / 2 - dig / 2
 		local color = if band.glass then COLORS.glass else COLORS.darkConcrete
 		local material = if band.glass then Enum.Material.Glass else Enum.Material.Concrete
 		for _, side in { -1, 1 } do

@@ -123,15 +123,27 @@ function InteractionController.Start(remotes: Folder)
 		local caption = UIKit.Label({
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 0, -6),
-			Size = UDim2.fromOffset(0, 18),
+			Size = UDim2.fromOffset(0, 24),
 			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundColor3 = T.PanelSolid,
+			BackgroundTransparency = 0,
+			BorderSizePixel = 0,
 			Text = "",
 			FontFace = Theme.Bold,
-			TextSize = 14,
+			TextSize = 15,
 			TextColor3 = T.Cream,
-			TextStrokeTransparency = 0.4,
+			TextStrokeColor3 = Color3.fromRGB(12, 10, 8),
+			TextStrokeTransparency = 0.25,
 			TextWrapped = false,
 			Parent = holder,
+		})
+		UIKit.Corner(6).Parent = caption
+		UIKit.New("UIPadding", {
+			PaddingLeft = UDim.new(0, 10),
+			PaddingRight = UDim.new(0, 10),
+			PaddingTop = UDim.new(0, 4),
+			PaddingBottom = UDim.new(0, 4),
+			Parent = caption,
 		})
 		local holdToken = 0
 		button.InputBegan:Connect(function(input)
