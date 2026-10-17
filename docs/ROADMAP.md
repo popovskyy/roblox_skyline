@@ -1,32 +1,31 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10 · live **b33** · epic branch `cursor/roadmap-final-pass` (no publish
-until owner says merge). One list for every agent. When an item ships, move it to `CHANGELOG.md` and
-delete it here. Ideas go in `docs/design/brainstorm-hooks.md`, not here.
+Owner: Popovskyi. Updated 17.10, build **b34 · 17.10 19:30** published.
+One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
+to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
+`docs/design/brainstorm-hooks.md` instead.
 
-## Now: owner merge gate (epic branch ready for review)
+## Now: play / Art / Blender follow-ups
 
-Branch `cursor/roadmap-final-pass` · draft PR — **do not merge/publish mid-pass** until owner OK.
+Live **b34** shipped: HUD declutter (calm tips), Phase D Blender scaffold + Has()-dress, launch prep docs.
 
-| Block | State on branch |
-|-------|-----------------|
-| **0 HUD declutter (P0)** | **Done** (tip `d4a6314`+): soft spam killed; blackout one warning; 1+1 toast cap; intro silence; **attack tip silence race fixed** (retry until Toast succeeds) |
-| **1 Phase A leftovers** | **Verified** — A1–A8 + §8 knobs re-checked on branch; no gaps / no retune |
-| **2 Phase D Blender** | **Scaffold + Has()-dress** — scripts + WorldBuilder optional props. **Upload blocked** (no Blender CLI / `.roblox_api_key` on Cloud VM). Owner-PC upload → paste real ids into `PropLibrary.ASSETS` only |
-| **3 Launch prep** | **Docs done** — marketing fantasy aligned; `assets/store/` checklist ready for Art; heartbeat SFX documented as blocker |
+Focus for owner:
+- Roof start feels calm (intro → ЦІЛЬ, no toast pile); Scrap tip without «зібрано» spam; one blackout warning.
+- Optional: run Blender uploads on PC (`blender/README.md` / `HANDOFF.md`) → paste **real** ids into `PropLibrary`.
+- Optional: Art approve `assets/store/` then Creator Hub Public when you say so.
+- Heartbeat low-HP SFX still blocked until a real Creator Store / HANDOFF id (do not invent).
 
-**Owner after merge:** publish build tag · optional Creator Hub Public (copy + art) · optional Blender re-upload.
+Still OK from b33: lobby gamepad **L1** opens Classes.
 
-## Later (not this pass)
+## Next (in this order)
 
-- Heartbeat low-HP SFX — only after a real Creator Store / HANDOFF id (see `HANDOFF.md` blockers)
-- Phase D mesh ids in `PropLibrary` after owner upload
-- Brainstorm hooks (`docs/design/brainstorm-hooks.md`) until owner pulls them forward
-- 240-stud floors / Pickaxe item / Robux token cheats — out of scope
+1. **Owner Blender upload** (optional) — WeaponBat / Crowbar / crates / nodes / rubble / boards → `PropLibrary`.
+2. **Heartbeat SFX** — only after a real asset id.
+3. **Launch Public** — store copy + art already prepped; Creator Hub only with owner + Art OK.
+4. Brainstorm hooks — only when owner pulls them forward.
 
 ## Rules that stay
 
 - Robux never skips the game and never buys tokens directly (`economy-robux.md`).
 - Every match starts from zero; only tokens, stats and the leaderboard persist.
 - Ukrainian first, then Russian and English, for every string.
-- Never invent mesh / sound / icon asset ids.
