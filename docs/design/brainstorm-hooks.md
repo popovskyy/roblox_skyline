@@ -3,6 +3,8 @@
 > **Status (17.10, build b24):** Idea bank, nothing here is scheduled unless it appears in `docs/ROADMAP.md`.
 >
 > Imported from the Cursor team's notes. Where this doc and the code disagree, the code and `GameConfig` win.
+>
+> **Active loop redesign (owner, 17.10):** see [slow-survival-loop.md](./slow-survival-loop.md) — core pacing/loot/barricades first; Blender polish only after that plays right. Do not pull ideas from this bank into the schedule ahead of that doc.
 
 
 Wild but buildable retention ideas. Tone: Last-of-Us scarcity, not tycoon spam. North star: **затягує, не бісить**. Aligned with [game-design-loops.md](./game-design-loops.md) + [first-session-ux.md](./first-session-ux.md).

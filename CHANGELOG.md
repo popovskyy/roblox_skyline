@@ -3,7 +3,8 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
-## Unreleased (local) · 17.10
+## b28 · 17.10 16:08
+Phase A slow-survival loop + LOCAL fixes (tablet anim, flashlight, weapon replace, readable plates).
 
 ### Dim flashlight, no corridor flicker (LOCAL #2)
 - Flashlight SpotLight no longer casts shadows (and is a bit dimmer); window shafts also force
