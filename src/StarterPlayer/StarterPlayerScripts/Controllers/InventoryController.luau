@@ -217,7 +217,8 @@ local function activateSlot(i: number)
 	local s = ClientState.Get()
 	local count = s and s.inventory and s.inventory[def.id] or 0
 	-- Take it in hand, or put it away when it is already there.
-	(remotes:FindFirstChild(RemoteNames.Equip) :: RemoteEvent):FireServer(def.id)
+	local equipRemote = remotes:FindFirstChild(RemoteNames.Equip) :: RemoteEvent
+	equipRemote:FireServer(def.id)
 	if player:GetAttribute("Equipped") == def.id then
 		return
 	end

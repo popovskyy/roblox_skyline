@@ -123,6 +123,9 @@ local GameConfig = {
 		BreakInAlertSeconds = 12,
 	},
 
+	-- Bare hands, when nothing is held: weak but always there.
+	Fists = { damage = 6, cooldown = 0.55, range = 4.5 },
+
 	-- Tokens earned in a match (kept even when the match is lost; doubled for a win).
 	Tokens = {
 		PerFloor = 5, -- for the deepest floor reached (floor 3 = 15)

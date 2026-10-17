@@ -172,8 +172,9 @@ local function show(result: { [string]: any })
 	local bonusLeft, bonusRight = row(30, "", "", C.good)
 	if type(result.bestTier) == "string" then
 		local bestLeft = row(31, Lang.T("results.best", Lang.T("loot." .. result.bestTier)), nil)
-		bestLeft.TextColor3 = C.muted;
-		(bestLeft.Parent :: GuiObject).Visible = true
+		bestLeft.TextColor3 = C.muted
+		local bestRow = bestLeft.Parent :: GuiObject
+		bestRow.Visible = true
 	end
 	local earned = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 56),

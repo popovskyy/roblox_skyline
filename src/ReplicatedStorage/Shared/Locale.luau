@@ -676,6 +676,21 @@ local S: { [string]: Entry } = {
 		ru = "Возвращаемся в лобби…",
 		en = "Back to the lobby…",
 	},
+	["hint.attackTouch"] = {
+		uk = "Тапни по екрану, щоб ударити. Зброю вибери в інвентарі внизу.",
+		ru = "Тапни по экрану, чтобы ударить. Оружие выбери в инвентаре внизу.",
+		en = "Tap the screen to hit. Pick a weapon from the inventory below.",
+	},
+	["hint.attackPc"] = {
+		uk = "Клікни мишкою, щоб ударити. Зброя: клавіші 1–0.",
+		ru = "Кликни мышкой, чтобы ударить. Оружие: клавиши 1–0.",
+		en = "Click to hit. Weapons: keys 1–0.",
+	},
+	["hint.attackPad"] = {
+		uk = "R2 — удар. L1/R1 — вибрати зброю.",
+		ru = "R2 — удар. L1/R1 — выбрать оружие.",
+		en = "R2 to hit. L1/R1 to pick a weapon.",
+	},
 	["results.floor"] = {
 		uk = "Найглибший поверх",
 		ru = "Самый глубокий этаж",

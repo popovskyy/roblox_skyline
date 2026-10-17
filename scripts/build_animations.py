@@ -86,12 +86,22 @@ USE_UP = {
     "RightHand": (0, 0, 0),
 }
 
+# Unarmed jab with the right fist, chest turning into it.
+REST = {"UpperTorso": (0, 0, 0), "RightUpperArm": (0, 0, 0), "RightLowerArm": (0, 0, 0), "RightHand": (0, 0, 0)}
+JAB_READY = {"UpperTorso": (0, -22, 0), "RightUpperArm": (45, 0, 15), "RightLowerArm": (95, 0, 0), "RightHand": (0, 0, 0)}
+JAB_HIT = {"UpperTorso": (-5, 28, 0), "RightUpperArm": (92, 8, -4), "RightLowerArm": (6, 0, 0), "RightHand": (0, 0, 0)}
+
 ANIMATIONS = {
     "WeaponHold": {"loop": True, "priority": "Action", "keys": [(0, HOLD), (1, HOLD)]},
     "WeaponSwing": {
         "loop": False,
         "priority": "Action2",
         "keys": [(0, HOLD), (0.14, WINDUP), (0.26, STRIKE), (0.36, FOLLOW), (0.6, HOLD)],
+    },
+    "Punch": {
+        "loop": False,
+        "priority": "Action2",
+        "keys": [(0, REST), (0.09, JAB_READY), (0.17, JAB_HIT), (0.27, JAB_HIT), (0.45, REST)],
     },
     "ItemHold": {"loop": True, "priority": "Action", "keys": [(0, CARRY), (1, CARRY)]},
     "ItemUse": {"loop": False, "priority": "Action2", "keys": [(0, CARRY), (0.25, USE_UP), (0.7, USE_UP), (0.95, CARRY)]},
@@ -183,7 +193,10 @@ def upload(name, rbxm):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    only = [a for a in sys.argv[1:] if not a.startswith("--")]
     for name, spec in ANIMATIONS.items():
+        if only and name not in only:
+            continue
         rbxm = build(name, spec)
         if "--upload" in sys.argv:
             print(name, upload(name, rbxm))

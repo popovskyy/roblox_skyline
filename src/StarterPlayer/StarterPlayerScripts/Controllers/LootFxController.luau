@@ -577,11 +577,11 @@ function LootFxController.Start(remotes: Folder)
 			startShake(crate, prompt.HoldDuration)
 		end
 	end)
-	ProximityPromptService.PromptButtonHoldEnded
-		:Connect(function()
-			task.delay(0.15, stopShake)
-		end)(remotes:WaitForChild(RemoteNames.LootOpened) :: RemoteEvent).OnClientEvent
-		:Connect(onLootOpened)
+	ProximityPromptService.PromptButtonHoldEnded:Connect(function()
+		task.delay(0.15, stopShake)
+	end)
+	local lootOpened = remotes:WaitForChild(RemoteNames.LootOpened) :: RemoteEvent
+	lootOpened.OnClientEvent:Connect(onLootOpened)
 end
 
 return LootFxController

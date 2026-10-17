@@ -4,6 +4,7 @@
 -- Every decision (hits, damage, revives, crafting) is made by the server.
 
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
@@ -19,6 +20,9 @@ local UIKit = require(script.Parent.UIKit)
 
 local CombatController = {}
 
+-- Set by ClientMain: shows a short message on screen.
+CombatController.Hint = function(_text: string) end
+
 local player = Players.LocalPlayer
 local C = UIKit.Colors
 local remotes: Folder
@@ -33,6 +37,7 @@ local ANIMATIONS = {
 	WeaponSwing = "rbxassetid://106693888316440",
 	ItemHold = "rbxassetid://113741024764678",
 	ItemUse = "rbxassetid://73366190002807",
+	Punch = "rbxassetid://129369444994134",
 }
 
 local tracks: { [string]: AnimationTrack } = {}
@@ -113,6 +118,25 @@ local function hideDefaultBackpack()
 		end
 		task.wait(0.5)
 	end
+end
+
+-- Bare hands: the same tap / click / R2 throws a punch when nothing is held.
+local function punch()
+	local character = player.Character
+	if not character or character:FindFirstChild("Held") or player:GetAttribute("Downed") then
+		return
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	local now = os.clock()
+	if now - lastSwing < GameConfig.Fists.cooldown then
+		return
+	end
+	lastSwing = now
+	play("Punch", 0.05)
+	remote(RemoteNames.Attack):FireServer()
 end
 
 local function watchTool(character: Model)
@@ -293,6 +317,33 @@ function CombatController.OpenCraft()
 end
 
 function CombatController.Start(remoteFolder: Folder)
+	-- Unarmed attacks: a tap on the world (not a camera drag), a click or R2.
+	UserInputService.TouchTapInWorld:Connect(function(_, processed)
+		if not processed then
+			punch()
+		end
+	end)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2 then
+			punch()
+		end
+	end)
+	-- First time down the stairs: say how to fight.
+	local hinted = false
+	player:GetAttributeChangedSignal("Zone"):Connect(function()
+		local zone = player:GetAttribute("Zone")
+		if not hinted and type(zone) == "string" and string.sub(zone, 1, 5) == "Floor" then
+			hinted = true
+			local key = if UserInputService.TouchEnabled
+				then "hint.attackTouch"
+				elseif UserInputService.GamepadEnabled then "hint.attackPad"
+				else "hint.attackPc"
+			CombatController.Hint(Lang.T(key))
+		end
+	end)
 	remotes = remoteFolder
 	local screen = UIKit.Screen()
 	task.spawn(hideDefaultBackpack)

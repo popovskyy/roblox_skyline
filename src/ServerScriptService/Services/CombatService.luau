@@ -6,6 +6,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local SfxService = require(script.Parent.SfxService)
@@ -211,11 +212,15 @@ local function swing(player: Player)
 		return
 	end
 	local def = equippedWeapon(player)
-	local weapon = def and def.weapon
 	local root = CharacterUtil.GetRoot(player)
-	if not def or not weapon or not root then
+	if not root then
 		return
 	end
+	-- Nothing in hand: punch. Holding a non-weapon item: the tap uses the item instead.
+	if not def and equippedItem(player) then
+		return
+	end
+	local weapon = if def and def.weapon then def.weapon else GameConfig.Fists
 	local now = os.clock()
 	-- A little slack so swings that arrive bunched up by lag still count.
 	if lastSwing[player] and now - lastSwing[player] < weapon.cooldown - 0.12 then
