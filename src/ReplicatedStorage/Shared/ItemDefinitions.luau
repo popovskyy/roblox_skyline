@@ -43,8 +43,9 @@ local Items: { [string]: ItemDef } = {
 		weapon = GameConfig.Weapons.Club,
 		rarity = "Common",
 	},
-	-- Mesh: WeaponBat after Weapons pack re-upload (CombatService.MESHES). Icon still Club tint until
-	-- SVG/`build_icons.py` path gets a Bat art pass — do not invent image ids.
+	-- Mesh: WeaponBat after Weapons pack re-upload (CombatService.MESHES).
+	-- Icon art ready locally: assets/icons/svg/Bat.svg + Bat.png (scripts/build_icons.py).
+	-- Until Open Cloud Image upload prints a real id, keep Club icon + Rare tint — do not invent ids.
 	Bat = {
 		id = "Bat",
 		iconImage = "rbxassetid://92584142342300",
