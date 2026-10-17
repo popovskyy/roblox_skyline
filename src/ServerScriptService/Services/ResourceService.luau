@@ -95,7 +95,10 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 	local id = itemId :: string
 	local count = amount :: number
 	local unique = node:GetAttribute("Unique") == true
-	if unique and InventoryService.GetCount(player, id) > 0 then
+	local def = ItemDefinitions.Get(id)
+	-- One of each tool is enough; keys are used up on locked crates, so they stack.
+	local isTool = def ~= nil and not def.storable
+	if unique and isTool and InventoryService.GetCount(player, id) > 0 then
 		return false, "res.alreadyHave"
 	end
 	if not InventoryService.CanAdd(player, id, count) then

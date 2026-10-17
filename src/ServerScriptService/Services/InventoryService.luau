@@ -48,8 +48,12 @@ end
 -- How many of itemId fit into the remaining carry weight.
 function InventoryService.SpaceFor(player: Player, itemId: string): number
 	local def = ItemDefinitions.Get(itemId)
-	if not def or def.weight <= 0 then
+	if not def then
 		return 0
+	end
+	if def.weight <= 0 then
+		-- Weightless items (Key, Club) never fill the backpack.
+		return math.huge
 	end
 	local free = InventoryService.GetCapacity(player) - InventoryService.GetWeight(player)
 	return math.max(0, math.floor(free / def.weight))

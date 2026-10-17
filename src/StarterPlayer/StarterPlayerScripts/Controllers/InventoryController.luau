@@ -54,7 +54,9 @@ local NUMBER_KEYS = {
 local weightLabel: TextLabel
 local bagButton: TextButton
 local page = 1
-local ownedItems: { string } = {}
+-- Hotbar position (across pages) -> item; may have holes. slotOf is the reverse.
+local ownedItems: { [number]: string } = {}
+local slotOf: { [string]: number } = {}
 local slots: { ItemSlot.Slot } = {}
 local slotItems: { [number]: string } = {}
 local tooltip: TextLabel
@@ -223,30 +225,76 @@ local function pouchChip(def: ItemDefinitions.ItemDef, count: number, order: num
 	})
 end
 
+local function pageCount(): number
+	local last = 0
+	for index in ownedItems do
+		last = math.max(last, index)
+	end
+	return math.max(1, math.ceil(last / SLOT_COUNT))
+end
+
 local function renderInventory(s: { [string]: any })
 	local weight = s.weight or 0
 	local maxWeight = math.max(s.maxWeight or 1, 1)
 	weightLabel.Text = Lang.T("hud.weight", weight, maxWeight)
 	weightLabel.TextColor3 = if weight >= maxWeight then T.Amber else T.CreamDim
 
-	-- Owned items fill the slots in a fixed order (paged when there are more than slots).
+	-- Owned items keep the slot they first landed in and a new item takes the first free slot, so getting
+	-- something never pushes another item off the visible page (paged when there are more than slots).
 	-- Building resources are only counted in the pouch.
 	for _, child in pouch:GetChildren() do
 		if child:IsA("Frame") and child.Name ~= "Weight" then
 			child:Destroy()
 		end
 	end
-	table.clear(ownedItems)
+	local owned: { [string]: boolean } = {}
 	for order, itemId in ItemDefinitions.Order do
 		local count = s.inventory and s.inventory[itemId] or 0
 		local def = ItemDefinitions.Items[itemId]
 		if def.resource then
 			pouchChip(def, count, order)
 		elseif count > 0 then
-			table.insert(ownedItems, itemId)
+			owned[itemId] = true
 		end
 	end
-	local pages = math.max(1, math.ceil(#ownedItems / SLOT_COUNT))
+	for itemId, index in slotOf do
+		if not owned[itemId] then
+			slotOf[itemId] = nil
+			ownedItems[index] = nil
+		end
+	end
+	-- An item left on a later page moves into a gap on the first page, so it is never hidden behind "+".
+	local overflow: { number } = {}
+	for index in ownedItems do
+		if index > SLOT_COUNT then
+			table.insert(overflow, index)
+		end
+	end
+	table.sort(overflow)
+	for _, from in overflow do
+		local to = 1
+		while to <= SLOT_COUNT and ownedItems[to] do
+			to += 1
+		end
+		if to > SLOT_COUNT then
+			break
+		end
+		local itemId = ownedItems[from]
+		ownedItems[from] = nil
+		ownedItems[to] = itemId
+		slotOf[itemId] = to
+	end
+	for _, itemId in ItemDefinitions.Order do
+		if owned[itemId] and not slotOf[itemId] then
+			local index = 1
+			while ownedItems[index] do
+				index += 1
+			end
+			slotOf[itemId] = index
+			ownedItems[index] = itemId
+		end
+	end
+	local pages = pageCount()
 	page = math.clamp(page, 1, pages)
 	bagButton.Visible = pages > 1
 	bagButton.Text = ("+ %d/%d"):format(page, pages)
@@ -290,7 +338,8 @@ end
 
 -- Gamepad shortcut: D-pad up uses a medkit, D-pad down eats food.
 local function useItem(itemId: string)
-	(remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent):FireServer(itemId)
+	local remote = remotes:FindFirstChild(RemoteNames.UseItem) :: RemoteEvent
+	remote:FireServer(itemId)
 end
 
 local function activateSlot(i: number)
@@ -321,17 +370,33 @@ end
 -- Gamepad: L1 / R1 (or D-pad left / right) step through the hotbar and take that item in hand.
 local gamepadSlot = 0
 local function stepSlot(direction: number)
-	local count = #slotItems
+	-- Slots can have holes (an item used up keeps the others in place); step over the filled ones.
+	local filled: { number } = {}
+	for i = 1, SLOT_COUNT do
+		if slotItems[i] then
+			table.insert(filled, i)
+		end
+	end
+	local count = #filled
 	if count == 0 then
 		return
 	end
-	local current = table.find(slotItems, player:GetAttribute("Equipped") or "") or gamepadSlot
-	local nextSlot = ((current - 1 + direction) % count) + 1
-	if current == 0 then
-		nextSlot = if direction > 0 then 1 else count
+	local held = player:GetAttribute("Equipped")
+	local current = 0
+	for n, i in filled do
+		if slotItems[i] == held then
+			current = n
+		end
 	end
-	gamepadSlot = nextSlot
-	activateSlot(nextSlot)
+	if current == 0 then
+		current = table.find(filled, gamepadSlot) or 0
+	end
+	local nextAt = ((current - 1 + direction) % count) + 1
+	if current == 0 then
+		nextAt = if direction > 0 then 1 else count
+	end
+	gamepadSlot = filled[nextAt]
+	activateSlot(gamepadSlot)
 end
 
 local function buildHotbar(screen: ScreenGui)
@@ -400,7 +465,7 @@ local function buildHotbar(screen: ScreenGui)
 	})
 	bagButton.Activated:Connect(function()
 		page += 1
-		if page > math.max(1, math.ceil(#ownedItems / SLOT_COUNT)) then
+		if page > pageCount() then
 			page = 1
 		end
 		local s = ClientState.Get()
@@ -475,7 +540,8 @@ local function buildHotbar(screen: ScreenGui)
 end
 
 local function transfer(direction: string, itemId: string, amount: number)
-	(remotes:FindFirstChild(RemoteNames.StorageTransfer) :: RemoteEvent):FireServer(direction, itemId, amount)
+	local remote = remotes:FindFirstChild(RemoteNames.StorageTransfer) :: RemoteEvent
+	remote:FireServer(direction, itemId, amount)
 end
 
 local CHEST_SLOT = 76

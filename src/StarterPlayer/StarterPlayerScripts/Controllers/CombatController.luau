@@ -1,5 +1,5 @@
 --!strict
--- Client side of combat: what the held item does on a tap / click / R2 (Tool.Activated), the hold and
+-- Client side of combat: what the held item does on a tap / click / R2 (attackInput), the hold and
 -- swing animations, the "you are down" screen, revive prompts and the workbench window.
 -- Every decision (hits, damage, revives, crafting) is made by the server.
 
@@ -31,41 +31,81 @@ local function remote(name: string): RemoteEvent
 	return remotes:FindFirstChild(name) :: RemoteEvent
 end
 
--- Uploaded with scripts/build_animations.py.
-local ANIMATIONS = {
-	WeaponHold = "rbxassetid://85303283403730",
-	WeaponSwing = "rbxassetid://106693888316440",
-	ItemHold = "rbxassetid://113741024764678",
-	ItemUse = "rbxassetid://73366190002807",
-	Punch = "rbxassetid://129369444994134",
+-- Uploaded with scripts/build_animations.py. Priorities are set here too so they never depend on the
+-- uploaded asset: the swings must beat the hold poses and the default walk/idle.
+local ANIMATIONS: { [string]: { id: string, priority: Enum.AnimationPriority } } = {
+	WeaponHold = { id = "rbxassetid://85303283403730", priority = Enum.AnimationPriority.Action },
+	WeaponSwing = { id = "rbxassetid://106693888316440", priority = Enum.AnimationPriority.Action4 },
+	ItemHold = { id = "rbxassetid://113741024764678", priority = Enum.AnimationPriority.Action },
+	ItemUse = { id = "rbxassetid://73366190002807", priority = Enum.AnimationPriority.Action4 },
+	Punch = { id = "rbxassetid://129369444994134", priority = Enum.AnimationPriority.Action4 },
 }
 
 local tracks: { [string]: AnimationTrack } = {}
+local tracksAnimator: Animator? = nil
 
+-- The local character's Animator, only once the character is in the Workspace: LoadAnimation fails
+-- before that (it happens right after CharacterAdded, and for longer on slow phones and tablets).
+local function currentAnimator(): Animator?
+	local character = player.Character
+	if not character or not character:IsDescendantOf(workspace) then
+		return nil
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+	return animator
+end
+
+-- Loads whatever is missing for the current Animator; safe to call again and again.
+local function ensureTracks(): boolean
+	local animator = currentAnimator()
+	if not animator then
+		return false
+	end
+	if tracksAnimator ~= animator then
+		table.clear(tracks)
+		tracksAnimator = animator
+	end
+	local all = true
+	for name, spec in ANIMATIONS do
+		if not tracks[name] then
+			local animation = Instance.new("Animation")
+			animation.AnimationId = spec.id
+			local ok, track = pcall(function()
+				return animator:LoadAnimation(animation)
+			end)
+			if ok and track then
+				track.Priority = spec.priority
+				tracks[name] = track
+			else
+				all = false
+			end
+		end
+	end
+	return all
+end
+
+-- Waits for the new character to be in the Workspace with its Animator, then loads every track.
 local function loadTracks(character: Model)
 	table.clear(tracks)
-	local humanoid = character:WaitForChild("Humanoid", 10)
-	if not humanoid then
-		return
-	end
-	local animator = humanoid:WaitForChild("Animator", 10)
-	if not animator or not animator:IsA("Animator") then
-		return
-	end
-	for name, id in ANIMATIONS do
-		local animation = Instance.new("Animation")
-		animation.AnimationId = id
-		local ok, track = pcall(function()
-			return animator:LoadAnimation(animation)
-		end)
-		if ok and track then
-			tracks[name] = track
+	tracksAnimator = nil
+	for _ = 1, 40 do
+		if player.Character ~= character then
+			return
 		end
+		if ensureTracks() then
+			return
+		end
+		task.wait(0.25)
 	end
 end
 
 local function play(name: string, fade: number?)
 	local track = tracks[name]
+	if not track or tracksAnimator ~= currentAnimator() then
+		ensureTracks()
+		track = tracks[name]
+	end
 	if track then
 		track:Play(fade or 0.1)
 	end
@@ -490,7 +530,7 @@ function CombatController.Start(remoteFolder: Folder)
 	buildCraft(screen)
 
 	if player.Character then
-		watchTool(player.Character)
+		task.spawn(watchTool, player.Character)
 	end
 	player.CharacterAdded:Connect(watchTool)
 	player:GetAttributeChangedSignal("Downed"):Connect(updateDowned)

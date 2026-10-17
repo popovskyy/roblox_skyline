@@ -9,7 +9,11 @@ local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
 
 local LeaderboardService = {}
 
+export type Entry = { rank: number, userId: number, name: string, towers: number }
+
 local names: { [number]: string } = {}
+-- The last board read from the store, kept so the "Records" panel never costs a DataStore call.
+local latest: { Entry } = {}
 
 local function nameOf(userId: number): string
 	if names[userId] then
@@ -29,11 +33,20 @@ local function refresh(rows: { TextLabel })
 		return store:GetSortedAsync(false, PlacesConfig.LeaderboardSize)
 	end)
 	local entries = if ok and pages then pages:GetCurrentPage() else {}
+	local board: { Entry } = {}
+	for i, entry in entries do
+		local userId = tonumber(entry.key) or 0
+		local towers = if type(entry.value) == "number" then entry.value else 0
+		table.insert(board, { rank = i, userId = userId, name = nameOf(userId), towers = towers })
+	end
+	if ok then
+		latest = board
+	end
 	for i, row in rows do
-		local entry = entries[i]
+		local entry = board[i]
 		if entry then
 			row:SetAttribute("TextKey", nil)
-			row.Text = ("%d.  %s  —  %d"):format(i, nameOf(tonumber(entry.key) or 0), entry.value)
+			row.Text = ("%d.  %s  —  %d"):format(i, entry.name, entry.towers)
 		elseif i == 1 then
 			-- The client translates it.
 			row:SetAttribute("TextKey", "lobby.leadersEmpty")
@@ -46,6 +59,10 @@ local function refresh(rows: { TextLabel })
 	if not ok then
 		warn("[Leaderboard] could not read the board:", pages)
 	end
+end
+
+function LeaderboardService.Get(): { Entry }
+	return latest
 end
 
 function LeaderboardService.Start(rows: { TextLabel })

@@ -1,15 +1,19 @@
 --!strict
 -- Lobby client: translates world text, shows short messages from the lifts and a language switch.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 Shared:WaitForChild("Locale")
 local MusicConfig = require(Shared:WaitForChild("MusicConfig"))
+local PlacesConfig = require(Shared:WaitForChild("PlacesConfig"))
+local RemoteNames = require(Shared:WaitForChild("RemoteNames"))
 local Theme = require(Shared:WaitForChild("Theme"))
 local Lang = require(script.Parent:WaitForChild("Lang"))
 local UIKit = require(script.Parent:WaitForChild("UIKit"))
@@ -85,6 +89,7 @@ local topScreen = UIKit.New("ScreenGui", {
 	ResetOnSpawn = false,
 	IgnoreGuiInset = true,
 	ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
 })
 local tokenChip = UIKit.New("Frame", {
@@ -145,26 +150,197 @@ Players.LocalPlayer:GetAttributeChangedSignal("Tokens"):Connect(updateTokens)
 Lang.Changed:Connect(updateTokens)
 updateTokens()
 
--- Classes (top-right, next to the tokens) -----------------------------------------------------------------
-local Classes = require(Shared:WaitForChild("Classes"))
-local classesButton = UIKit.Button({
-	Name = "ClassesButton",
+-- Buttons under the tokens: Records, How to play, Classes (docs/design/HUD_SPEC.md, section 8) ---------------
+local touch = UIKit.IsTouch()
+local BUTTON_HEIGHT = if touch then 44 else 40
+
+local function usingGamepad(): boolean
+	return string.sub(UserInputService:GetLastInputType().Name, 1, 7) == "Gamepad"
+end
+
+local buttonRow = UIKit.New("Frame", {
+	Name = "LobbyButtons",
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -8, 0, 54),
-	Size = UDim2.fromOffset(120, 40),
-	BackgroundColor3 = T.Panel,
-	BackgroundTransparency = 0.35,
-	TextColor3 = T.Cream,
-	FontFace = Theme.Bold,
-	TextSize = 16,
+	Size = UDim2.fromOffset(0, BUTTON_HEIGHT),
+	AutomaticSize = Enum.AutomaticSize.X,
+	BackgroundTransparency = 1,
 	Parent = topScreen,
 })
-UIKit.New("UIStroke", {
-	ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-	Color = T.Amber,
-	Transparency = 0.4,
-	Parent = classesButton,
+UIKit.New("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	HorizontalAlignment = Enum.HorizontalAlignment.Right,
+	Padding = UDim.new(0, 8),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = buttonRow,
 })
+
+-- The gamepad button that opens a panel, drawn in the corner of its lobby button while a pad is in use.
+local padBadges: { ImageLabel } = {}
+local function updatePadBadges()
+	local pad = usingGamepad()
+	for _, badge in padBadges do
+		badge.Visible = pad
+	end
+end
+UserInputService.LastInputTypeChanged:Connect(updatePadBadges)
+
+local function topButton(name: string, width: number, order: number, padKey: Enum.KeyCode?): TextButton
+	local button = UIKit.Button({
+		Name = name,
+		Size = UDim2.fromOffset(width, BUTTON_HEIGHT),
+		BackgroundColor3 = T.Panel,
+		BackgroundTransparency = 0.35,
+		TextColor3 = T.Cream,
+		FontFace = Theme.Bold,
+		TextSize = 16,
+		LayoutOrder = order,
+		Parent = buttonRow,
+	})
+	UIKit.New("UIStroke", {
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Color = T.Amber,
+		Transparency = 0.4,
+		Parent = button,
+	})
+	if padKey then
+		local image = ""
+		pcall(function()
+			image = UserInputService:GetImageForKeyCode(padKey)
+		end)
+		local badge = UIKit.New("ImageLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(1, -2, 1, -2),
+			Size = UDim2.fromOffset(22, 22),
+			BackgroundTransparency = 1,
+			Image = image,
+			Visible = usingGamepad(),
+			Parent = button,
+		})
+		table.insert(padBadges, badge)
+	end
+	return button
+end
+
+-- Close button: a cross drawn with two Frames (the ✕ glyph is missing from the game fonts).
+local function closeButton(parent: Instance): TextButton
+	local button = UIKit.Button({
+		Name = "Close",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromOffset(44, 44),
+		BackgroundColor3 = T.Panel,
+		BackgroundTransparency = 0.2,
+		Text = "",
+		ZIndex = 11,
+		Parent = parent,
+	})
+	for _, angle in { 45, -45 } do
+		UIKit.New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(20, 3),
+			Rotation = angle,
+			BackgroundColor3 = T.Cream,
+			BorderSizePixel = 0,
+			ZIndex = 12,
+			Parent = button,
+		}, { UIKit.Corner(2) })
+	end
+	return button
+end
+
+-- One panel at a time, over a dim backdrop; tapping the backdrop or B on a gamepad closes it.
+local panels: { GuiObject } = {}
+local dim = UIKit.New("TextButton", {
+	Name = "Dim",
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = 0.45,
+	Text = "",
+	AutoButtonColor = false,
+	Visible = false,
+	ZIndex = 9,
+	Parent = topScreen,
+})
+
+local function closePanels()
+	for _, panel in panels do
+		panel.Visible = false
+	end
+	dim.Visible = false
+	GuiService.SelectedObject = nil
+end
+dim.Activated:Connect(closePanels)
+
+local function anyPanelOpen(): boolean
+	for _, panel in panels do
+		if panel.Visible then
+			return true
+		end
+	end
+	return false
+end
+
+-- Opens the panel (closing any other); returns false when it was already open and is now closed.
+local function togglePanel(panel: GuiObject): boolean
+	if panel.Visible then
+		closePanels()
+		return false
+	end
+	closePanels()
+	panel.Visible = true
+	dim.Visible = true
+	if usingGamepad() then
+		GuiService.SelectedObject = panel:FindFirstChild("Close") :: GuiObject?
+	end
+	return true
+end
+
+-- A centred card with a title, a close button and a scrolling body.
+local function sheet(name: string, titleKey: string): (Frame, ScrollingFrame)
+	local panel = UIKit.New("Frame", {
+		Name = name,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(if touch then 0.96 else 0.9, if touch then 0.94 else 0.9),
+		BackgroundColor3 = T.PanelSolid,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 10,
+		Parent = topScreen,
+	}, { UIKit.Corner(12) })
+	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(560, 470), Parent = panel })
+	UIKit.Padding(14).Parent = panel
+	local title = UIKit.Label({
+		Size = UDim2.new(1, -54, 0, 44),
+		FontFace = Theme.Display,
+		TextSize = 24,
+		TextColor3 = T.Cream,
+		ZIndex = 11,
+		Parent = panel,
+	})
+	Lang.Bind(title, titleKey)
+	closeButton(panel).Activated:Connect(closePanels)
+	local body = UIKit.New("ScrollingFrame", {
+		Position = UDim2.fromOffset(0, 52),
+		Size = UDim2.new(1, 0, 1, -52),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 6,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 11,
+		Parent = panel,
+	})
+	UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = body })
+	table.insert(panels, panel)
+	return panel, body
+end
+
+-- Classes ----------------------------------------------------------------------------------------------------
+local Classes = require(Shared:WaitForChild("Classes"))
+local classesButton = topButton("ClassesButton", 120, 3)
 
 local classPanel = UIKit.New("Frame", {
 	Name = "Classes",
@@ -180,27 +356,18 @@ local classPanel = UIKit.New("Frame", {
 UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(560, 470), Parent = classPanel })
 UIKit.Padding(14).Parent = classPanel
 local classTitle = UIKit.Label({
-	Size = UDim2.new(1, -50, 0, 30),
+	Size = UDim2.new(1, -54, 0, 44),
 	FontFace = Theme.Display,
 	TextSize = 24,
 	TextColor3 = T.Cream,
 	ZIndex = 11,
 	Parent = classPanel,
 })
-local closeClasses = UIKit.Button({
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.fromScale(1, 0),
-	Size = UDim2.fromOffset(40, 36),
-	Text = "X",
-	ZIndex = 11,
-	Parent = classPanel,
-})
-closeClasses.Activated:Connect(function()
-	classPanel.Visible = false
-end)
+closeButton(classPanel).Activated:Connect(closePanels)
+table.insert(panels, classPanel)
 local classList = UIKit.New("ScrollingFrame", {
-	Position = UDim2.fromOffset(0, 42),
-	Size = UDim2.new(1, 0, 1, -42),
+	Position = UDim2.fromOffset(0, 52),
+	Size = UDim2.new(1, 0, 1, -52),
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	ScrollBarThickness = 6,
@@ -307,8 +474,7 @@ local function renderClasses()
 end
 
 classesButton.Activated:Connect(function()
-	classPanel.Visible = not classPanel.Visible
-	if classPanel.Visible then
+	if togglePanel(classPanel) then
 		renderClasses()
 	end
 end)
@@ -327,6 +493,264 @@ Lang.Changed:Connect(function()
 	end
 end)
 classesButton.Text = Lang.T("lobby.classes")
+
+-- Records: the "towers completed" board up close. The server sends its cached board on request.
+local recordsButton = topButton("RecordsButton", 120, 1, Enum.KeyCode.ButtonX)
+Lang.Bind(recordsButton, "lobby.records")
+local recordsPanel, recordsList = sheet("Records", "lobby.recordsTitle")
+
+type Record = { rank: number, userId: number, name: string, towers: number }
+local records: { Record }? = nil
+
+local function clearList(list: Instance)
+	for _, child in list:GetChildren() do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+end
+
+local function listNote(list: Instance, text: string, order: number)
+	UIKit.Label({
+		Size = UDim2.new(1, -8, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = text,
+		TextSize = 15,
+		TextColor3 = T.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		LayoutOrder = order,
+		ZIndex = 11,
+		Parent = list,
+	})
+end
+
+local function renderRecords()
+	clearList(recordsList)
+	local board = records
+	if board == nil then
+		listNote(recordsList, Lang.T("lobby.recordsLoading"), 1)
+		return
+	end
+	if #board == 0 then
+		listNote(recordsList, Lang.T("lobby.leadersEmpty"), 1)
+	else
+		local header = UIKit.New("Frame", {
+			Size = UDim2.new(1, -8, 0, 20),
+			BackgroundTransparency = 1,
+			LayoutOrder = 0,
+			ZIndex = 11,
+			Parent = recordsList,
+		})
+		UIKit.Label({
+			Size = UDim2.fromScale(1, 1),
+			Text = Lang.T("lobby.leaders"),
+			FontFace = Theme.Bold,
+			TextSize = 14,
+			TextColor3 = T.CreamDim,
+			ZIndex = 11,
+			Parent = header,
+		})
+		local me = Players.LocalPlayer.UserId
+		for _, record in board do
+			local mine = record.userId == me
+			local row = UIKit.New("Frame", {
+				Size = UDim2.new(1, -8, 0, 40),
+				BackgroundColor3 = T.Panel,
+				BackgroundTransparency = 0.2,
+				BorderSizePixel = 0,
+				LayoutOrder = record.rank,
+				ZIndex = 11,
+				Parent = recordsList,
+			}, { UIKit.Corner(8) })
+			UIKit.New("UIPadding", {
+				PaddingLeft = UDim.new(0, 12),
+				PaddingRight = UDim.new(0, 12),
+				Parent = row,
+			})
+			if mine then
+				UIKit.New("UIStroke", { Color = T.Amber, Thickness = 2, Parent = row })
+			end
+			UIKit.Label({
+				Size = UDim2.new(0, 34, 1, 0),
+				Text = tostring(record.rank),
+				FontFace = Theme.Display,
+				TextSize = 20,
+				TextColor3 = if record.rank <= 3 then T.AmberText else T.CreamDim,
+				ZIndex = 11,
+				Parent = row,
+			})
+			UIKit.Label({
+				Position = UDim2.fromOffset(40, 0),
+				Size = UDim2.new(1, -110, 1, 0),
+				Text = if mine then ("%s · %s"):format(record.name, Lang.T("lobby.recordsYou")) else record.name,
+				TextSize = 17,
+				TextColor3 = T.Cream,
+				TextWrapped = false,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				ZIndex = 11,
+				Parent = row,
+			})
+			UIKit.Label({
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.fromScale(1, 0),
+				Size = UDim2.new(0, 64, 1, 0),
+				Text = tostring(record.towers),
+				FontFace = Theme.Display,
+				TextSize = 20,
+				TextColor3 = T.Cream,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				ZIndex = 11,
+				Parent = row,
+			})
+		end
+	end
+	listNote(recordsList, Lang.T("lobby.recordsNote", PlacesConfig.LeaderboardRefreshSeconds), 1000)
+end
+
+-- Only well-formed rows from the server are drawn.
+local function readRecords(data: any): { Record }
+	local list: { Record } = {}
+	if type(data) ~= "table" then
+		return list
+	end
+	for _, entry in data do
+		if
+			type(entry) == "table"
+			and type(entry.rank) == "number"
+			and type(entry.userId) == "number"
+			and type(entry.name) == "string"
+			and type(entry.towers) == "number"
+		then
+			table.insert(list, { rank = entry.rank, userId = entry.userId, name = entry.name, towers = entry.towers })
+		end
+	end
+	return list
+end
+
+local recordsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild(RemoteNames.ShowRecords)
+if recordsRemote:IsA("RemoteEvent") then
+	recordsRemote.OnClientEvent:Connect(function(data)
+		records = readRecords(data)
+		if recordsPanel.Visible then
+			renderRecords()
+		end
+	end)
+end
+
+local function toggleRecords()
+	if togglePanel(recordsPanel) then
+		renderRecords()
+		fire(RemoteNames.RequestRecords)
+	end
+end
+recordsButton.Activated:Connect(toggleRecords)
+
+-- How to play: the match loop in five steps, then tokens and classes.
+local howButton = topButton("HowButton", BUTTON_HEIGHT, 2, Enum.KeyCode.ButtonY)
+howButton.Text = "?"
+howButton.FontFace = Theme.Display
+howButton.TextSize = 22
+local howPanel, howList = sheet("HowToPlay", "lobby.howTitle")
+
+for step = 1, 5 do
+	local row = UIKit.New("Frame", {
+		Size = UDim2.new(1, -8, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		LayoutOrder = step,
+		ZIndex = 11,
+		Parent = howList,
+	})
+	local badge = UIKit.New("Frame", {
+		Size = UDim2.fromOffset(30, 30),
+		BackgroundColor3 = T.Amber,
+		BorderSizePixel = 0,
+		ZIndex = 11,
+		Parent = row,
+	}, { UIKit.Corner(15) })
+	UIKit.Label({
+		Size = UDim2.fromScale(1, 1),
+		Text = tostring(step),
+		FontFace = Theme.Display,
+		TextSize = 18,
+		TextColor3 = T.PanelSolid,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = 12,
+		Parent = badge,
+	})
+	local heading = UIKit.Label({
+		Position = UDim2.fromOffset(42, 4),
+		Size = UDim2.new(1, -42, 0, 22),
+		FontFace = Theme.Bold,
+		TextSize = 17,
+		TextColor3 = T.Cream,
+		ZIndex = 11,
+		Parent = row,
+	})
+	Lang.Bind(heading, ("lobby.how%dTitle"):format(step))
+	local line = UIKit.Label({
+		Position = UDim2.fromOffset(42, 28),
+		Size = UDim2.new(1, -42, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		TextSize = 15,
+		TextColor3 = T.CreamDim,
+		ZIndex = 11,
+		Parent = row,
+	})
+	Lang.Bind(line, ("lobby.how%d"):format(step))
+end
+
+local tokensNote = UIKit.New("Frame", {
+	Size = UDim2.new(1, -8, 0, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	BackgroundColor3 = T.Panel,
+	BackgroundTransparency = 0.2,
+	BorderSizePixel = 0,
+	LayoutOrder = 6,
+	ZIndex = 11,
+	Parent = howList,
+}, { UIKit.Corner(10), UIKit.Padding(10) })
+UIKit.New("UIStroke", { Color = T.Amber, Transparency = 0.4, Parent = tokensNote })
+UIKit.New("Frame", {
+	Position = UDim2.fromOffset(0, 2),
+	Size = UDim2.fromOffset(18, 18),
+	BackgroundColor3 = T.Amber,
+	BorderSizePixel = 0,
+	ZIndex = 11,
+	Parent = tokensNote,
+}, { UIKit.Corner(9) })
+local tokensLine = UIKit.Label({
+	Position = UDim2.fromOffset(28, 0),
+	Size = UDim2.new(1, -28, 0, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	TextSize = 15,
+	TextColor3 = T.Cream,
+	ZIndex = 11,
+	Parent = tokensNote,
+})
+Lang.Bind(tokensLine, "lobby.howTokens")
+
+local function toggleHow()
+	togglePanel(howPanel)
+end
+howButton.Activated:Connect(toggleHow)
+
+Lang.Changed:Connect(function()
+	if recordsPanel.Visible then
+		renderRecords()
+	end
+end)
+
+-- Gamepad: X opens Records, Y opens How to play, B closes whatever is open.
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.ButtonX then
+		toggleRecords()
+	elseif input.KeyCode == Enum.KeyCode.ButtonY then
+		toggleHow()
+	elseif input.KeyCode == Enum.KeyCode.ButtonB and anyPanelOpen() then
+		closePanels()
+	end
+end)
 
 -- Messages ---------------------------------------------------------------------------------------------
 local toastHolder = UIKit.New("Frame", {
@@ -448,7 +872,6 @@ UIKit.New("UIListLayout", {
 	Parent = riders,
 })
 -- Party size: the leader of a group lift picks 2..6. Not a modal: walking and boarding never wait on it.
-local PlacesConfig = require(Shared:WaitForChild("PlacesConfig"))
 local sizeTitle = UIKit.Label({
 	Size = UDim2.new(1, 0, 0, 20),
 	FontFace = Theme.Bold,

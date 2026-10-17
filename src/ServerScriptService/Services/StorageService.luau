@@ -73,8 +73,10 @@ function StorageService.Transfer(player: Player, direction: any, itemId: any, am
 	if direction == "Deposit" then
 		local have = data.inventory[id] or 0
 		count = math.min(count, have)
-		local free = GameConfig.StorageCapacity - StorageService.GetWeight(player)
-		count = math.min(count, math.floor(free / def.weight))
+		if def.weight > 0 then
+			local free = GameConfig.StorageCapacity - StorageService.GetWeight(player)
+			count = math.min(count, math.floor(free / def.weight))
+		end
 		if count <= 0 then
 			return false, if have <= 0 then "storage.nothing" else "storage.full"
 		end

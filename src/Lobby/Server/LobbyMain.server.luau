@@ -8,6 +8,7 @@ local Atmosphere = require(script.Parent.Atmosphere)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local LiftService = require(script.Parent.LiftService)
 local LobbyWorld = require(script.Parent.LobbyWorld)
+local RateLimiter = require(script.Parent.RateLimiter)
 
 Players.CharacterAutoLoads = true
 
@@ -31,6 +32,13 @@ selectClass.Parent = remotes
 local setLanguage = Instance.new("RemoteEvent")
 setLanguage.Name = "SetLanguage"
 setLanguage.Parent = remotes
+local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
+local requestRecords = Instance.new("RemoteEvent")
+requestRecords.Name = RemoteNames.RequestRecords
+requestRecords.Parent = remotes
+local showRecords = Instance.new("RemoteEvent")
+showRecords.Name = RemoteNames.ShowRecords
+showRecords.Parent = remotes
 remotes.Parent = ReplicatedStorage
 
 -- The lobby keeps the language choice only for this visit; the tower saves it with the player's progress.
@@ -46,6 +54,12 @@ LiftService.Start(world.lifts, function(player, message, kind)
 	notifyRemote:FireClient(player, message, kind or "info")
 end)
 LeaderboardService.Start(world.leaderboardRows)
+-- The "Records" panel: the cached board, at most once a second per player.
+requestRecords.OnServerEvent:Connect(function(player)
+	if RateLimiter.Allow(player, "RequestRecords", 1) then
+		showRecords:FireClient(player, LeaderboardService.Get())
+	end
+end)
 leaveLift.OnServerEvent:Connect(LiftService.Leave)
 setLiftSize.OnServerEvent:Connect(LiftService.SetSize)
 

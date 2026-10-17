@@ -9,6 +9,7 @@ local RemoteNames = {
 	OpenStorage = "OpenStorage",
 	LootOpened = "LootOpened",
 	ShowResults = "ShowResults",
+	ShowRecords = "ShowRecords", -- lobby only
 
 	-- Client -> server
 	RequestState = "RequestState",
@@ -22,6 +23,7 @@ local RemoteNames = {
 	DropItem = "DropItem",
 	Craft = "Craft",
 	OpenCraft = "OpenCraft",
+	RequestRecords = "RequestRecords", -- lobby only
 }
 
 return RemoteNames

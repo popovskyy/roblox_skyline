@@ -14,6 +14,9 @@
       "Atmosphere": {
         "$path": "src/ServerScriptService/Atmosphere.luau"
       },
+      "RateLimiter": {
+        "$path": "src/ServerScriptService/Services/RateLimiter.luau"
+      },
       "Scenery": {
         "$path": "src/ServerScriptService/Scenery.luau"
       }

@@ -3,6 +3,19 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## b26 · 17.10 (not published yet)
+- Hit, swing and punch animations now play on phones and tablets (they reload and retry if they fail).
+- Keys on floors 3 and 4 can be picked up (no more "inventory full"); several keys can be carried at
+  once, and a key fits into the chest even when the chest is full. (The club still cannot go into the chest.)
+- Hotbar items keep their slot after crafting or picking up a new weapon, so they no longer seem to
+  vanish to page 2; a new item takes the first free slot, and an item left on page 2 moves into a free
+  slot on page 1. L1 / R1 on a gamepad skip empty slots.
+- Lobby: "Records" (leaderboard up close) and "?" (how to play) buttons; on a gamepad X / Y open them,
+  B closes.
+- Check in game: swing and punch animations on phone and tablet, and whether zombies take damage from
+  taps; keys on floors 3 and 4, carrying two keys, the diamond crate, a key into the chest; the hotbar
+  after crafting a Pipe / Machete on a 5-slot phone; the lobby buttons on PC, phone and PS5.
+
 ## b25 · 17.10
 - Classes, bought with tokens in the lobby ("Класи" button under the tokens) and picked before the lift:
   Medic 60 (2 extra bandages, revives twice as fast), Scout 80 (15% faster, flashlight lasts longer),
