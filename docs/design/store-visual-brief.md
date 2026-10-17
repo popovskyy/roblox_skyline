@@ -1,8 +1,8 @@
 # SkylineZero — Roblox store visual brief
 
-> **Status (17.10, final-pass branch):** Checklist for owner + Art. Do **not** upload to Creator Hub until
-> they approve. Concepts already in repo under `assets/store/` (see table). Optional polish copies may
-> also land in `media/marketing/` later.
+> **Status (17.10, after b34):** Checklist for owner + Art. Do **not** upload to Creator Hub until they
+> approve. Concepts already in repo under `assets/store/` (see table). Full owner gate list:
+> [owner-gates.md](./owner-gates.md).
 >
 > Where this doc and the code disagree, the code and `GameConfig` win.
 

@@ -17,6 +17,11 @@ roblox.yml
 # Built animation models (rebuilt by scripts/build_animations.py)
 assets/animations/*.rbxm
 
+# Blender autosaves / Python cache
+blender/*.blend1
+blender/__pycache__/
+**/__pycache__/
+
 # Local tool binaries (stylua/selene/rojo)
 .tools/
 .env

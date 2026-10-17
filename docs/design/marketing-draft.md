@@ -1,11 +1,12 @@
 # SkylineZero — store marketing draft
 
-> **Status (17.10, final-pass branch):** Paste-ready for Creator Hub **after** owner merge + Art sign-off.
-> Do **not** upload until owner says. Loop fantasy matches live game: **roof → down floors → back →
-> build → bridge** (never “climb up”). Live build tag on master is **b33**; this epic branch adds HUD
-> declutter + Phase D scaffolds (no publish yet).
+> **Status (17.10, after b34 + roadmap-continue):** Paste-ready for Creator Hub **after** owner merge +
+> Art sign-off. Do **not** upload until owner says. Loop fantasy matches live game: **roof → down floors
+> → back → build → bridge** (never “climb up”). Live published tag: **b34**. Continue branch only refreshes
+> FBX / Bat icon art / owner-gate docs — still **no invent ids**, no Hub upload.
 >
-> Where this doc and the code disagree, the code and `GameConfig` win.
+> Owner gate list: [owner-gates.md](./owner-gates.md). Where this doc and the code disagree, the code and
+> `GameConfig` win.
 
 Visual specs: [store-visual-brief.md](./store-visual-brief.md) · [banner-art-brief.md](./banner-art-brief.md) ·
 concepts in `assets/store/` (see checklist below)
@@ -117,7 +118,7 @@ Robux never skips the game and never buys tokens directly.
 | Robux shop / packs / “buy tokens” | No token shop; Robux never buys tokens directly |
 | Perfect / guided onboarding from second one | First session still owner-validated |
 | Dynamic weather as a main USP | Rain/night exist; not TLOU-grade showcase |
-| Fire-door / perfect Bat model | Phase D polish on branch; not a store claim until uploaded |
+| Fire-door / perfect Bat model | FBX regenerated; live mesh only after owner `upload_model.sh` |
 | “Perfect on every device” | Phone/tablet still need owner pass after merge |
 | Heartbeat low-HP SFX | **Blocked** — no Creator Store / HANDOFF sound id yet (do not invent) |
 

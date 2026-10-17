@@ -1,12 +1,12 @@
 # Skyline Zero — Slow Survival Loop (design pass)
 
-> **Status (17.10, after b27 code read):** Owner feedback — match feels like a rushed checklist (~15 min), not TLOU/Days Gone roof survival. This doc is the **source of intent** for the next gameplay pass. Live numbers still win in `GameConfig` until a coder lands the table below. **Do not publish** from this doc alone.
+> **Status (17.10, after b34):** Phase A A1–A10 + HUD declutter are **live**. Phase D meshes are
+> scaffolded + FBX regenerated; **upload still owner** (`docs/design/owner-gates.md`). §1 “what’s broken”
+> below is historical evidence from b27 — do not re-land A1–A8. Live numbers win in `GameConfig`.
+> **Do not publish** from this doc alone. Brainstorm hooks stay out of schedule unless owner pulls them.
 >
-> **Pipeline lock (owner):**
-> 1. **First** — core slow-survival loop (scrap, loot rarity, rubble gates, barricades that work, pacing) + finish `LOCAL_AGENT_STEPS.md` bugs as needed.
-> 2. **Only after that plays right** — full Blender visual polish (“вилизано”). See **Phase D** at the end.
->
-> Related: [game-design-loops.md](./game-design-loops.md) (older 15‑min / 240‑stud notes — intent only), [first-session-ux.md](./first-session-ux.md), [brainstorm-hooks.md](./brainstorm-hooks.md) (ideas bank, not schedule).
+> Related: [game-design-loops.md](./game-design-loops.md), [first-session-ux.md](./first-session-ux.md),
+> [brainstorm-hooks.md](./brainstorm-hooks.md), [owner-gates.md](./owner-gates.md).
 
 ---
 

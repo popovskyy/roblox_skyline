@@ -1,6 +1,10 @@
 # SkylineZero — First Session UX
 
-> **Status (17.10, build b24):** Already in the game: lift party size 2-6 (solo lift separate), live goal counter ("2/4" next to the goal), downed-teammate marker with edge arrow, shared team chest and buildings, hold-to-drop items. Still open: the objective marker points at the stairs during loot steps instead of the loot itself, and an idle nudge on the roof.
+> **Status (17.10, build b34):** Already in the game: lift party size 2–6 (solo lift separate), live goal
+> counter, downed-teammate marker + edge arrow, shared team chest/buildings, hold-to-drop, idle roof nudge
+> (SFX + marker bob, **no text**), objective marker prefers nearest scrap/electronics on-floor (stairs from
+> roof / when floor empty). HUD declutter (b34): **no** `tutorial.new` / `res.collected` toast spam — ЦІЛЬ
+> strip is the teacher. Do **not** add the old “party.stored / toast.dropHint” tip spam from §5.
 >
 > Imported from the Cursor team's notes. Where this doc and the code disagree, the code and `GameConfig` win.
 
@@ -23,7 +27,7 @@ North star check: every element answers “що далі?” without yelling. Pa
 |---|-------------|--------|-----------|
 | 0–8s | Intro card (existing `intro.*`) auto-dismisses or Continue | No second modal | Hook / stakes |
 | 8–20s | HUD objective only: `tutorial.1` + world marker ▼ on Emergency Terminal | Walk to terminal, Read | Safe hub → why leave |
-| ~20–40s | After note close: toast once `tutorial.new` → `tutorial.2`; marker → stairs (`СХОДИ ВНИЗ ↓`) | Stairs down | Commit to expedition |
+| ~20–40s | After note close: ЦІЛЬ swaps to `tutorial.2` (**no** `tutorial.new` toast); marker → stairs (`СХОДИ ВНИЗ ↓`) | Stairs down | Commit to expedition |
 | 40–120s | Objective shows live scrap: **Металобрухт 0/3** (see §3); nearest scrap gets soft outline + ProximityPrompt `Зібрати` | Loot 3 scrap on tech floor | Loot dopamine (`n/m` ticks) |
 | 120–180s | On 3/3: pulse objective → `tutorial.3` + marker roof; no extra popups | Climb back | Return / bank the win |
 
@@ -174,7 +178,8 @@ All keys: `{ uk, ru, en }`.
 | `toast.dropHint` | Можеш кинути річ на землю — тіммейт підбере. | Можешь выбросить вещь на землю — тиммейт подберёт. | Drop an item on the ground — a teammate can pick it up. |
 
 ### Keep as-is (already good)
-`tutorial.1–7`, `tutorial.new`, `intro.*`, `note.terminal.*`, `prompt.collect`, `downed.*`, `marker.here`, `lobby.countdown`, `lobby.riders`, `lobby.starting`.
+`tutorial.1–7`, `intro.*`, `note.terminal.*`, `prompt.collect`, `downed.*`, `marker.here`, `lobby.countdown`, `lobby.riders`, `lobby.starting`.  
+(`tutorial.new` Locale key may remain; **do not fire** — DIE’d in HUD declutter.)
 
 ---
 
