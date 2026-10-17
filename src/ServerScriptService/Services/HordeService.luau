@@ -109,6 +109,10 @@ local function spawnPositions(behindBarricade: boolean): (Vector3, Vector3)
 end
 
 local function releaseWave()
+	-- Re-read each wave so a mid-match Enabled = false (QA) stops further sirens/spawns.
+	if not H.Enabled then
+		return
+	end
 	warnEveryone()
 	local count = hordeCount()
 	local blocked = teamHasBarricade()

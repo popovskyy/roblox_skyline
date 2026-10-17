@@ -9,16 +9,19 @@ retune, no Blender, no publish.
 
 ### Horde kill-switch (A10)
 - `GameConfig.Horde.Enabled` (default `true`). When `false`, no siren and no waves; Barricade boards still
-  harden on purchase.
+  harden on purchase. Each wave re-checks the flag (mid-match QA flip stops further waves).
 - Check in game: normal match still gets first horde ~8–10 min; with `Enabled = false` (Studio/config) —
   whole match with no siren/wave.
 
 ### First Scrap tip visible same beat (A9)
 - `hint.scrapNotCrowbar` bypasses the 15 s soft-toast throttle so it is not delayed behind "collected".
-- Check in game: pick first Scrap on F1 — "зібрано" and the Scrap≠Лом line both show together (uk/ru/en).
+- Force tip flushes any queued soft toast first (so a pending "зібрано" after `tutorial.new` is not wiped).
+- Check in game: after a soft toast, pick first Scrap within 15 s — both "зібрано" and Scrap≠Лом show
+  together (uk/ru/en). Cold first-Scrap path still stacks both.
 
 ### Gold / Diamond open louder (§10.5)
-- Stronger camera shake, denser burst, longer/louder banner; open ding on Gold/Diamond. Common/Rare unchanged.
+- Stronger camera shake, denser burst, longer/louder banner; one open ding on Gold/Diamond (no double
+  Diamond upgrade SFX). Common/Rare unchanged.
 - Check in game: open Common vs Gold/Diamond — rare tiers clearly out-read three Commons; party still sees
   the banner; shared empty crates unchanged.
 

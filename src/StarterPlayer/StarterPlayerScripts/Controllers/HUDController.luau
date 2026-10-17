@@ -197,8 +197,21 @@ end
 -- without shortening ToastMinIntervalSeconds for other info/success lines.
 function HUDController.Toast(text: string, kind: string?, force: boolean?)
 	local rank = KIND_RANK[kind or "info"] or 1
+	-- Teach tip: show now, but flush any queued soft toast first so e.g. res.collected
+	-- (pending behind the 15s throttle after tutorial.new) is not wiped by the force path.
+	if force then
+		local pending = pendingToast
+		pendingToast = nil
+		pendingToken += 1
+		lastToastAt = os.clock()
+		if pending then
+			showToast(pending.text, pending.kind)
+		end
+		showToast(text, kind)
+		return
+	end
 	-- Danger always lands; soft tips wait so loot / tutorial lines do not stack.
-	if force or rank >= 3 then
+	if rank >= 3 then
 		pendingToast = nil
 		pendingToken += 1
 		lastToastAt = os.clock()

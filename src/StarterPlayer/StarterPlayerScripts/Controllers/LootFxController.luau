@@ -484,10 +484,8 @@ local function showBanner(name: string, tier: string)
 	label.TextStrokeTransparency = 1
 	label.Visible = true
 	TweenService:Create(label, TweenInfo.new(0.3), { TextTransparency = 0, TextStrokeTransparency = 0.2 }):Play()
+	-- Banner SFX only here; open ding for Gold/Diamond is played once in onLootOpened (opener).
 	playOnce("LootBanner", nil, BANNER_VOLUME[tier] or 0.5)
-	if tier == "Diamond" then
-		playOnce("LootUpgrade", nil, 0.55)
-	end
 	local hold = BANNER_SECONDS[tier] or 3.5
 	task.delay(hold, function()
 		if bannerToken == token then
