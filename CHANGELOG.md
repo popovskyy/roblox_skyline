@@ -3,7 +3,7 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
-## Unreleased
+## b33 · 17.10 19:05
 ### Lobby: gamepad opens Classes
 - On a controller, **L1 / LB** opens the Classes panel (same toggle as the Класи button). X still
   opens Records, Y How to play, B closes. A pad glyph badge appears on the Classes button while a

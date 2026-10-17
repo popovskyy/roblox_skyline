@@ -1,6 +1,6 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build b32 · 17.10 18:55 published.
+Owner: Popovskyi. Updated 17.10, build b33 · 17.10 19:05 published.
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
@@ -18,7 +18,7 @@ Focus in game (solo + 2–3 co-op):
 
 Still OK from b31: crisp hotbar tooltip / touch caption; soft rubble hold-clear; stair shaft; no yellow Health.
 
-Done (awaiting publish): lobby gamepad **L1 / LB** opens Classes (Unreleased). Owner question closed.
+Shipped in **b33**: lobby gamepad **L1 / LB** opens Classes. Owner question closed.
 
 ## Next (in this order)
 
