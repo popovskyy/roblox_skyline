@@ -128,17 +128,20 @@ local GameConfig = {
 
 	-- Tokens earned in a match (kept even when the match is lost; doubled for a win).
 	Tokens = {
-		PerFloor = 5, -- for the deepest floor reached (floor 3 = 15)
-		Chest = { Common = 2, Rare = 4, Gold = 8, Diamond = 15 } :: { [string]: number },
-		Zombie = 3,
-		Build = 6,
-		Revive = 5,
+		-- About 25-35 for a typical lost match, double for a win: enough to feel earned, not to flood.
+		PerFloor = 2, -- for the deepest floor reached (floor 3 = 6)
+		Chest = { Common = 1, Rare = 2, Gold = 4, Diamond = 8 } :: { [string]: number },
+		Zombie = 1,
+		Build = 3,
+		Revive = 2,
 		WinMultiplier = 2,
 	},
 
 	-- Workbench on the roof.
 	Recipes = {
 		{ id = "Bandage", cost = { Food = 1, Scrap = 1 } },
+		-- Medkits are rare in the floors; two bandages and a can make one.
+		{ id = "Medkit", cost = { Bandage = 2, Food = 1 } },
 		{ id = "Pipe", cost = { Scrap = 4 } },
 		{ id = "Machete", cost = { Scrap = 5, Electronics = 2 } },
 	} :: { { id: string, cost: { [string]: number } } },

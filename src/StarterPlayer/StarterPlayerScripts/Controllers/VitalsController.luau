@@ -58,6 +58,7 @@ local maxHealth = 100
 local chipToken = 0
 local pulseToken = 0
 local eatHinted = false
+local medkitHinted = false
 
 -- Four soft gradients along the screen edges.
 local function vignette(color: Color3, transparency: number): Frame
@@ -389,6 +390,11 @@ local function updateBadges()
 	if low ~= lowShown then
 		lowShown = low
 		setPulse(low)
+		-- First time low on health this match: say where medkits come from.
+		if low and not medkitHinted then
+			medkitHinted = true
+			VitalsController.Hint(Lang.T("hud.medkitHint"))
+		end
 	end
 	local over = player:GetAttribute("MatchOver") == true
 	toxicVignette.Visible = player:GetAttribute("InToxic") == true and not over

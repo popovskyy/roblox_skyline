@@ -41,11 +41,12 @@ local Steps: { Step } = {
 	{
 		text = "tutorial.2",
 		sticky = false,
+		-- Enough for the chest right away, so the next steps follow without a second trip for scrap.
 		complete = function(player)
-			return StorageService.Total(player, "Scrap") >= 3
+			return StorageService.Total(player, "Scrap") >= 8
 		end,
 		progress = function(player)
-			return math.min(StorageService.Total(player, "Scrap"), 3), 3
+			return math.min(StorageService.Total(player, "Scrap"), 8), 8
 		end,
 	},
 	{
@@ -84,6 +85,11 @@ local Steps: { Step } = {
 		sticky = true,
 		complete = function(_, data)
 			return data.towerCompleted
+		end,
+		progress = function(player)
+			local have = math.min(StorageService.Total(player, "Cable"), 4)
+				+ math.min(StorageService.Total(player, "Motor"), 2)
+			return have, 6
 		end,
 	},
 }

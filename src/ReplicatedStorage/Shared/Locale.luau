@@ -345,9 +345,9 @@ local S: { [string]: Entry } = {
 		en = "Find the emergency terminal on the roof",
 	},
 	["tutorial.2"] = {
-		uk = "Спустись сходами й збери 3 металобрухту на технічному поверсі",
-		ru = "Спустись по лестнице и собери 3 металлолома на техническом этаже",
-		en = "Take the stairs down and collect 3 scrap on the technical floor",
+		uk = "Спустись сходами й збери 8 металобрухту на технічному поверсі",
+		ru = "Спустись по лестнице и собери 8 металлолома на техническом этаже",
+		en = "Take the stairs down and collect 8 scrap on the technical floor",
 	},
 	["tutorial.3"] = {
 		uk = "Повернись на дах",
@@ -491,6 +491,11 @@ local S: { [string]: Entry } = {
 	["hud.starving"] = { uk = "ГОЛОД -1 HP/с", ru = "ГОЛОД -1 HP/с", en = "STARVING -1 HP/s" },
 	["hud.toxicBadge"] = { uk = "ТОКСИН", ru = "ТОКСИН", en = "TOXIC" },
 	["hud.downedBadge"] = { uk = "ВПАВ", ru = "УПАЛ", en = "DOWN" },
+	["hud.medkitHint"] = {
+		uk = "Мало здоров'я: візьми аптечку в руку й тапни. Нові є на 2 поверсі, у скринях і на верстаку",
+		ru = "Мало здоровья: возьми аптечку в руку и тапни. Новые есть на 2 этаже, в сундуках и на верстаке",
+		en = "Low health: hold a medkit and tap. More on floor 2, in crates and at the workbench",
+	},
 	["hud.eatHint"] = { uk = "Поїж щось", ru = "Поешь что-нибудь", en = "Eat something" },
 	["hud.bag"] = { uk = "Ще", ru = "Ещё", en = "More" },
 	["downed.sub"] = {

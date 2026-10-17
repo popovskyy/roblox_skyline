@@ -76,4 +76,13 @@ MatchStatsService.Start()
 DropService.Start()
 PlayerLifecycleService.Start() -- last: it loads characters, so everything above must be ready
 
+-- Day/night and rain. Required only after the world exists, so a problem here can never stop players
+-- from spawning (see AGENTS.md, pitfall 5).
+local okWeather, weatherError = pcall(function()
+	require(script.Parent.WeatherService).Start()
+end)
+if not okWeather then
+	warn("[ServerMain] weather disabled:", weatherError)
+end
+
 print(("[Skyline Zero] Server ready, build %s"):format(require(ReplicatedStorage.Shared.PlacesConfig).Build))

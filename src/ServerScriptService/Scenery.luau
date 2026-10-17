@@ -10,10 +10,11 @@ local PALETTE = {
 	window = Color3.fromRGB(38, 44, 48),
 	lit = Color3.fromRGB(255, 196, 120),
 	rust = Color3.fromRGB(124, 72, 44),
-	moss = Color3.fromRGB(86, 110, 52),
-	leaf = { Color3.fromRGB(78, 112, 48), Color3.fromRGB(96, 128, 56), Color3.fromRGB(64, 92, 44) },
-	grass = Color3.fromRGB(104, 124, 62),
-	bark = Color3.fromRGB(84, 64, 46),
+	-- Muted, dusty greens and dry browns: overgrown but dying, not a botanical garden.
+	moss = Color3.fromRGB(78, 86, 54),
+	leaf = { Color3.fromRGB(74, 82, 50), Color3.fromRGB(92, 92, 58), Color3.fromRGB(96, 84, 56) },
+	grass = Color3.fromRGB(104, 100, 68),
+	bark = Color3.fromRGB(70, 56, 44),
 }
 
 local function part(
@@ -247,6 +248,62 @@ function Scenery.Dress(
 end
 
 -- A ring of ruins around `center`, skipping anything inside `keepClear` (a list of { center, radius }).
+-- The city floor far below: cracked asphalt with dark street lines, so the skyline stands on something
+-- instead of floating in the haze.
+function Scenery.Ground(parent: Instance, center: Vector3, size: number, rng: Random)
+	local folder = Instance.new("Folder")
+	folder.Name = "CityGround"
+	folder.Parent = parent
+	local ground = part(
+		folder,
+		"Ground",
+		Vector3.new(size, 4, size),
+		CFrame.new(center - Vector3.new(0, 2, 0)),
+		Color3.fromRGB(58, 56, 52),
+		Enum.Material.Asphalt
+	)
+	ground.CastShadow = false
+	-- A street grid.
+	local spacing = 120
+	for i = -math.floor(size / spacing / 2), math.floor(size / spacing / 2) do
+		for _, alongX in { true, false } do
+			local offset = i * spacing + rng:NextNumber(-10, 10)
+			local street = part(
+				folder,
+				"Street",
+				if alongX then Vector3.new(size, 0.2, 18) else Vector3.new(18, 0.2, size),
+				CFrame.new(center + (if alongX then Vector3.new(0, 0.1, offset) else Vector3.new(offset, 0.1, 0))),
+				Color3.fromRGB(40, 40, 40),
+				Enum.Material.Asphalt
+			)
+			street.CanCollide = false
+			street.CastShadow = false
+		end
+	end
+	-- Wrecks and rubble scattered along the streets.
+	for _ = 1, 60 do
+		local s = rng:NextNumber(4, 12)
+		local chunk = part(
+			folder,
+			"Wreck",
+			Vector3.new(s, s * rng:NextNumber(0.3, 0.7), s * rng:NextNumber(0.5, 1.6)),
+			CFrame.new(
+				center
+					+ Vector3.new(
+						rng:NextNumber(-size / 2.2, size / 2.2),
+						s * 0.2,
+						rng:NextNumber(-size / 2.2, size / 2.2)
+					)
+			) * CFrame.Angles(0, rng:NextNumber(0, 3), rng:NextNumber(-0.2, 0.2)),
+			if rng:NextNumber() < 0.5 then PALETTE.rust else PALETTE.concrete[3],
+			Enum.Material.CorrodedMetal
+		)
+		chunk.CanCollide = false
+		chunk.CastShadow = false
+	end
+	return folder
+end
+
 function Scenery.Skyline(
 	parent: Instance,
 	center: Vector3,

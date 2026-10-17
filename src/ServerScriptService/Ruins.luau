@@ -217,7 +217,7 @@ function Ruins.DebrisPile(parent: Instance, floorY: number, ceilingY: number, re
 	shaft.Angle = 70
 	shaft.Range = 28
 	shaft.Brightness = 1.6
-	shaft.Shadows = true
+	shaft.Shadows = false
 	shaft.Parent = emitterPart
 end
 

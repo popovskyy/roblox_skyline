@@ -208,7 +208,9 @@ local function pointLight(parent: BasePart, color: Color3, range: number, bright
 	light.Range = range
 	light.Brightness = brightness
 	light.Enabled = enabled
-	light.Shadows = true
+	-- No shadows from the many interior lamps: shadow-casting lights pop in and out as the camera moves
+	-- between floors (the flicker players saw on entering a floor). Only the flashlight casts shadows.
+	light.Shadows = false
 	light.Parent = parent
 	return light
 end
@@ -1658,15 +1660,14 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	end
 	onFloor(roof, "Antenna", 0, 30, 44, Vector3.new(0.8, 25, 0.8), COLORS.metal, Enum.Material.Metal)
 
-	-- Survivors' rooftop garden and plants creeping over the edges.
+	-- What is left of a rooftop garden: dry planters, one dead shrub, weeds in the cracks.
 	local green = Random.new(396)
-	for _, p in { { -42, -6 }, { -42, 12 }, { 10, 44 }, { -28, 42 } } do
+	for _, p in { { -42, -6 }, { -28, 42 } } do
 		onFloor(roof, "Planter", 0, p[1], p[2], Vector3.new(6, 1.6, 6), COLORS.wood, Enum.Material.WoodPlanks)
-		Scenery.Bush(roof, Vector3.new(p[1], roofY + 1.6, p[2]), 3.5, green)
 	end
-	Scenery.Tree(roof, Vector3.new(-44, roofY, -44), 16, green)
-	Scenery.Tree(roof, Vector3.new(44, roofY, 44), 14, green)
-	for _ = 1, 14 do
+	Scenery.Bush(roof, Vector3.new(-42, roofY + 1.6, -6), 2.5, green)
+	Scenery.Tree(roof, Vector3.new(-44, roofY, -44), 12, green)
+	for _ = 1, 6 do
 		local x = green:NextNumber(-46, 46)
 		local z = green:NextNumber(-46, 46)
 		-- Keep walkways, the stairwell and the build spots clear.
@@ -1679,7 +1680,7 @@ local function buildRoof(parent: Folder, interactables: Folder)
 			)
 		end
 	end
-	for _ = 1, 10 do
+	for _ = 1, 5 do
 		local side = green:NextInteger(1, 4)
 		local along = green:NextNumber(-45, 45)
 		local edge = World.RoofSize / 2 + 0.4
@@ -1809,6 +1810,7 @@ local function buildNeighbor(parent: Folder)
 
 	-- Distant skyline: overgrown ruins all around, with a gap where the neighbour tower stands.
 	Scenery.Skyline(neighbor, Vector3.zero, 16, 230, 420, 250, 470, 2026, { { Vector3.new(cx, 0, 0), 95 } })
+	Scenery.Ground(neighbor, Vector3.zero, 2400, Random.new(2027))
 end
 
 local function collectRefs(root: Folder): WorldRefs
