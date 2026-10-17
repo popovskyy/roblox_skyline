@@ -4,7 +4,8 @@ set -euo pipefail
 KEY_FILE="${ROBLOX_API_KEY_FILE:-/cursor/stores/bc-c7dd64b7-c0e6-4288-b04f-766744c8d32e/secrets/.roblox_api_key}"
 KEY=$(tr -d '\n\r' < "$KEY_FILE")
 UNIVERSE=10771270901
-BIN_DIR="${ROLLBACK_BIN_DIR:-$(cd "$(dirname "$0")" BIN_DIR="${ROLLBACK_BIN_DIR:-/tmp/rollback-v31}"BIN_DIR="${ROLLBACK_BIN_DIR:-/tmp/rollback-v31}" pwd)/rollback-v31}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN_DIR="${ROLLBACK_BIN_DIR:-${SCRIPT_DIR}/rollback-v31}"
 upload() {
   local pid="$1" file="$2" label="$3"
   HTTP=$(curl -sS -o "/tmp/rollback_${label}.json" -w "%{http_code}" \
