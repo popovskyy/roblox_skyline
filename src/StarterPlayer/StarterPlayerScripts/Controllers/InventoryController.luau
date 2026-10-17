@@ -185,7 +185,7 @@ local function pouchChip(def: ItemDefinitions.ItemDef, count: number, order: num
 		Size = UDim2.fromOffset(0, if touch then 28 else 32),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = T.Panel,
-		BackgroundTransparency = if count > 0 then 0.35 else 0.6,
+		BackgroundTransparency = if count > 0 then 0.12 else 0.45,
 		BorderSizePixel = 0,
 		LayoutOrder = order,
 		Parent = pouch,
@@ -335,7 +335,8 @@ local function showTooltip(text: string, slotIndex: number?, color: Color3?)
 	local x = (index - 0.5) * SLOT_SIZE + (index - 1) * SLOT_GAP
 	tooltip.Position = UDim2.fromOffset(x, if touch then -42 else -48)
 	tooltip.TextTransparency = 0
-	tooltip.BackgroundTransparency = 0.2
+	-- Dense plate so rarity / name stay readable over the busy world on phone and tablet.
+	tooltip.BackgroundTransparency = 0.05
 	local stroke = tooltip:FindFirstChildOfClass("UIStroke")
 	if stroke then
 		stroke.Transparency = 0
@@ -513,7 +514,7 @@ local function buildHotbar(screen: ScreenGui)
 		Size = UDim2.fromOffset(0, if touch then 28 else 32),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = T.Panel,
-		BackgroundTransparency = 0.35,
+		BackgroundTransparency = 0.12,
 		BorderSizePixel = 0,
 		LayoutOrder = 100,
 		Parent = pouch,
@@ -535,7 +536,7 @@ local function buildHotbar(screen: ScreenGui)
 		Size = UDim2.fromOffset(0, 26),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = T.Panel,
-		BackgroundTransparency = 0.2,
+		BackgroundTransparency = 0.05,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,
 		TextSize = if touch then 15 else 17,
@@ -547,7 +548,13 @@ local function buildHotbar(screen: ScreenGui)
 	})
 	UIKit.Corner(6).Parent = tooltip
 	UIKit.New("UIStroke", { Color = T.Amber, Thickness = 1.5, Parent = tooltip })
-	UIKit.New("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = tooltip })
+	UIKit.New("UIPadding", {
+		PaddingLeft = UDim.new(0, 10),
+		PaddingRight = UDim.new(0, 10),
+		PaddingTop = UDim.new(0, 4),
+		PaddingBottom = UDim.new(0, 4),
+		Parent = tooltip,
+	})
 
 	-- Nothing to hold while lying down.
 	local function updateDowned()

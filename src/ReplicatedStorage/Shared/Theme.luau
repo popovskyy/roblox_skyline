@@ -15,7 +15,7 @@ local Theme = {
 
 	-- HUD colour tokens (docs/design/HUD_SPEC.md). Colour is never the only signal: states also get a word badge.
 	Colors = {
-		Panel = Color3.fromHex("0F0E0C"), -- with BackgroundTransparency 0.35
+		Panel = Color3.fromHex("0F0E0C"), -- prefer BackgroundTransparency ~0.05–0.12 for readable plates
 		PanelSolid = Color3.fromHex("1E1C18"),
 		Slot = Color3.fromHex("14120F"), -- transparency 0.18
 		Stroke = Color3.fromHex("EEE6D0"), -- UIStroke transparency 0.65

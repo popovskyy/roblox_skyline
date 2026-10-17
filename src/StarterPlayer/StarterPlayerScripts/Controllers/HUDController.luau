@@ -34,8 +34,10 @@ local KIND_RANK = {
 	error = 4,
 }
 
--- Goal, top centre: amber "GOAL", the task, systems restored.
+-- Goal, top centre: amber "GOAL", the task, live n/m. Plate grows with wrapped text so
+-- long uk/ru/en lines never spill past the black backdrop (phone / tablet especially).
 local function buildObjective(screen: ScreenGui)
+	local maxTextW = if touch then 260 else 440
 	local panel = UIKit.New("Frame", {
 		Name = "Objective",
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -43,10 +45,15 @@ local function buildObjective(screen: ScreenGui)
 		Size = UDim2.fromOffset(0, 0),
 		AutomaticSize = Enum.AutomaticSize.XY,
 		BackgroundColor3 = T.Panel,
-		BackgroundTransparency = 0.35,
+		BackgroundTransparency = 0.08,
 		BorderSizePixel = 0,
+		ClipsDescendants = false,
 		Parent = screen,
 	}, { UIKit.Corner(10) })
+	UIKit.New("UISizeConstraint", {
+		MaxSize = Vector2.new(if touch then 360 else 620, 120),
+		Parent = panel,
+	})
 	UIKit.New("UIPadding", {
 		PaddingTop = UDim.new(0, if touch then 6 else 10),
 		PaddingBottom = UDim.new(0, if touch then 6 else 10),
@@ -66,7 +73,7 @@ local function buildObjective(screen: ScreenGui)
 		AutomaticSize = Enum.AutomaticSize.X,
 		Text = Lang.T("hud.goal"),
 		FontFace = Theme.Display,
-		TextSize = 16,
+		TextSize = if touch then 14 else 16,
 		TextColor3 = T.Amber,
 		TextWrapped = false,
 		LayoutOrder = 1,
@@ -76,23 +83,25 @@ local function buildObjective(screen: ScreenGui)
 		goal.Text = Lang.T("hud.goal")
 	end)
 	objectiveText = UIKit.Label({
-		Size = UDim2.fromOffset(0, 22),
-		AutomaticSize = Enum.AutomaticSize.XY,
+		-- Fixed width + wrap + grow height: AutomaticSize.X with TextWrapped=false used to
+		-- clamp via UISizeConstraint while glyphs still painted outside the plate.
+		Size = UDim2.fromOffset(maxTextW, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = "",
 		FontFace = Theme.Semi,
-		TextSize = if touch then 16 else 20,
+		TextSize = if touch then 15 else 18,
 		TextColor3 = T.Cream,
-		TextWrapped = false,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		LayoutOrder = 2,
 		Parent = panel,
 	})
-	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(if touch then 340 else 560, 60), Parent = objectiveText })
 	actsText = UIKit.Label({
 		Size = UDim2.fromOffset(0, 22),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Text = "",
 		FontFace = Theme.Display,
-		TextSize = 18,
+		TextSize = if touch then 16 else 18,
 		TextColor3 = T.AmberText,
 		TextWrapped = false,
 		LayoutOrder = 3,
@@ -144,16 +153,21 @@ local function showToast(text: string, kind: string?)
 		Size = UDim2.fromScale(0, 0),
 		AutomaticSize = Enum.AutomaticSize.XY,
 		BackgroundColor3 = T.Panel,
-		BackgroundTransparency = 0.25,
+		BackgroundTransparency = 0.08,
 		LayoutOrder = toastCounter,
 		Parent = toastHolder,
 	})
+	UIKit.New("UISizeConstraint", {
+		MaxSize = Vector2.new(if touch then 340 else 420, 80),
+		Parent = toast,
+	})
 	UIKit.Padding(8).Parent = toast
 	local label = UIKit.Label({
-		Size = UDim2.fromOffset(0, 0),
-		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.fromOffset(if touch then 300 else 380, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = text,
 		TextSize = 16,
+		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextColor3 = KIND_COLORS[kind or "info"] or C.text,
 		Parent = toast,

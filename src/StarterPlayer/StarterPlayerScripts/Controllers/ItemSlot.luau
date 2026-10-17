@@ -31,7 +31,8 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		LayoutOrder = layoutOrder,
 		Parent = parent,
 	}, { UIKit.Corner(8) })
-	frame.BackgroundTransparency = 0.18
+	-- Slightly solid fill so icon/count stay readable over the world on touch devices.
+	frame.BackgroundTransparency = 0.08
 	local stroke = UIKit.New("UIStroke", {
 		Thickness = 1,
 		Color = CREAM,
@@ -74,7 +75,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		local def = if itemId then ItemDefinitions.Get(itemId) else nil
 		if not def or count <= 0 then
 			frame.BackgroundColor3 = EMPTY_COLOR
-			frame.BackgroundTransparency = 0.18
+			frame.BackgroundTransparency = 0.08
 			stroke.Color = CREAM
 			stroke.Transparency = 0.65
 			stroke.Thickness = 1
@@ -83,7 +84,8 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 			countLabel.Text = ""
 			return
 		end
-		frame.BackgroundTransparency = 0.12
+		-- Selected (in hand) slots get a near-opaque plate under the amber / rarity rim.
+		frame.BackgroundTransparency = if selected then 0.02 else 0.06
 		local rarityColor = if def.rarity then Theme.Rarity[def.rarity] else nil
 		if rarityColor then
 			-- Weapons always wear their rarity colour; in hand the edge thickens and the slot takes its tint.

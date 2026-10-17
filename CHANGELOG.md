@@ -5,6 +5,19 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 ## Unreleased (local) · 17.10
 
+### Dim flashlight, no corridor flicker (LOCAL #2)
+- Flashlight SpotLight no longer casts shadows (and is a bit dimmer); window shafts also force
+  Shadows=false. Entering a passage should not strobe.
+- Check in game: walk into F1 west corridor / doorways with flashlight on — no flicker; beam still
+  lights the room.
+
+### Readable item plates and objective strip (LOCAL #4–#5)
+- Hotbar tooltip, selected slots and pouch chips use a denser near-black plate so rarity/name text
+  stays readable on phone/tablet. Objective strip wraps long uk/ru/en goals and grows with the text
+  instead of spilling past the plate; toasts denser + wrap too.
+- Check in game: tap a weapon on phone — name/rarity readable; long goal (tutorial.7) fully inside
+  the black plate in uk, ru and en.
+
 ### Better melee replaces weaker (LOCAL #3)
 - Picking up or crafting a stronger melee (Club→Bat→Pipe→Machete) removes weaker ones from the
   backpack; a weaker duplicate is refused. Equipped hand switches to the new weapon when the old one
