@@ -129,6 +129,22 @@ local S: { [string]: Entry } = {
 		en = "Siren! A horde is coming up the stairs!",
 	},
 
+	["event.blackout.warn"] = {
+		uk = "Світло мигає… Зараз згасне!",
+		ru = "Свет мигает… Сейчас погаснет!",
+		en = "Lights flicker… Blackout incoming!",
+	},
+	["event.blackout.on"] = {
+		uk = "БЛЕКАУТ! Ліхтар або зелені виходи.",
+		ru = "БЛЭКАУТ! Фонарь или зелёные выходы.",
+		en = "BLACKOUT! Use a flashlight or the green exits.",
+	},
+	["event.blackout.off"] = {
+		uk = "Живлення повернулося.",
+		ru = "Питание вернулось.",
+		en = "Power is back.",
+	},
+
 	-- Generic server replies
 	["err.notLoaded"] = {
 		uk = "Дані ще не завантажені",

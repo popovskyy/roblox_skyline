@@ -12,6 +12,7 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
 local ClassService = require(script.Parent.ClassService)
 local DamageService = require(script.Parent.DamageService)
+local FloorEventService = require(script.Parent.FloorEventService)
 local HordeService = require(script.Parent.HordeService)
 local MatchStatsService = require(script.Parent.MatchStatsService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
@@ -42,6 +43,7 @@ local function restartInPlace()
 		restartPlayer(player)
 	end
 	HordeService.Reset()
+	FloorEventService.Reset()
 end
 
 local function sendToLobby(): boolean

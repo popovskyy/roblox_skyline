@@ -80,6 +80,19 @@ local GameConfig = {
 		SirenVolume = 1.35,
 	},
 
+	-- One mid-floor blackout per match (floor 2 or 3). Fires after MinDelay once someone is on a mid
+	-- floor, never after MaxDelay (staggered before the first roof horde). Green exit lamps stay on.
+	FloorEvent = {
+		MinDelay = 180, -- first ~3 min: no second beat
+		MaxDelay = 420, -- ends before horde FirstDelayMin (480)
+		PollSeconds = 2,
+		TelegraphSeconds = 2,
+		DurationMin = 8,
+		DurationMax = 12,
+		TelegraphVolume = 0.55,
+		RestoreVolume = 1.1,
+	},
+
 	-- Downed instead of dead: you lie there until a teammate with a Bandage lifts you up.
 	-- Everyone down = the match is lost; after GameOverSeconds the party goes back to the lobby.
 	ReviveHealth = 35,

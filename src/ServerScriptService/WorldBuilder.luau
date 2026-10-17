@@ -202,7 +202,14 @@ local function addPrompt(
 	return prompt
 end
 
-local function pointLight(parent: BasePart, color: Color3, range: number, brightness: number, enabled: boolean)
+local function pointLight(
+	parent: BasePart,
+	color: Color3,
+	range: number,
+	brightness: number,
+	enabled: boolean,
+	blackoutFloor: number?
+)
 	local light = Instance.new("PointLight")
 	light.Color = color
 	light.Range = range
@@ -211,6 +218,9 @@ local function pointLight(parent: BasePart, color: Color3, range: number, bright
 	-- No shadows from the many interior lamps: shadow-casting lights pop in and out as the camera moves
 	-- between floors (the flicker players saw on entering a floor). Only the flashlight casts shadows.
 	light.Shadows = false
+	if blackoutFloor ~= nil then
+		light:SetAttribute("BlackoutFloor", blackoutFloor)
+	end
 	light.Parent = parent
 	return light
 end
@@ -349,6 +359,8 @@ local function buildStairwell(parent: Folder)
 		)
 		-- Lamps along the way down: caged wall lamps at the top, the landing and the exit, plus a green
 		-- emergency light over each floor's doorway. Bright on the first floors, dimmer deeper down.
+		-- Wall lamps join the blackout for the floor this flight lands on; green ExitLamps stay lit.
+		local landFloor = flight + 1
 		local strength = if flight <= 1 then 1 elseif flight == 2 then 0.75 else 0.55
 		local warm = Color3.fromRGB(255, 205, 150)
 		local function wallLamp(position: Vector3, facing: number, color: Color3, range: number)
@@ -366,7 +378,7 @@ local function buildStairwell(parent: Folder)
 			)
 			cage.Transparency = 0.6
 			cage.CanCollide = false
-			pointLight(lamp, color, range, 1.1 * strength, true)
+			pointLight(lamp, color, range, 1.1 * strength, true, landFloor)
 		end
 		wallLamp(Vector3.new(-HOLE_X + 0.1, upper + 6, HOLE_MIN_Z + 3), 1, warm, 20)
 		wallLamp(Vector3.new(-HOLE_X + 0.1, mid + 6, HOLE_MAX_Z - 3), 1, warm, 22)
@@ -510,7 +522,7 @@ local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 				Enum.Material.Neon
 			)
 			lamp.CanCollide = false
-			pointLight(lamp, Color3.fromRGB(255, 190, 130), 26, 0.8, true)
+			pointLight(lamp, Color3.fromRGB(255, 190, 130), 26, 0.8, true, level)
 		end
 	end
 end
@@ -950,6 +962,7 @@ local function furnish(floor: Folder, level: number)
 		sun.Range = 24
 		sun.Brightness = 1.4
 		sun.Color = Color3.fromRGB(255, 226, 180)
+		sun:SetAttribute("BlackoutFloor", level)
 		sun.Parent = beam
 	end
 	for _ = 1, 3 do

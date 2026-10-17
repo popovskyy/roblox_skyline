@@ -36,6 +36,13 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 - Check in game: first horde at ~8–10 min (siren + toast, uk/ru/en); wave size solo vs group; fight on
   the roof without a barricade; build Barricade and confirm the next wave is blocked at the stairs;
   floor zombies still stay dead after clear.
+- Mid-floor blackout (once per match): after ~3 min, when someone is on floor 2 or 3, lights flicker
+  (toast), then ceiling / stair / window lights die for 8–12 s; green exit lamps stay on; power returns
+  with a bang and a toast. Prefers floor 2 (has ceiling lamps + flashlight loot). Never after ~7 min so
+  it does not overlap the first roof horde. Fire-door event still only in the brainstorm list.
+- Check in game: stand on floor 2 after 3 min — warn toast (uk/ru/en), darkness readable via green exits
+  / flashlight, power-back toast; confirm it does not fire twice; roof and floor 1 stay lit for players
+  not on the blackout floor; horde at 8–10 min still works.
 
 ## b25 · 17.10
 - Classes, bought with tokens in the lobby ("Класи" button under the tokens) and picked before the lift:
