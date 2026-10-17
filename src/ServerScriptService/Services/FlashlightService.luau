@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+local Classes = require(ReplicatedStorage.Shared.Classes)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
@@ -108,7 +109,9 @@ local function tick(player: Player, dt: number)
 			isOn[player] = false
 			apply(player)
 		else
-			data.flashlightCharge = math.max(0, data.flashlightCharge - dt)
+			local class = Classes.Of(player)
+			local drain = if class and class.flashlightDrain then class.flashlightDrain else 1
+			data.flashlightCharge = math.max(0, data.flashlightCharge - dt * drain)
 			if data.flashlightCharge <= 0 then
 				isOn[player] = false
 				apply(player)

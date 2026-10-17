@@ -6,6 +6,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Classes = require(ReplicatedStorage.Shared.Classes)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
@@ -241,7 +242,8 @@ local function swing(player: Player)
 				local facing = if flat.Magnitude > 0.1 then look:Dot(flat.Unit) else 1
 				if facing > 0.2 then
 					local wasAlive = z.humanoid.Health > 0
-					z.humanoid:TakeDamage(weapon.damage)
+					local class = Classes.Of(player)
+					z.humanoid:TakeDamage(weapon.damage * (if class and class.damage then class.damage else 1))
 					if wasAlive and z.humanoid.Health <= 0 then
 						MatchStatsService.KilledZombie(player)
 					end

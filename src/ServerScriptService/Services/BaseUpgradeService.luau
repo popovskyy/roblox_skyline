@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Locale = require(ReplicatedStorage.Shared.Locale)
+local Classes = require(ReplicatedStorage.Shared.Classes)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
 local SfxService = require(script.Parent.SfxService)
 local Net = require(script.Parent.Net)
@@ -42,7 +43,7 @@ function BaseUpgradeService.Purchase(player: Player, upgradeId: any): (boolean, 
 			return false, { "upgrade.requires", Locale.Upgrade(required) }
 		end
 	end
-	local cost = UpgradeDefinitions.GetCost(def)
+	local cost = Classes.Cost(UpgradeDefinitions.GetCost(def), player)
 	if not StorageService.TrySpend(player, cost) then
 		return false, { "upgrade.notEnough", Locale.Cost(cost) }
 	end

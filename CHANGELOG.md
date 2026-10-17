@@ -3,6 +3,15 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## b25 · 17.10
+- Classes, bought with tokens in the lobby ("Класи" button under the tokens) and picked before the lift:
+  Medic 60 (2 extra bandages, revives twice as fast), Scout 80 (15% faster, flashlight lasts longer),
+  Fighter 100 (pipe instead of club, +15% damage), Mechanic 120 (buildings 20% cheaper, nearby resources
+  glow through walls). The tower reads the class from the save, so it cannot be faked.
+- The goal marker leads to the nearest scrap / electronics / cable / motor on your floor instead of the
+  stairs (stairs only from the roof or when the floor has none left).
+- Check in game: buying with enough and too few tokens, the class message on arrival, each perk.
+
 ## b24 · 17.10
 Published from this repository again after an older parallel version (made by Cursor from an old place
 file) had replaced the live game.

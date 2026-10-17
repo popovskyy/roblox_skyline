@@ -6,9 +6,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
+local Classes = require(ReplicatedStorage.Shared.Classes)
 local UpgradeDefinitions = require(ReplicatedStorage.Shared.UpgradeDefinitions)
 local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
+local ClassService = require(script.Parent.ClassService)
 local CombatService = require(script.Parent.CombatService)
 local DamageService = require(script.Parent.DamageService)
 local FlashlightService = require(script.Parent.FlashlightService)
@@ -167,6 +169,7 @@ local function onCharacterAdded(player: Player, character: Model)
 	HazardService.ResetCharacter(player)
 	DamageService.OnCharacterAdded(player)
 	CombatService.OnCharacterAdded(player)
+	ClassService.OnCharacterAdded(player)
 	ResourceService.OnReturnedToRoof(player)
 	FlashlightService.OnCharacterAdded(player)
 	humanoid.Died:Once(function()
@@ -197,6 +200,7 @@ local function onPlayerAdded(player: Player)
 		onCharacterAdded(player, character)
 	end)
 	player:LoadCharacter()
+	ClassService.OnPlayerLoaded(player)
 	if not saved then
 		task.delay(3, function()
 			if player.Parent then
@@ -261,7 +265,7 @@ function PlayerLifecycleService.Init()
 		snapshot.saveEnabled = PlayerDataService.CanSave(player)
 		local costs = {}
 		for id, def in UpgradeDefinitions.Upgrades do
-			costs[id] = UpgradeDefinitions.GetCost(def)
+			costs[id] = Classes.Cost(UpgradeDefinitions.GetCost(def), player)
 		end
 		snapshot.costs = costs
 		local backpack = backpacks[player]

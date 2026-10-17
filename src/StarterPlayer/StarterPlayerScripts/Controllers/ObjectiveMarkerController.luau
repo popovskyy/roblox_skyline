@@ -31,6 +31,46 @@ end
 
 local STAIRS = { "Stairwell", "Ramp0_Down" }
 
+-- On a floor during a collecting goal: the nearest node of a wanted item on this floor that the player can
+-- still take (not emptied, not behind uncleared rubble). Nil on the roof or when the floor has none left.
+local function nearestLoot(s: { [string]: any }, wanted: { [string]: boolean }): BasePart?
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local world = workspace:FindFirstChild(GameConfig.World.FolderName)
+	local folder = world and world:FindFirstChild("Interactables")
+	local zone = player:GetAttribute("Zone")
+	if
+		not root
+		or not root:IsA("BasePart")
+		or not folder
+		or type(zone) ~= "string"
+		or string.sub(zone, 1, 5) ~= "Floor"
+	then
+		return nil
+	end
+	local depleted = s.depletedNodes or {}
+	local unique = s.uniqueNodesTaken or {}
+	local cleared = s.clearedRubble or {}
+	local best: BasePart? = nil
+	local bestDistance = math.huge
+	for _, d in folder:GetChildren() do
+		if
+			d:IsA("BasePart")
+			and d:GetAttribute("InteractType") == "Resource"
+			and wanted[d:GetAttribute("ItemId") or ""]
+		then
+			local nodeId = d:GetAttribute("NodeId")
+			local rubble = d:GetAttribute("RequiresRubble")
+			local taken = type(nodeId) == "string" and (depleted[nodeId] or unique[nodeId])
+			local blocked = type(rubble) == "string" and not cleared[rubble]
+			local offset = d.Position - root.Position
+			if not taken and not blocked and math.abs(offset.Y) < 10 and offset.Magnitude < bestDistance then
+				best, bestDistance = d, offset.Magnitude
+			end
+		end
+	end
+	return best
+end
+
 -- Which part the marker points at for each tutorial step (see TutorialService).
 local function targetFor(s: { [string]: any }): BasePart?
 	local tutorial = s.tutorial
@@ -41,7 +81,9 @@ local function targetFor(s: { [string]: any }): BasePart?
 	if step == 1 then
 		return find({ "Interactables", "EmergencyTerminal" })
 	elseif step == 2 or step == 5 then
-		return find(STAIRS)
+		-- On the roof: the stairs. On a floor: the nearest scrap / electronics there (stairs if none left).
+		local wanted = if step == 2 then { Scrap = true } else { Electronics = true }
+		return nearestLoot(s, wanted) or find(STAIRS)
 	elseif step == 3 then
 		return find({ "RoofBase", "RoofSpawn" })
 	elseif step == 4 then
@@ -55,7 +97,7 @@ local function targetFor(s: { [string]: any }): BasePart?
 		if have("Cable") >= 4 and have("Motor") >= 2 then
 			return find({ "Interactables", "Bridge_Pad" })
 		end
-		return find(STAIRS)
+		return nearestLoot(s, { Cable = true, Motor = true }) or find(STAIRS)
 	end
 	return nil
 end
@@ -107,6 +149,13 @@ function ObjectiveMarkerController.Start()
 	distanceLabel.Parent = billboard
 
 	ClientState.Changed:Connect(refresh)
+	-- The nearest loot changes as the player walks, so look again twice a second.
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			refresh()
+		end
+	end)
 	task.spawn(function()
 		workspace:WaitForChild(GameConfig.World.FolderName, 60)
 		refresh()
