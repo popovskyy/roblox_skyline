@@ -53,7 +53,10 @@ local function currentAnimator(): Animator?
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-	return animator
+	if animator and animator:IsA("Animator") then
+		return animator
+	end
+	return nil
 end
 
 -- Loads whatever is missing for the current Animator; safe to call again and again.
@@ -70,12 +73,16 @@ local function ensureTracks(): boolean
 	for name, spec in ANIMATIONS do
 		if not tracks[name] then
 			local animation = Instance.new("Animation")
+			animation.Name = name
 			animation.AnimationId = spec.id
 			local ok, track = pcall(function()
 				return animator:LoadAnimation(animation)
 			end)
 			if ok and track then
+				-- Keep the instance parented so a slow mobile download is not cancelled by GC.
+				animation.Parent = animator
 				track.Priority = spec.priority
+				track.Looped = name ~= "WeaponSwing" and name ~= "Punch" and name ~= "ItemUse"
 				tracks[name] = track
 			else
 				all = false
@@ -106,8 +113,45 @@ local function play(name: string, fade: number?)
 		ensureTracks()
 		track = tracks[name]
 	end
-	if track then
-		track:Play(fade or 0.1)
+	if not track then
+		return
+	end
+	local spec = ANIMATIONS[name]
+	local oneShot = name == "WeaponSwing" or name == "Punch" or name == "ItemUse"
+	if spec then
+		-- Re-apply at play time. A looping hold or the default walk/tool pose (always on while
+		-- the thumbstick is down) covers a swing whose priority was left at the asset default.
+		track.Priority = spec.priority
+		track.Looped = not oneShot
+	end
+	local function start(playing: AnimationTrack)
+		-- Play() does nothing if this track is already playing, so a second tap shows no swing.
+		if oneShot and playing.IsPlaying then
+			playing:Stop(0)
+		end
+		playing:Play(fade or 0.1, 1, 1)
+		if oneShot then
+			playing:AdjustWeight(1, 0)
+		end
+	end
+	start(track)
+	-- On a phone Play() before the clip has downloaded is ignored and never retried.
+	if oneShot and track.Length == 0 then
+		local playing = track
+		task.spawn(function()
+			for _ = 1, 25 do
+				if tracks[name] ~= playing or playing.Length > 0 then
+					break
+				end
+				task.wait(0.1)
+			end
+			if tracks[name] == playing and playing.Length > 0 then
+				if spec then
+					playing.Priority = spec.priority
+				end
+				start(playing)
+			end
+		end)
 	end
 end
 
@@ -483,14 +527,52 @@ function CombatController.OpenCraft()
 	renderCraft()
 end
 
+-- A finger tap on a phone or tablet jitters by tens of pixels. The old 14px test, on the full
+-- Vector3 (touch Position.Z is not a pixel), classed every hit as a camera drag, so attackInput
+-- never ran and the swing never played. Mouse and R2 do not go through this test.
+local function tapSlop(): number
+	local camera = workspace.CurrentCamera
+	local height = if camera then camera.ViewportSize.Y else 800
+	return math.clamp(height * 0.06, 40, 96)
+end
+
+local function touchTravel(from: Vector3, toPos: Vector3): number
+	local dx = toPos.X - from.X
+	local dy = toPos.Y - from.Y
+	return math.sqrt(dx * dx + dy * dy)
+end
+
 function CombatController.Start(remoteFolder: Folder)
+	-- Phones download clips slower than Studio. Preload so the first tap is not a silent Play().
+	task.spawn(function()
+		local ContentProvider = game:GetService("ContentProvider")
+		local assets: { Instance } = {}
+		for _, spec in ANIMATIONS do
+			local animation = Instance.new("Animation")
+			animation.AnimationId = spec.id
+			table.insert(assets, animation)
+		end
+		pcall(function()
+			ContentProvider:PreloadAsync(assets)
+		end)
+	end)
 	-- Attack input (weapon, item or fist): a tap on the world, a click or R2.
 	-- Phones: a short tap that barely moves (not a camera drag). Tracked by hand because TouchTapInWorld
-	-- does not fire reliably next to the touch controls.
-	local touches: { [InputObject]: { at: Vector3, started: number } } = {}
+	-- does not fire reliably next to the touch controls. The held Tool stays ManualActivationOnly.
+	local touches: { [InputObject]: { at: Vector3, started: number, moved: number } } = {}
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if input.UserInputType == Enum.UserInputType.Touch and not processed then
-			touches[input] = { at = input.Position, started = os.clock() }
+			touches[input] = { at = input.Position, started = os.clock(), moved = 0 }
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		local start = touches[input]
+		if not start then
+			return
+		end
+		local dist = touchTravel(start.at, input.Position)
+		if dist > start.moved then
+			start.moved = dist
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(input)
@@ -499,7 +581,8 @@ function CombatController.Start(remoteFolder: Folder)
 			return
 		end
 		touches[input] = nil
-		if os.clock() - start.started < 0.35 and (input.Position - start.at).Magnitude < 14 then
+		local dist = math.max(start.moved, touchTravel(start.at, input.Position))
+		if os.clock() - start.started <= 0.5 and dist <= tapSlop() then
 			attackInput()
 		end
 	end)

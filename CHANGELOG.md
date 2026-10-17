@@ -4,7 +4,10 @@ Every published build gets an entry: build tag, date, what a player will notice,
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
 ## b26 · 17.10 (not published yet)
-- Hit, swing and punch animations now play on phones and tablets (they reload and retry if they fail).
+- Hit, swing and punch animations now play on phones and tablets: taps were discarded as camera
+  drags (14 px on Vector3 including Z); tap test is now X/Y only, ~40–96 px and 0.5 s, plus
+  reload/retry and Action4 priorities so the swing wins over walk.
+- Check in game: short taps vs camera drag on phone/tablet — swing should fire on tap only.
 - Keys on floors 3 and 4 can be picked up (no more "inventory full"); several keys can be carried at
   once, and a key fits into the chest even when the chest is full. (The club still cannot go into the chest.)
 - Hotbar items keep their slot after crafting or picking up a new weapon, so they no longer seem to
