@@ -125,9 +125,7 @@ local function evaluate(player: Player, data: Types.PlayerData): number
 	if step ~= data.tutorialStep then
 		data.tutorialStep = step
 		PlayerDataService.MarkDirty(player)
-		if step <= #Steps then
-			Net.Notify(player, { "tutorial.new", { ref = Steps[step].text } }, "info")
-		end
+		-- No tutorial.new toast: ЦІЛЬ strip + marker already teach the new step.
 	end
 	return step
 end

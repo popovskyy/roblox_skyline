@@ -120,6 +120,7 @@ end
 local function runBlackout(level: number, gen: number)
 	fired = true
 	local at = floorCenter(level)
+	-- One warning at telegraph (merged former warn+on). Lights dim / restore SFX carry the rest.
 	notifyAll("event.blackout.warn", "warning")
 	SfxService.Play("BreakIn", at, E.TelegraphVolume)
 	task.wait(E.TelegraphSeconds)
@@ -127,7 +128,6 @@ local function runBlackout(level: number, gen: number)
 		return
 	end
 	killLights(level)
-	notifyAll("event.blackout.on", "warning")
 	local hold = randomRange(E.DurationMin, E.DurationMax)
 	task.wait(hold)
 	if gen ~= generation then
@@ -135,7 +135,6 @@ local function runBlackout(level: number, gen: number)
 	end
 	restoreLights()
 	SfxService.Play("GeneratorStart", at, E.RestoreVolume)
-	notifyAll("event.blackout.off", "success")
 end
 
 local function scheduleLoop(gen: number)

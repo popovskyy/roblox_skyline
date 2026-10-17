@@ -14,10 +14,10 @@ confirmed §8 numbers and barricade/rubble/loot knobs match design.
 
 **In progress on `cursor/roadmap-final-pass`:**
 
-1. **HUD declutter (P0)** — fewer tips/toasts/junk interrupts; remove/gate/merge only (no new toast
-   systems). Waiting on designer `internal/final-pass-design.md` declutter section, then implement.
-2. **Phase D Blender polish** — Bat/Crowbar meshes, crate/node/rubble/barricade/roof fidelity; upload only
-   with real `upload_model.sh` ids (never invent). Scaffold scripts on branch if Blender/upload blocked.
+1. **HUD declutter (P0)** — **landed on branch** (kill soft spam, blackout merge, 1+1 toast cap, intro
+   silence). No new toast system.
+2. **Phase D Blender polish** — Bat/Crowbar + interior scaffolds on branch; upload blocked on Cloud VM
+   (no Blender CLI / API key). Owner-PC `upload_model.sh` → real ids only.
 3. **Launch prep (docs only)** — align `marketing-draft.md` + banner checklist; heartbeat SFX stays blocked
    until a Creator Store / HANDOFF id exists. **Do not** upload Creator Hub art.
 

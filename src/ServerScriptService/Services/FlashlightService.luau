@@ -124,9 +124,7 @@ local function tick(player: Player, dt: number)
 		local max = GameConfig.FlashlightBatterySeconds
 		if data.flashlightCharge < max then
 			data.flashlightCharge = math.min(max, data.flashlightCharge + GameConfig.FlashlightChargePerSecond * dt)
-			if data.flashlightCharge >= max then
-				Net.Notify(player, "flash.full", "success")
-			end
+			-- No flash.full toast: charge HUD is enough.
 		end
 	end
 	local after = math.floor(data.flashlightCharge)

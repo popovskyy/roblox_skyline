@@ -7,7 +7,6 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local Types = require(ReplicatedStorage.Shared.Types)
 local MonetizationService = require(script.Parent.MonetizationService)
-local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local StateSyncService = require(script.Parent.StateSyncService)
 
@@ -30,12 +29,10 @@ local function replaceWeakerWeapons(player: Player, newId: string)
 	end
 	local equippedId = player:GetAttribute("Equipped")
 	local strippedEquipped = false
-	local strippedAny = false
 	for id, count in data.inventory do
 		local other = GameConfig.Weapons[id]
 		if other and id ~= newId and count > 0 and other.rank < newStats.rank then
 			data.inventory[id] = nil
-			strippedAny = true
 			if equippedId == id then
 				strippedEquipped = true
 			end
@@ -45,9 +42,7 @@ local function replaceWeakerWeapons(player: Player, newId: string)
 	if strippedEquipped or type(equippedId) ~= "string" or GameConfig.Weapons[equippedId] == nil then
 		player:SetAttribute("Equipped", newId)
 	end
-	if strippedAny then
-		Net.Notify(player, "inv.weaponReplaced", "info")
-	end
+	-- No inv.weaponReplaced toast: hotbar change is visible.
 end
 
 function InventoryService.IsPositiveInt(value: any): boolean

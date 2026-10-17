@@ -8,6 +8,7 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Theme"))
 
 local ClientState = require(script.Parent.ClientState)
+local IntroController = require(script.Parent.IntroController)
 local Lang = require(script.Parent.Lang)
 local UIKit = require(script.Parent.UIKit)
 
@@ -33,6 +34,11 @@ local KIND_RANK = {
 	warning = 3,
 	error = 4,
 }
+
+local function isDanger(kind: string?): boolean
+	local rank = KIND_RANK[kind or "info"] or 1
+	return rank >= 3
+end
 
 -- Goal, top centre: amber "GOAL", the task, live n/m. Plate grows with wrapped text so
 -- long uk/ru/en lines never spill past the black backdrop (phone / tablet especially).
@@ -134,21 +140,54 @@ local KIND_COLORS = {
 	error = C.bad,
 }
 
-local function showToast(text: string, kind: string?)
-	toastCounter += 1
-	local children = toastHolder:GetChildren()
+local function listToasts(): { Frame }
 	local toasts = {}
-	for _, child in children do
+	for _, child in toastHolder:GetChildren() do
 		if child:IsA("Frame") then
 			table.insert(toasts, child)
 		end
 	end
-	if #toasts >= (if touch then 2 else 3) then
-		table.sort(toasts, function(a, b)
-			return a.LayoutOrder < b.LayoutOrder
-		end)
-		toasts[1]:Destroy()
+	table.sort(toasts, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	return toasts
+end
+
+-- Cap: desktop 1 soft + 1 danger; touch 1 total (incoming kind wins the slot).
+local function enforceCap(incomingDanger: boolean)
+	local softs: { Frame } = {}
+	local dangers: { Frame } = {}
+	for _, toast in listToasts() do
+		if toast:GetAttribute("ToastDanger") == true then
+			table.insert(dangers, toast)
+		else
+			table.insert(softs, toast)
+		end
 	end
+	local function clearAll(list: { Frame })
+		for _, toast in list do
+			toast:Destroy()
+		end
+	end
+	if touch then
+		clearAll(if incomingDanger then softs else dangers)
+		clearAll(if incomingDanger then dangers else softs)
+		return
+	end
+	-- Make room for the new toast of this kind (at most one of each kind after insert).
+	clearAll(if incomingDanger then dangers else softs)
+	-- Trim the other kind to one if somehow stacked from older builds.
+	local other = if incomingDanger then softs else dangers
+	while #other > 1 do
+		other[1]:Destroy()
+		table.remove(other, 1)
+	end
+end
+
+local function showToast(text: string, kind: string?)
+	local danger = isDanger(kind)
+	enforceCap(danger)
+	toastCounter += 1
 	local toast = UIKit.Panel({
 		Size = UDim2.fromScale(0, 0),
 		AutomaticSize = Enum.AutomaticSize.XY,
@@ -157,6 +196,7 @@ local function showToast(text: string, kind: string?)
 		LayoutOrder = toastCounter,
 		Parent = toastHolder,
 	})
+	toast:SetAttribute("ToastDanger", danger)
 	UIKit.New("UISizeConstraint", {
 		MaxSize = Vector2.new(if touch then 340 else 420, 80),
 		Parent = toast,
@@ -189,29 +229,30 @@ local function flushPending()
 		return
 	end
 	pendingToast = nil
+	if IntroController.BlocksSoftToasts() and not isDanger(pending.kind) then
+		return
+	end
 	lastToastAt = os.clock()
 	showToast(pending.text, pending.kind)
 end
 
--- force: one-shot teach tips (e.g. Scrap≠Crowbar) land in the same beat as the pickup toast
--- without shortening ToastMinIntervalSeconds for other info/success lines.
+-- force: one-shot teach tips (Scrap≠Crowbar) bypass soft throttle; whitelist only that key.
 function HUDController.Toast(text: string, kind: string?, force: boolean?)
 	local rank = KIND_RANK[kind or "info"] or 1
-	-- Teach tip: show now, but flush any queued soft toast first so e.g. res.collected
-	-- (pending behind the 15s throttle after tutorial.new) is not wiped by the force path.
+	local danger = rank >= 3
+	-- Spawn silence: intro card (and 2 s after) drops soft toasts; danger still lands.
+	if not danger and not force and IntroController.BlocksSoftToasts() then
+		return
+	end
 	if force then
-		local pending = pendingToast
 		pendingToast = nil
 		pendingToken += 1
 		lastToastAt = os.clock()
-		if pending then
-			showToast(pending.text, pending.kind)
-		end
 		showToast(text, kind)
 		return
 	end
-	-- Danger always lands; soft tips wait so loot / tutorial lines do not stack.
-	if rank >= 3 then
+	-- Danger always lands; soft tips wait so lines do not stack.
+	if danger then
 		pendingToast = nil
 		pendingToken += 1
 		lastToastAt = os.clock()

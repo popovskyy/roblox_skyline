@@ -103,7 +103,7 @@ local function drop(player: Player, itemId: any, amount: any)
 	makeBundle(itemId, count, position).Parent = folder
 	SfxService.Play("Pickup", position, 0.6)
 	StateSyncService.Request(player)
-	Net.Notify(player, { "drop.done", Locale.Item(itemId), count }, "info")
+	-- No drop.done toast: world bundle + pouch tick are enough.
 end
 
 -- Picking a bundle up (called by InteractionService).
@@ -123,7 +123,7 @@ function DropService.PickUp(player: Player, bundle: BasePart): (boolean, any)
 	InventoryService.Add(player, id, count)
 	SfxService.Play("Pickup", position, 0.8)
 	StateSyncService.Request(player)
-	Net.Notify(player, { "res.collected", Locale.Item(id), count }, "success")
+	-- No res.collected toast (HUD declutter).
 	return true, nil
 end
 

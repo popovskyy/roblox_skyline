@@ -129,10 +129,11 @@ local S: { [string]: Entry } = {
 		en = "Siren! A horde is coming up the stairs!",
 	},
 
+	-- Single blackout toast (telegraph). Lights dim + restore SFX replace former on/off toasts.
 	["event.blackout.warn"] = {
-		uk = "Світло мигає… Зараз згасне!",
-		ru = "Свет мигает… Сейчас погаснет!",
-		en = "Lights flicker… Blackout incoming!",
+		uk = "Світло мигає… Ліхтар або зелені виходи!",
+		ru = "Свет мигает… Фонарь или зелёные выходы!",
+		en = "Lights flicker… Flashlight or green exits!",
 	},
 	["event.blackout.on"] = {
 		uk = "БЛЕКАУТ! Ліхтар або зелені виходи.",

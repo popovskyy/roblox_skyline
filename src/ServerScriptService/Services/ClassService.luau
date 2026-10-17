@@ -11,7 +11,6 @@ local Classes = require(ReplicatedStorage.Shared.Classes)
 local MetaProgress = require(ReplicatedStorage.Shared.MetaProgress)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
-local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local StateSyncService = require(script.Parent.StateSyncService)
 
@@ -54,7 +53,7 @@ local function load(player: Player)
 	player:SetAttribute("Class", def.id)
 	giveStartItems(player, def)
 	applySpeed(player)
-	Net.Notify(player, { "class.playing", { ref = "class." .. def.id .. ".name" } }, "info")
+	-- No class.playing toast: spawn clutter; class plate / menu enough.
 end
 
 function ClassService.OnPlayerLoaded(player: Player)
