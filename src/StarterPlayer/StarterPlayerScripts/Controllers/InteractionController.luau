@@ -123,26 +123,29 @@ function InteractionController.Start(remotes: Folder)
 		local caption = UIKit.Label({
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 0, -6),
-			Size = UDim2.fromOffset(0, 24),
+			Size = UDim2.fromOffset(0, 28),
 			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundColor3 = T.PanelSolid,
+			BackgroundColor3 = Color3.new(0, 0, 0),
 			BackgroundTransparency = 0,
 			BorderSizePixel = 0,
 			Text = "",
 			FontFace = Theme.Bold,
-			TextSize = 15,
+			TextSize = 16,
+			TextScaled = false,
 			TextColor3 = T.Cream,
-			TextStrokeColor3 = Color3.fromRGB(12, 10, 8),
-			TextStrokeTransparency = 0.25,
+			TextStrokeColor3 = Color3.new(0, 0, 0),
+			TextStrokeTransparency = 0.1,
 			TextWrapped = false,
+			ZIndex = 5,
 			Parent = holder,
 		})
 		UIKit.Corner(6).Parent = caption
+		UIKit.New("UIStroke", { Color = T.Amber, Thickness = 1.5, Transparency = 0, Parent = caption })
 		UIKit.New("UIPadding", {
-			PaddingLeft = UDim.new(0, 10),
-			PaddingRight = UDim.new(0, 10),
-			PaddingTop = UDim.new(0, 4),
-			PaddingBottom = UDim.new(0, 4),
+			PaddingLeft = UDim.new(0, 12),
+			PaddingRight = UDim.new(0, 12),
+			PaddingTop = UDim.new(0, 5),
+			PaddingBottom = UDim.new(0, 5),
 			Parent = caption,
 		})
 		local holdToken = 0

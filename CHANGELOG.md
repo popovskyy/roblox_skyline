@@ -3,6 +3,32 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## b30 · 17.10 16:40
+Rubble hold-to-clear, stair roof lip, sharp hotbar tooltip, hide default Health bar.
+
+### Rubble hold-to-clear works
+- Soft / hard rubble piles lived under the floor folder, so `InteractionService` silently ignored
+  the ProximityPrompt (`IsDescendantOf(Interactables)` failed). Piles now parent under Interactables.
+  Soft = hold 3 s (hands); hard = hold 5 s + Crowbar. Path opens / Crowbar reward as before.
+- Check in game: F1 soft wing — hold E / action button ~3 s until the pile vanishes and scrap behind
+  is reachable; Crowbar room soft-clears and gives Лом; F4 hard rubble needs Crowbar + 5 s hold.
+
+### Stair descent: no floating roof chunk
+- Not texture Z-fight: slab hole was too tight, so a roof/ceiling lip (and a ceiling panel in the
+  shaft) popped into view while walking down. Hole padded past the shaft; mouth inset 1.2; ceiling
+  props skipped inside the stair volume; metal lift 0.15.
+- Check in game: walk roof → F1 → F2 looking up the shaft — no floating concrete chunk at the mouth.
+
+### Sharp selected-item tooltip
+- Hotbar "Їжа · З'їсти" (and all slot tooltips / touch action caption): pure black plate, TextStroke
+  0.1, TextSize 18 on touch, no TextScaled. Slot count labels same stroke treatment.
+- Check in game: tap Food on phone — amber text crisp on black; Medkit / weapons too.
+
+### No yellow top-right Health meter
+- Roblox default Health CoreGui (yellow bar by the menu, looked like a second weight) is disabled.
+  Keep bottom "Вага x / 20" and centre ЦІЛЬ strip; custom vitals stay.
+- Check in game: top-right only the ☰ menu — no yellow bar next to it.
+
 ## b29 · 17.10 16:22
 Stair Z-fighting + sharp eat prompt (owner retest after b28).
 

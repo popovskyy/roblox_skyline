@@ -227,10 +227,13 @@ local function pointLight(
 	return light
 end
 
--- Diamond-plate stair tops sit a hair above the concrete slab so coplanar seams never Z-fight.
-local METAL_LIFT = 0.08
+-- Diamond-plate stair tops sit above the concrete slab so coplanar seams never Z-fight.
+local METAL_LIFT = 0.15
 -- Floor hole / ramp mouth inset so metal never sits coplanar on the concrete strip edge.
-local MOUTH_INSET = 0.3
+-- Large enough that descending never shows a floating roof/ceiling lip in the shaft.
+local MOUTH_INSET = 1.2
+-- Extra cut past the shaft walls so no slab strip remains inside the stair corridor.
+local HOLE_PAD = 0.4
 
 -- Slab with the stairwell hole (and any collapsed spot) cut out, built from solid strips around them.
 local function slab(
@@ -247,12 +250,12 @@ local function slab(
 	local half = size / 2
 	local holes: { Ruins.Rect } = {}
 	if withHole then
-		-- Cut the slab a hair past the stair mouth so concrete never shares a plane with the ramps.
+		-- Cut past the shaft walls and mouth so no roof/ceiling chunk hangs into the corridor.
 		table.insert(holes, {
-			minX = -HOLE_X,
-			maxX = HOLE_X,
+			minX = -HOLE_X - HOLE_PAD,
+			maxX = HOLE_X + HOLE_PAD,
 			minZ = HOLE_MIN_Z - MOUTH_INSET,
-			maxZ = HOLE_MAX_Z,
+			maxZ = HOLE_MAX_Z + HOLE_PAD,
 		})
 	end
 	if extraHole then
@@ -773,13 +776,19 @@ local function rubble(
 		)
 	end
 	local hold = if needsTool then GameConfig.Rubble.HardHoldSeconds else GameConfig.Rubble.SoftHoldSeconds
-	addPrompt(main, if needsTool then "prompt.clearCrowbar" else "prompt.clear", "prompt.rubble", hold)
+	local prompt = addPrompt(main, if needsTool then "prompt.clearCrowbar" else "prompt.clear", "prompt.rubble", hold)
+	-- Hold-to-clear (not click): keep native hold ring on PC/gamepad/phone.
+	prompt.ClickablePrompt = true
+	prompt.RequiresLineOfSight = false
 	return main
 end
 
 -- A small room in a corner with a doorway on its inner X side, blocked by rubble.
+-- Walls stay on the floor folder; the interactive rubble pile must live under Interactables
+-- so InteractionService accepts the ProximityPrompt (IsDescendantOf check).
 local function cornerRoom(
-	parent: Instance,
+	floor: Instance,
+	interactables: Folder,
 	level: number,
 	sx: number,
 	sz: number,
@@ -794,13 +803,13 @@ local function cornerRoom(
 	-- Wall facing the centre along X, with a 6-stud doorway.
 	local doorFrom = sz * 25
 	local doorTo = sz * 31
-	wallBetween(parent, "RoomWall", level, x, zNear, x, doorFrom, WALL_HEIGHT)
-	wallBetween(parent, "RoomWall", level, x, doorTo, x, zFar, WALL_HEIGHT)
-	wallBetween(parent, "RoomWall", level, x, zNear, sx * half, zNear, WALL_HEIGHT)
-	rubble(parent, level, rubbleId, CFrame.new(x, 0, sz * 28), Vector3.new(3, 10, 6.5), sx, options)
+	wallBetween(floor, "RoomWall", level, x, zNear, x, doorFrom, WALL_HEIGHT)
+	wallBetween(floor, "RoomWall", level, x, doorTo, x, zFar, WALL_HEIGHT)
+	wallBetween(floor, "RoomWall", level, x, zNear, sx * half, zNear, WALL_HEIGHT)
+	rubble(interactables, level, rubbleId, CFrame.new(x, 0, sz * 28), Vector3.new(3, 10, 6.5), sx, options)
 	-- Lintel over the doorway so the rubble is the only way in.
 	block(
-		parent,
+		floor,
 		"Lintel",
 		Vector3.new(1, WALL_HEIGHT - 10, 6),
 		CFrame.new(x, levelY(level) + 10 + (WALL_HEIGHT - 10) / 2, sz * 28),
@@ -923,12 +932,19 @@ local FURNISHING: { [number]: { Furnishing } } = {
 	},
 }
 
+local function inStairVolume(x: number, z: number, margin: number): boolean
+	return math.abs(x) < HOLE_X + margin and z > HOLE_MIN_Z - margin and z < HOLE_MAX_Z + margin
+end
+
 local function furnish(floor: Folder, level: number)
 	local floorY = levelY(level)
 	for _, item in FURNISHING[level] or {} do
-		-- Nothing stands over a collapsed spot or on the debris under one.
+		-- Nothing stands over a collapsed spot, on the debris under one, or inside the stair shaft
+		-- (ceiling panels there read as a floating roof chunk when descending).
 		if
-			nearHole(CEILING_HOLES[level], item.x, item.z, 2) or nearHole(CEILING_HOLES[level - 1], item.x, item.z, 2)
+			nearHole(CEILING_HOLES[level], item.x, item.z, 2)
+			or nearHole(CEILING_HOLES[level - 1], item.x, item.z, 2)
+			or inStairVolume(item.x, item.z, if item.high then 5 else 3)
 		then
 			continue
 		end
@@ -1115,8 +1131,8 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	wallBetween(floor, "Wall", level, -20, 6, -20, 35, WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, 12, -20, 35, -20, 10)
 	-- Soft rubble (hands): Crowbar room. Soft wing (SW): scrap behind a clear-path gate.
-	cornerRoom(floor, level, 1, 1, "F1_Rubble", { rewardItem = "Crowbar" })
-	cornerRoom(floor, level, -1, -1, "F1_SoftWing", {})
+	cornerRoom(floor, interactables, level, 1, 1, "F1_Rubble", { rewardItem = "Crowbar" })
+	cornerRoom(floor, interactables, level, -1, -1, "F1_SoftWing", {})
 	for _, p in { { -28, -12 }, { 25, -30 }, { -30, 8 }, { 14, 25 } } do
 		crate(floor, level, p[1], p[2])
 	end
@@ -1154,7 +1170,7 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	wallBetween(floor, "Wall", level, 26, -10, 35, -10, WALL_HEIGHT)
 
 	-- Soft rubble gate on the west apartments: food + scrap behind a clear-path beat.
-	cornerRoom(floor, level, -1, 1, "F2_SoftWing", {})
+	cornerRoom(floor, interactables, level, -1, 1, "F2_SoftWing", {})
 	furnish(floor, level)
 	local at = makePlacer(level, floor, { "roomNP" })
 	ruinDecor(floor, level, at, 3)
@@ -1273,8 +1289,24 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	addPrompt(gate, "prompt.open", "prompt.gate")
 	sign(gate, "sign.gate", gate.CFrame * CFrame.new(0, 3, 0.7) * CFrame.Angles(0, math.pi, 0), Vector2.new(10, 1.5))
 
-	cornerRoom(floor, level, -1, -1, "F4_Rubble_A", { requiresTool = "Crowbar", requiresUpgrade = "Generator" })
-	cornerRoom(floor, level, 1, 1, "F4_Rubble_B", { requiresTool = "Crowbar", requiresUpgrade = "Generator" })
+	cornerRoom(
+		floor,
+		interactables,
+		level,
+		-1,
+		-1,
+		"F4_Rubble_A",
+		{ requiresTool = "Crowbar", requiresUpgrade = "Generator" }
+	)
+	cornerRoom(
+		floor,
+		interactables,
+		level,
+		1,
+		1,
+		"F4_Rubble_B",
+		{ requiresTool = "Crowbar", requiresUpgrade = "Generator" }
+	)
 	-- Loose debris that players walk around.
 	local rng = Random.new(404)
 	for _ = 1, 10 do

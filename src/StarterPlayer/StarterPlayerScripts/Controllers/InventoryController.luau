@@ -333,14 +333,16 @@ local function showTooltip(text: string, slotIndex: number?, color: Color3?)
 	tooltip.TextColor3 = color or T.AmberText
 	local index = slotIndex or math.ceil(SLOT_COUNT / 2)
 	local x = (index - 0.5) * SLOT_SIZE + (index - 1) * SLOT_GAP
-	tooltip.Position = UDim2.fromOffset(x, if touch then -42 else -48)
+	tooltip.Position = UDim2.fromOffset(x, if touch then -48 else -54)
 	tooltip.TextTransparency = 0
-	tooltip.TextStrokeTransparency = 0.25
-	-- Opaque plate + dark stroke so amber text stays sharp (not soft) over the world.
+	-- Hard stroke + fully opaque black plate: soft amber on device still looked blurry after b29.
+	tooltip.TextStrokeTransparency = 0.1
+	tooltip.BackgroundColor3 = Color3.new(0, 0, 0)
 	tooltip.BackgroundTransparency = 0
 	local stroke = tooltip:FindFirstChildOfClass("UIStroke")
 	if stroke then
 		stroke.Transparency = 0
+		stroke.Thickness = 2
 		stroke.Color = color or T.Amber
 	end
 	tooltip.Visible = true
@@ -534,31 +536,33 @@ local function buildHotbar(screen: ScreenGui)
 	})
 
 	-- Name of the item just taken in hand, floating above its slot (e.g. "Їжа · З'їсти").
+	-- Pure black plate + hard stroke: soft PanelSolid still looked blurry on phone/tablet.
 	tooltip = UIKit.Label({
 		AnchorPoint = Vector2.new(0.5, 1),
-		Size = UDim2.fromOffset(0, if touch then 32 else 30),
+		Size = UDim2.fromOffset(0, if touch then 36 else 34),
 		AutomaticSize = Enum.AutomaticSize.X,
-		BackgroundColor3 = T.PanelSolid,
+		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,
-		TextSize = if touch then 16 else 17,
+		TextSize = if touch then 18 else 19,
+		TextScaled = false,
 		TextColor3 = T.AmberText,
-		TextStrokeColor3 = Color3.fromRGB(12, 10, 8),
-		TextStrokeTransparency = 0.25,
+		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextStrokeTransparency = 0.1,
 		TextWrapped = false,
 		Visible = false,
-		ZIndex = 3,
+		ZIndex = 20,
 		Parent = holder,
 	})
 	UIKit.Corner(6).Parent = tooltip
-	UIKit.New("UIStroke", { Color = T.Amber, Thickness = 1.5, Transparency = 0, Parent = tooltip })
+	UIKit.New("UIStroke", { Color = T.Amber, Thickness = 2, Transparency = 0, Parent = tooltip })
 	UIKit.New("UIPadding", {
-		PaddingLeft = UDim.new(0, 12),
-		PaddingRight = UDim.new(0, 12),
-		PaddingTop = UDim.new(0, 6),
-		PaddingBottom = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 14),
+		PaddingRight = UDim.new(0, 14),
+		PaddingTop = UDim.new(0, 7),
+		PaddingBottom = UDim.new(0, 7),
 		Parent = tooltip,
 	})
 

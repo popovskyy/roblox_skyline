@@ -201,11 +201,13 @@ local function activate(tool: Tool)
 	end
 end
 
--- Our own hotbar replaces the Roblox backpack bar.
-local function hideDefaultBackpack()
+-- Our own hotbar / vitals replace Roblox defaults. The default Health bar sat top-right as a
+-- yellow meter (looked like a second "weight" next to the menu) and confused players.
+local function hideDefaultCoreGui()
 	for _ = 1, 20 do
 		local ok = pcall(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 			-- No "Reset character": it would get a downed player up for free.
 			StarterGui:SetCore("ResetButtonCallback", false)
 		end)
@@ -656,7 +658,7 @@ function CombatController.Start(remoteFolder: Folder)
 	end)
 	remotes = remoteFolder
 	local screen = UIKit.Screen()
-	task.spawn(hideDefaultBackpack)
+	task.spawn(hideDefaultCoreGui)
 	buildDowned(screen)
 	buildCraft(screen)
 

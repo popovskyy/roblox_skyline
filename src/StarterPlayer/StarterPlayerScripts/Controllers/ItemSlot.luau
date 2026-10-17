@@ -65,9 +65,12 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		Size = UDim2.fromOffset(40, 20),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		FontFace = Theme.Display,
-		TextSize = 17,
-		TextStrokeTransparency = 0.4,
+		TextSize = 18,
+		TextScaled = false,
+		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextStrokeTransparency = 0.15,
 		Text = "",
+		ZIndex = 3,
 		Parent = frame,
 	})
 
