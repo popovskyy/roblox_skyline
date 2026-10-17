@@ -3,6 +3,14 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## Unreleased
+### Lobby: gamepad opens Classes
+- On a controller, **L1 / LB** opens the Classes panel (same toggle as the Класи button). X still
+  opens Records, Y How to play, B closes. A pad glyph badge appears on the Classes button while a
+  gamepad is the last input. Lobby-only — tower L1 stays hotbar after teleport.
+- Check in game (PS5 / Xbox / any pad in Studio): press L1 in the lobby — Classes sheet opens;
+  press again or B to close; X and Y still open Records / How; badge visible only on gamepad input.
+
 ## b32 · 17.10 18:55
 C-gate hardening: horde QA switch, Scrap≠Лом tip same beat, louder Gold/Diamond opens. No balance
 retune, no Blender.
