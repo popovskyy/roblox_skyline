@@ -150,6 +150,38 @@ local function serialize(data: PlayerData, version: number): { [string]: any }
 	}
 end
 
+-- The team base: one chest and one set of buildings for everyone in this server (session mode).
+-- Every player's data.storage / data.upgrades point at these same tables, so a deposit or a building
+-- by anyone is everyone's.
+local team: { storage: ItemCounts, upgrades: { [string]: boolean } }? = nil
+
+local function teamTables(): { storage: ItemCounts, upgrades: { [string]: boolean } }
+	if not team then
+		local fresh = PlayerDataService.DefaultData()
+		team = { storage = fresh.storage, upgrades = fresh.upgrades }
+	end
+	return team :: any
+end
+
+local function joinTeam(data: PlayerData)
+	local shared = teamTables()
+	data.storage = shared.storage
+	data.upgrades = shared.upgrades
+end
+
+-- A new match on this server: empty chest, nothing built.
+function PlayerDataService.ResetTeam()
+	local shared = teamTables()
+	local fresh = PlayerDataService.DefaultData()
+	table.clear(shared.storage)
+	for id, count in fresh.storage do
+		shared.storage[id] = count
+	end
+	for id, owned in fresh.upgrades do
+		shared.upgrades[id] = owned
+	end
+end
+
 function PlayerDataService.Init()
 	local ok, result = pcall(function()
 		return DataStoreService:GetDataStore(GameConfig.DataStoreName)
@@ -174,6 +206,7 @@ function PlayerDataService.Load(player: Player): boolean
 
 	if not GameConfig.PersistProgress then
 		-- Session mode: every match starts from a clean slate and nothing is written back.
+		joinTeam(session.data)
 		sessions[player] = session
 		for _, listener in loadedListeners do
 			task.spawn(listener, player)
@@ -228,6 +261,9 @@ function PlayerDataService.Reset(player: Player)
 	local session = sessions[player]
 	if session then
 		session.data = PlayerDataService.DefaultData()
+		if not GameConfig.PersistProgress then
+			joinTeam(session.data)
+		end
 		session.dirty = true
 	end
 end

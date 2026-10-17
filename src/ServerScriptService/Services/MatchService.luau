@@ -27,6 +27,7 @@ local function restartPlayer(player: Player)
 	if player.Parent ~= Players then
 		return
 	end
+	PlayerDataService.ResetTeam()
 	PlayerDataService.Reset(player)
 	ResourceService.ResetMatch(player)
 	MatchStatsService.Reset(player)

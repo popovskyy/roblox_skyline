@@ -13,10 +13,11 @@ local PlacesConfig = require(ReplicatedStorage.Shared.PlacesConfig)
 
 local LiftService = {}
 
-type LiftDef = { id: string, capacity: number, countdown: number }
+type LiftDef = { id: string, capacity: number, countdown: number, choose: boolean? }
 
 type Lift = {
 	def: LiftDef,
+	capacity: number, -- current size: the default, or what the leader picked
 	zone: BasePart,
 	statusLabel: TextLabel,
 	members: { Player }, -- join order; members[1] is the leader
@@ -58,12 +59,17 @@ end
 -- Riders get the countdown as player attributes (LiftSeconds, LiftCount, LiftCapacity) for their own screen.
 local function updateStatus(lift: Lift)
 	local count = #lift.members
-	lift.statusLabel.Text = ("%d / %d"):format(count, lift.def.capacity)
+	-- Over the cabin: "SOLO" or "GROUP · 2/4" (localized on each client from the attributes).
+	lift.statusLabel:SetAttribute("LiftCount", count)
+	lift.statusLabel:SetAttribute("LiftCapacity", lift.capacity)
+	lift.statusLabel:SetAttribute("LiftSolo", lift.def.capacity == 1)
 	local seconds = if lift.deadline then math.max(0, math.ceil(lift.deadline - os.clock())) else nil
 	for _, player in lift.members do
 		player:SetAttribute("LiftSeconds", if lift.launching then 0 else seconds)
 		player:SetAttribute("LiftCount", count)
-		player:SetAttribute("LiftCapacity", lift.def.capacity)
+		player:SetAttribute("LiftCapacity", lift.capacity)
+		-- Only the leader of a group lift picks the party size.
+		player:SetAttribute("LiftCanChoose", lift.def.choose == true and lift.members[1] == player)
 		player:SetAttribute("LiftTotal", lift.def.countdown)
 	end
 end
@@ -73,6 +79,7 @@ local function clearRider(player: Player)
 	player:SetAttribute("LiftCount", nil)
 	player:SetAttribute("LiftCapacity", nil)
 	player:SetAttribute("LiftTotal", nil)
+	player:SetAttribute("LiftCanChoose", nil)
 end
 
 local function removeMember(lift: Lift, player: Player)
@@ -84,6 +91,7 @@ local function removeMember(lift: Lift, player: Player)
 	clearRider(player)
 	if #lift.members == 0 then
 		lift.deadline = nil
+		lift.capacity = lift.def.capacity
 	end
 	updateStatus(lift)
 end
@@ -94,7 +102,7 @@ local function addMember(lift: Lift, player: Player)
 	if #lift.members == 1 then
 		lift.deadline = now + lift.def.countdown
 	end
-	if #lift.members >= lift.def.capacity and lift.deadline then
+	if #lift.members >= lift.capacity and lift.deadline then
 		-- Full lift: no reason to keep everyone waiting, run the remaining time three times faster.
 		lift.deadline = now + math.max(0, lift.deadline - now) / PlacesConfig.FullLiftSpeedup
 	end
@@ -233,7 +241,7 @@ local function tick()
 				local inside = root ~= nil and isInside(lift.zone, root.Position)
 				if not inside then
 					lift.blocked[player] = nil
-				elseif not lift.blocked[player] and not liftOf(player) and #lift.members < lift.def.capacity then
+				elseif not lift.blocked[player] and not liftOf(player) and #lift.members < lift.capacity then
 					addMember(lift, player)
 				end
 			end
@@ -244,6 +252,23 @@ local function tick()
 			end
 		end
 	end
+end
+
+-- The leader of a group lift picks how many players it takes (2..6, never fewer than already inside).
+function LiftService.SetSize(player: Player, size: any)
+	local lift = liftOf(player)
+	if not lift or lift.launching or not lift.def.choose or lift.members[1] ~= player then
+		return
+	end
+	if type(size) ~= "number" or not table.find(PlacesConfig.PartySizes, size) or size < #lift.members then
+		return
+	end
+	lift.capacity = size
+	if #lift.members >= lift.capacity and lift.deadline then
+		local now = os.clock()
+		lift.deadline = now + math.max(0, lift.deadline - now) / PlacesConfig.FullLiftSpeedup
+	end
+	updateStatus(lift)
 end
 
 -- "Leave lift" button: out of the party, and not taken back in until the player steps out of the zone.
@@ -264,6 +289,7 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 		if refs then
 			local lift: Lift = {
 				def = def,
+				capacity = def.capacity,
 				zone = refs.zone,
 				statusLabel = refs.statusLabel,
 				members = {},

@@ -1,7 +1,7 @@
 --!strict
 -- Zombies roam the four floors below the roof (the roof itself is always safe).
 -- Server-owned NPCs: they chase the nearest standing player on their floor, hit in melee through
--- DamageService and respawn some time after being killed.
+-- DamageService. A killed zombie does not come back this match.
 
 local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
@@ -176,7 +176,7 @@ spawnZombie = function(level: number)
 		task.delay(3, function()
 			model:Destroy()
 		end)
-		task.delay(Z.RespawnSeconds, spawnZombie, level)
+		-- No respawn: a cleared floor stays cleared for the rest of the match.
 	end)
 end
 

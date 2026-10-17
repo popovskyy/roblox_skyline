@@ -28,7 +28,29 @@ local function localize(label: Instance)
 	end
 end
 
+-- Lift boards carry LiftCount / LiftCapacity / LiftSolo attributes instead of text.
+local function liftBoard(label: TextLabel)
+	local count = label:GetAttribute("LiftCount")
+	local capacity = label:GetAttribute("LiftCapacity")
+	if type(count) ~= "number" or type(capacity) ~= "number" then
+		return
+	end
+	label.Text = if label:GetAttribute("LiftSolo") == true
+		then Lang.T("lobby.boardSolo")
+		else Lang.T("lobby.boardGroup", count, capacity)
+end
+
 local function watch(label: Instance)
+	if label:IsA("TextLabel") then
+		liftBoard(label)
+		label:GetAttributeChangedSignal("LiftCount"):Connect(function()
+			liftBoard(label)
+		end)
+		label:GetAttributeChangedSignal("LiftCapacity"):Connect(function()
+			liftBoard(label)
+		end)
+	end
+
 	if label:IsA("TextLabel") then
 		localize(label)
 		label:GetAttributeChangedSignal("TextKey"):Connect(function()
@@ -49,6 +71,9 @@ task.spawn(function()
 	Lang.Changed:Connect(function()
 		for _, d in world:GetDescendants() do
 			localize(d)
+			if d:IsA("TextLabel") then
+				liftBoard(d)
+			end
 		end
 	end)
 end)
@@ -239,6 +264,55 @@ UIKit.New("UIListLayout", {
 	Padding = UDim.new(0, 8),
 	Parent = riders,
 })
+-- Party size: the leader of a group lift picks 2..6. Not a modal: walking and boarding never wait on it.
+local PlacesConfig = require(Shared:WaitForChild("PlacesConfig"))
+local sizeTitle = UIKit.Label({
+	Size = UDim2.new(1, 0, 0, 20),
+	FontFace = Theme.Bold,
+	TextSize = 15,
+	TextColor3 = T.CreamDim,
+	LayoutOrder = 3,
+	Visible = false,
+	Parent = liftPanel,
+})
+local sizeRow = UIKit.New("Frame", {
+	Size = UDim2.new(1, 0, 0, 44),
+	BackgroundTransparency = 1,
+	LayoutOrder = 3,
+	Visible = false,
+	Parent = liftPanel,
+})
+UIKit.New("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	Padding = UDim.new(0, 8),
+	Parent = sizeRow,
+})
+local sizeButtons: { [number]: TextButton } = {}
+for _, size in PlacesConfig.PartySizes do
+	local button = UIKit.Button({
+		Size = UDim2.fromOffset(56, 44),
+		Text = tostring(size),
+		FontFace = Theme.Display,
+		TextSize = 22,
+		BackgroundColor3 = T.PanelSolid,
+		TextColor3 = T.Cream,
+		Parent = sizeRow,
+	})
+	UIKit.New("UIStroke", {
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Color = T.Stroke,
+		Transparency = 0.65,
+		Parent = button,
+	})
+	button.Activated:Connect(function()
+		local remote = remotes:FindFirstChild("SetLiftSize")
+		if remote and remote:IsA("RemoteEvent") then
+			remote:FireServer(size)
+		end
+	end)
+	sizeButtons[size] = button
+end
+
 local leaveButton = UIKit.Button({
 	Size = UDim2.new(1, 0, 0, 44),
 	BackgroundColor3 = T.PanelSolid,
@@ -301,12 +375,24 @@ local function updateLift()
 			UIKit.New("UIStroke", { Color = T.CreamDim, Transparency = 0.4, Thickness = 1.5, Parent = dot })
 		end
 	end
+	-- Size picker for the leader of a group lift; the chosen size is highlighted.
+	local canChoose = player:GetAttribute("LiftCanChoose") == true and seconds > 0
+	sizeTitle.Visible = canChoose
+	sizeRow.Visible = canChoose
+	sizeTitle.Text = Lang.T("lobby.pickSize")
+	for size, button in sizeButtons do
+		local chosen = size == capacity
+		local allowed = size >= count
+		button.BackgroundColor3 = if chosen then T.Amber else T.PanelSolid
+		button.TextColor3 = if chosen then T.PanelSolid elseif allowed then T.Cream else T.Muted
+		button.AutoButtonColor = allowed
+	end
 	leaveButton.Text = Lang.T("lobby.leaveLift")
 	leaveButton.Visible = seconds > 0
 	fullNote.Text = Lang.T("lobby.fullFaster")
 	fullNote.Visible = count >= capacity and capacity > 1
 end
-for _, name in { "LiftSeconds", "LiftCount", "LiftCapacity", "LiftTotal" } do
+for _, name in { "LiftSeconds", "LiftCount", "LiftCapacity", "LiftTotal", "LiftCanChoose" } do
 	player:GetAttributeChangedSignal(name):Connect(updateLift)
 end
 Lang.Changed:Connect(updateLift)

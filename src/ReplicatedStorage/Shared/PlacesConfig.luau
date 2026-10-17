@@ -10,13 +10,15 @@ local PlacesConfig = {
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
 
-	-- Lifts in the lobby. The first player in a lift is the party leader.
+	-- Lifts in the lobby. The first player in a lift is the party leader. Group lifts let the leader pick
+	-- the party size (PartySizes); until they do, the lift takes `capacity` players.
 	Lifts = {
 		{ id = "Solo", capacity = 1, countdown = 5 },
-		{ id = "Duo", capacity = 2, countdown = 20 },
-		{ id = "Squad4", capacity = 4, countdown = 20 },
-		{ id = "Squad6", capacity = 6, countdown = 20 },
+		{ id = "GroupA", capacity = 4, countdown = 25, choose = true },
+		{ id = "GroupB", capacity = 4, countdown = 25, choose = true },
+		{ id = "GroupC", capacity = 4, countdown = 25, choose = true },
 	},
+	PartySizes = { 2, 3, 4, 5, 6 },
 
 	-- Once a lift is full the rest of its countdown runs this many times faster.
 	FullLiftSpeedup = 3,

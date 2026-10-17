@@ -61,7 +61,7 @@ local GameConfig = {
 		AttackCooldown = 1.2,
 		AttackRange = 4.5,
 		AggroRange = 45,
-		RespawnSeconds = 45,
+		RespawnSeconds = 0, -- unused: zombies do not respawn
 		PerFloor = { 1, 2, 3, 4 }, -- floors 1..4: one more zombie on every floor down; the roof is always safe
 	},
 

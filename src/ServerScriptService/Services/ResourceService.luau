@@ -25,7 +25,6 @@ local ResourceService = {}
 
 type PlayerNodes = {
 	depleted: { [string]: boolean }, -- normal nodes, refilled on roof return
-	cleared: { [string]: boolean }, -- rubble, cleared for this session
 	opened: { [string]: boolean }, -- loot crates, opened once per match
 	seenGold: boolean, -- opened a gold or diamond crate this match (bad-luck protection)
 	holdStart: number?, -- when the player started holding a locked crate's prompt
@@ -33,11 +32,13 @@ type PlayerNodes = {
 }
 
 local state: { [Player]: PlayerNodes } = {}
+-- Rubble is shared: once anyone clears a pile it is gone for the whole team.
+local clearedRubble: { [string]: boolean } = {}
 
 local function getState(player: Player): PlayerNodes
 	local s = state[player]
 	if not s then
-		s = { depleted = {}, cleared = {}, opened = {}, seenGold = false }
+		s = { depleted = {}, opened = {}, seenGold = false }
 		state[player] = s
 	end
 	return s
@@ -54,7 +55,7 @@ function ResourceService.CheckAccess(player: Player, object: Instance): any
 		return "res.zoneLocked"
 	end
 	local requiredRubble = object:GetAttribute("RequiresRubble")
-	if type(requiredRubble) == "string" and not getState(player).cleared[requiredRubble] then
+	if type(requiredRubble) == "string" and not clearedRubble[requiredRubble] then
 		return "res.blocked"
 	end
 	return nil
@@ -119,8 +120,7 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 	if type(rubbleId) ~= "string" then
 		return false, nil
 	end
-	local s = getState(player)
-	if s.cleared[rubbleId] then
+	if clearedRubble[rubbleId] then
 		return false, nil
 	end
 	local denied = ResourceService.CheckAccess(player, rubble)
@@ -132,7 +132,7 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 		return false, "rubble.needCrowbar"
 	end
 
-	s.cleared[rubbleId] = true
+	clearedRubble[rubbleId] = true
 	SfxService.Play("Rubble", rubble.Position)
 	local reward = rubble:GetAttribute("RewardItem")
 	if ItemDefinitions.IsValid(reward) and InventoryService.GetCount(player, reward :: string) == 0 then
@@ -142,7 +142,10 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 	else
 		Net.Notify(player, "rubble.cleared", "success")
 	end
-	StateSyncService.Request(player)
+	-- Everyone's world updates: the pile disappears for all players.
+	for _, other in Players:GetPlayers() do
+		StateSyncService.Request(other)
+	end
 	return true, nil
 end
 
@@ -263,6 +266,7 @@ end
 -- A fresh match on this server: every node, crate and rubble pile is back.
 function ResourceService.ResetMatch(player: Player)
 	state[player] = nil
+	table.clear(clearedRubble)
 	StateSyncService.Request(player)
 end
 
@@ -287,7 +291,7 @@ function ResourceService.Init()
 			depleted[nodeId] = true
 		end
 		snapshot.depletedNodes = depleted
-		snapshot.clearedRubble = table.clone(s.cleared)
+		snapshot.clearedRubble = table.clone(clearedRubble)
 		snapshot.uniqueNodesTaken = if data then table.clone(data.uniqueNodesTaken) else {}
 	end)
 	Players.PlayerRemoving:Connect(function(player)

@@ -25,6 +25,9 @@ type Step = {
 	-- Sticky steps depend on permanent progress, so reaching them lets the tutorial jump forward.
 	sticky: boolean,
 	complete: (player: Player, data: Types.PlayerData) -> boolean,
+	-- Collecting steps: how many the player has (carried + in the chest) and how many are needed,
+	-- shown live in the HUD as "2/4".
+	progress: ((player: Player) -> (number, number))?,
 }
 
 local Steps: { Step } = {
@@ -40,6 +43,9 @@ local Steps: { Step } = {
 		sticky = false,
 		complete = function(player)
 			return StorageService.Total(player, "Scrap") >= 3
+		end,
+		progress = function(player)
+			return math.min(StorageService.Total(player, "Scrap"), 3), 3
 		end,
 	},
 	{
@@ -61,6 +67,9 @@ local Steps: { Step } = {
 		sticky = false,
 		complete = function(player)
 			return StorageService.Total(player, "Electronics") >= 4
+		end,
+		progress = function(player)
+			return math.min(StorageService.Total(player, "Electronics"), 4), 4
 		end,
 	},
 	{
@@ -170,7 +179,14 @@ function TutorialService.Init()
 			return
 		end
 		local step = evaluate(player, data)
+		local current = Steps[step]
+		local have, need = nil, nil
+		if current and current.progress then
+			have, need = current.progress(player)
+		end
 		snapshot.tutorial = {
+			have = have,
+			need = need,
 			step = step,
 			total = #Steps,
 			text = if step <= #Steps then Steps[step].text else "tutorial.done",

@@ -28,6 +28,7 @@ local CraftService = require(Services.CraftService)
 local MatchService = require(Services.MatchService)
 local MatchStatsService = require(Services.MatchStatsService)
 local BaseUpgradeService = require(Services.BaseUpgradeService)
+local DropService = require(Services.DropService)
 
 Net.Init()
 PlayerDataService.Init()
@@ -45,6 +46,7 @@ if GameConfig.World.Mode == "Generated" then
 	HazardService.SetVictoryZone(world.victoryZone)
 	PlayerLifecycleService.SetWorld(world.interactables, world.roofDropPosition)
 	CraftService.SetWorkbench(world.workbench)
+	DropService.SetFolder(world.interactables)
 	ZombieService.Start(world.root)
 else
 	warn("[ServerMain] World.Mode is Manual: wire a hand-built map into the services before playing")
@@ -71,6 +73,7 @@ CombatService.Start()
 CraftService.Start()
 MatchService.Start()
 MatchStatsService.Start()
+DropService.Start()
 PlayerLifecycleService.Start() -- last: it loads characters, so everything above must be ready
 
 print(("[Skyline Zero] Server ready, build %s"):format(require(ReplicatedStorage.Shared.PlacesConfig).Build))

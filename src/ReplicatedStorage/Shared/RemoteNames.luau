@@ -19,6 +19,7 @@ local RemoteNames = {
 	ReturnToLobby = "ReturnToLobby",
 	Attack = "Attack",
 	Equip = "Equip",
+	DropItem = "DropItem",
 	Craft = "Craft",
 	OpenCraft = "OpenCraft",
 }

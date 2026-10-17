@@ -91,7 +91,7 @@ function StorageService.Transfer(player: Player, direction: any, itemId: any, am
 	end
 
 	PlayerDataService.MarkDirty(player)
-	StateSyncService.Request(player)
+	StateSyncService.RequestAll()
 	return true, nil
 end
 
@@ -112,7 +112,7 @@ function StorageService.TrySpend(player: Player, cost: { [string]: number }): bo
 		data.storage[id] = (data.storage[id] or 0) - (amount - fromInventory)
 	end
 	PlayerDataService.MarkDirty(player)
-	StateSyncService.Request(player)
+	StateSyncService.RequestAll()
 	return true
 end
 

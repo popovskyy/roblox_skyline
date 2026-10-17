@@ -128,6 +128,39 @@ local function makeWindow(
 	return panel, list, header
 end
 
+-- Holding a slot or a pouch counter for half a second drops it on the ground for teammates.
+local HOLD_TO_DROP = 0.5
+local suppressActivate = false
+
+local function dropItem(itemId: string, amount: number | string)
+	local remote = remotes:FindFirstChild(RemoteNames.DropItem) :: RemoteEvent?
+	if remote then
+		remote:FireServer(itemId, amount)
+	end
+end
+
+local function holdToDrop(target: GuiObject, itemFor: () -> string?, amount: number | string)
+	local token = 0
+	target.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.Touch and kind ~= Enum.UserInputType.MouseButton1 then
+			return
+		end
+		token += 1
+		local mine = token
+		task.delay(HOLD_TO_DROP, function()
+			local itemId = itemFor()
+			if token == mine and itemId then
+				suppressActivate = true
+				dropItem(itemId, amount)
+			end
+		end)
+	end)
+	target.InputEnded:Connect(function()
+		token += 1
+	end)
+end
+
 local function pouchChip(def: ItemDefinitions.ItemDef, count: number, order: number)
 	local chip = UIKit.New("Frame", {
 		Name = def.id,
@@ -148,6 +181,12 @@ local function pouchChip(def: ItemDefinitions.ItemDef, count: number, order: num
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
+	if count > 0 then
+		chip.Active = true
+		holdToDrop(chip, function()
+			return def.id
+		end, 1)
+	end
 	local dim = if count > 0 then 0 else 0.5
 	UIKit.New("ImageLabel", {
 		Size = UDim2.fromOffset(if touch then 16 else 18, if touch then 16 else 18),
@@ -332,8 +371,16 @@ local function buildHotbar(screen: ScreenGui)
 			})
 		end
 		slot.frame.Activated:Connect(function()
+			if suppressActivate then
+				-- The press was a hold that dropped the item.
+				suppressActivate = false
+				return
+			end
 			activateSlot(i)
 		end)
+		holdToDrop(slot.frame, function()
+			return slotItems[i]
+		end, "all")
 	end
 
 	-- "More" button right of the slots: flips to the next page of items.
@@ -578,6 +625,14 @@ function InventoryController.Start(remoteFolder: Folder)
 		local slotIndex = table.find(NUMBER_KEYS, input.KeyCode)
 		if slotIndex and slotIndex <= SLOT_COUNT then
 			activateSlot(slotIndex)
+		elseif
+			input.KeyCode == Enum.KeyCode.G or input.KeyCode == Enum.KeyCode.ButtonB and not storagePanel.Visible
+		then
+			-- G / B: drop what is in hand for a teammate.
+			local held = player:GetAttribute("Equipped")
+			if type(held) == "string" then
+				dropItem(held, "all")
+			end
 		elseif input.KeyCode == Enum.KeyCode.ButtonR1 or input.KeyCode == Enum.KeyCode.DPadRight then
 			stepSlot(1)
 		elseif input.KeyCode == Enum.KeyCode.ButtonL1 or input.KeyCode == Enum.KeyCode.DPadLeft then

@@ -27,6 +27,13 @@ function StateSyncService.Build(player: Player): { [string]: any }
 	return snapshot
 end
 
+-- Team-wide changes (shared chest, buildings, rubble): refresh everyone.
+function StateSyncService.RequestAll()
+	for _, player in game:GetService("Players"):GetPlayers() do
+		StateSyncService.Request(player)
+	end
+end
+
 function StateSyncService.Request(player: Player)
 	if pending[player] then
 		return

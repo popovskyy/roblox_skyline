@@ -11,6 +11,7 @@ local BaseUpgradeService = require(script.Parent.BaseUpgradeService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local CraftService = require(script.Parent.CraftService)
 local DamageService = require(script.Parent.DamageService)
+local DropService = require(script.Parent.DropService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlayerLifecycleService = require(script.Parent.PlayerLifecycleService)
@@ -62,6 +63,9 @@ local handlers: { [string]: Handler } = {
 	end,
 	LootChest = function(player, target)
 		return ResourceService.OpenCrate(player, target)
+	end,
+	Drop = function(player, target)
+		return DropService.PickUp(player, target)
 	end,
 	Workbench = function(player)
 		return CraftService.Open(player)

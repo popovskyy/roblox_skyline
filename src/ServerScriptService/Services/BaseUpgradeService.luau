@@ -49,7 +49,7 @@ function BaseUpgradeService.Purchase(player: Player, upgradeId: any): (boolean, 
 
 	data.upgrades[def.id] = true
 	PlayerDataService.MarkDirty(player)
-	StateSyncService.Request(player)
+	StateSyncService.RequestAll()
 	Net.Notify(player, { "upgrade.built", Locale.Upgrade(def.id) }, "success")
 	SfxService.PlayAtPlayer(if def.id == "Generator" then "GeneratorStart" else "Build", player)
 	for _, listener in listeners do

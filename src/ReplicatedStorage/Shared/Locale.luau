@@ -501,6 +501,18 @@ local S: { [string]: Entry } = {
 	["downed.hasBandage"] = { uk = "має бинт", ru = "есть бинт", en = "has bandage" },
 	["downed.noBandage"] = { uk = "без бинта", ru = "без бинта", en = "no bandage" },
 	["downed.meters"] = { uk = "%d м", ru = "%d м", en = "%d m" },
+	["prompt.pickUp"] = { uk = "Підняти", ru = "Поднять", en = "Pick up" },
+	["drop.done"] = { uk = "Викинуто: %s ×%d", ru = "Выброшено: %s ×%d", en = "Dropped: %s ×%d" },
+	["hint.dropTouch"] = {
+		uk = "Утримуй слот, щоб викинути предмет для тіммейта",
+		ru = "Удерживай слот, чтобы выбросить предмет для тиммейта",
+		en = "Hold a slot to drop the item for a teammate",
+	},
+	["hint.dropPc"] = {
+		uk = "G — викинути предмет у руці",
+		ru = "G — выбросить предмет в руке",
+		en = "G drops the item in hand",
+	},
 	["hud.stairs"] = { uk = "Сходи · %d м", ru = "Лестница · %d м", en = "Stairs · %d m" },
 	["pad.hit"] = {
 		uk = "удар / використати",
@@ -520,6 +532,13 @@ local S: { [string]: Entry } = {
 		uk = "Ліфт повний: відлік у 3 рази швидший",
 		ru = "Лифт полный: отсчёт в 3 раза быстрее",
 		en = "Lift full: countdown 3× faster",
+	},
+	["lobby.boardSolo"] = { uk = "СОЛО", ru = "СОЛО", en = "SOLO" },
+	["lobby.boardGroup"] = { uk = "ГРУПА · %d/%d", ru = "ГРУППА · %d/%d", en = "GROUP · %d/%d" },
+	["lobby.pickSize"] = {
+		uk = "Скільки гравців?",
+		ru = "Сколько игроков?",
+		en = "How many players?",
 	},
 	["lobby.tokensWord"] = { uk = "жетонів", ru = "жетонов", en = "tokens" },
 	["menu.title"] = { uk = "МЕНЮ", ru = "МЕНЮ", en = "MENU" },

@@ -158,7 +158,14 @@ local function onState(s: { [string]: any })
 	if s.tutorial then
 		objectiveText.Text = Lang.T(s.tutorial.text)
 	end
-	actsText.Text = ("%d/3"):format(s.acts or 0)
+	-- Live progress of a collecting goal ("2/4"); nothing for other goals.
+	local t = s.tutorial
+	if t and type(t.have) == "number" and type(t.need) == "number" then
+		actsText.Text = ("%d/%d"):format(t.have, t.need)
+		actsText.Visible = true
+	else
+		actsText.Visible = false
+	end
 end
 
 function HUDController.Start()
