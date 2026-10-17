@@ -31,6 +31,21 @@ local function isMember(player: Player): boolean
 	return party ~= nil and party.members[player.UserId] == true
 end
 
+-- Ground drops / shared actions: same reserved party, or everyone when there is no party record (Studio/solo).
+function PartyService.CanShareWorld(a: Player, b: Player): boolean
+	if a == b then
+		return true
+	end
+	if not party then
+		return true
+	end
+	return isMember(a) and isMember(b)
+end
+
+function PartyService.HasParty(): boolean
+	return party ~= nil
+end
+
 local function leaderData()
 	if not party then
 		return nil
@@ -82,6 +97,12 @@ local function onDataLoaded(player: Player)
 	local leader = party and Players:GetPlayerByUserId(party.leaderUserId)
 	if leader then
 		Net.Notify(player, { "party.leader", leader.DisplayName }, "info")
+		-- Co-op clarity once per join: personal loot nodes vs shared team chest.
+		task.delay(2.5, function()
+			if player.Parent then
+				Net.Notify(player, "toast.lootPersonal", "info")
+			end
+		end)
 	end
 end
 

@@ -20,6 +20,7 @@ local healthFill: Frame
 local healthText: TextLabel
 local hungerFill: Frame
 local hungerText: TextLabel
+local tokensText: TextLabel
 local flashlightText: TextLabel
 local warningText: TextLabel
 local objectiveText: TextLabel
@@ -82,6 +83,13 @@ local function buildStatusPanel(screen: ScreenGui)
 		TextSize = 14,
 		ZIndex = 2,
 		Parent = hungerBar,
+	})
+	tokensText = UIKit.Label({
+		Size = UDim2.new(1, 0, 0, 20),
+		Text = "",
+		TextColor3 = C.accent,
+		LayoutOrder = 3,
+		Parent = panel,
 	})
 	flashlightText = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 20),
@@ -151,6 +159,8 @@ local function buildToasts(screen: ScreenGui)
 end
 
 local toastCounter = 0
+local lastSoftToastAt = 0
+local TOAST_SOFT_GAP = 15 -- UX: max 1 soft toast / 15s; critical kinds bypass.
 local KIND_COLORS = {
 	info = C.text,
 	success = C.good,
@@ -159,6 +169,15 @@ local KIND_COLORS = {
 }
 
 function HUDController.Toast(text: string, kind: string?)
+	local k = kind or "info"
+	-- Soft info toasts (loot / tokens / party chatter) max 1 / 15s; success/warn/error always show.
+	if k == "info" then
+		local now = os.clock()
+		if now - lastSoftToastAt < TOAST_SOFT_GAP then
+			return
+		end
+		lastSoftToastAt = now
+	end
 	toastCounter += 1
 	local children = toastHolder:GetChildren()
 	local toasts = {}
@@ -185,7 +204,7 @@ function HUDController.Toast(text: string, kind: string?)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = text,
 		TextSize = 15,
-		TextColor3 = KIND_COLORS[kind or "info"] or C.text,
+		TextColor3 = KIND_COLORS[k] or C.text,
 		Parent = toast,
 	})
 	task.delay(3.5, function()
@@ -269,6 +288,7 @@ end
 local function onState(s: { [string]: any })
 	objectiveText.Text = objectiveLine(s)
 	actsText.Text = Lang.T("hud.systems", s.acts or 0)
+	tokensText.Text = Lang.T("hud.tokens", math.floor(s.tokens or 0))
 	updateFlashlight()
 end
 
@@ -314,9 +334,19 @@ function HUDController.Start()
 	buildToasts(screen)
 
 	ClientState.Changed:Connect(onState)
+	local initial = ClientState.Get()
+	if initial then
+		onState(initial)
+	else
+		tokensText.Text = Lang.T("hud.tokens", 0)
+	end
 	Lang.Changed:Connect(function()
 		updateHealth()
 		updateWarnings()
+		local s = ClientState.Get()
+		if s then
+			onState(s)
+		end
 	end)
 	player:GetAttributeChangedSignal("InToxic"):Connect(updateWarnings)
 	player:GetAttributeChangedSignal("Hungry"):Connect(updateWarnings)

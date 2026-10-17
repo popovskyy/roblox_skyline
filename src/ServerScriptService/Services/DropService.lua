@@ -11,6 +11,7 @@ local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
+local PartyService = require(script.Parent.PartyService)
 local RateLimiter = require(script.Parent.RateLimiter)
 local StateSyncService = require(script.Parent.StateSyncService)
 
@@ -116,6 +117,10 @@ function DropService.Pickup(player: Player, part: BasePart): (boolean, any)
 	local entry = drops[part]
 	if not entry or entry.part ~= part then
 		return false, "drop.gone"
+	end
+	local owner = Players:GetPlayerByUserId(entry.ownerUserId)
+	if owner and not PartyService.CanShareWorld(player, owner) then
+		return false, "drop.notParty"
 	end
 	if not InventoryService.CanAdd(player, entry.itemId, entry.amount) then
 		return false, "res.full"

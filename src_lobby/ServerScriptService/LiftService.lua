@@ -24,6 +24,7 @@ type Lift = {
 	deadline: number?,
 	launching: boolean,
 	blocked: { [Player]: boolean }, -- after a failed start: must step out before rejoining
+	leaderPickToast: { [Player]: boolean }, -- once-per-stay “leader is picking” toast
 	pendingLeader: Player?, -- inside the empty lift, waiting to pick a size
 }
 
@@ -326,16 +327,21 @@ local function tick()
 				local inside = root ~= nil and isInside(lift.zone, root.Position)
 				if not inside then
 					lift.blocked[player] = nil
-				elseif not lift.blocked[player] and not liftOf(player) then
+					lift.leaderPickToast[player] = nil
+				elseif not liftOf(player) then
 					if lift.capacity == nil then
 						if lift.pendingLeader == nil then
 							beginPick(lift, player)
+						elseif lift.pendingLeader ~= player and not lift.leaderPickToast[player] then
+							-- Second rider while leader still picking: soft feedback, no second modal.
+							-- Do NOT set blocked — that would prevent join after capacity is chosen.
+							notify(player, "lobby.leaderPicking", "info")
+							lift.leaderPickToast[player] = true
 						end
-					elseif #lift.members < (lift.capacity :: number) then
-						addMember(lift, player)
-					elseif not liftOf(player) then
-						-- Full: only toast once per stay via blocked flag after notify.
-						if not lift.blocked[player] then
+					elseif not lift.blocked[player] then
+						if #lift.members < (lift.capacity :: number) then
+							addMember(lift, player)
+						else
 							notify(player, "lobby.full", "warning")
 							lift.blocked[player] = true
 						end
@@ -366,6 +372,7 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 				deadline = nil,
 				launching = false,
 				blocked = {},
+				leaderPickToast = {},
 				pendingLeader = nil,
 			}
 			table.insert(lifts, lift)

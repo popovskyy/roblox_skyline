@@ -36,8 +36,23 @@ function TokenService.Add(player: Player, amount: number, reason: string?)
 	PlayerDataService.MarkDirty(player)
 	StateSyncService.Request(player)
 	if reason then
-		Net.Notify(player, { "tokens.earned", amount, { ref = reason } }, "success")
+		-- Soft toast (throttled); balance lives on the HUD tokens line.
+		Net.Notify(player, { "tokens.earned", amount, { ref = reason } }, "info")
 	end
+end
+
+function TokenService.TrySpend(player: Player, amount: number): boolean
+	if amount <= 0 then
+		return true
+	end
+	local data = PlayerDataService.Get(player)
+	if not data or (data.tokens or 0) < amount then
+		return false
+	end
+	data.tokens = (data.tokens or 0) - amount
+	PlayerDataService.MarkDirty(player)
+	StateSyncService.Request(player)
+	return true
 end
 
 function TokenService.OnZombieKill(killer: Player?)

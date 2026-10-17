@@ -7709,6 +7709,8 @@ local GameConfig = {
 		FloorClearPerLevel = 2,
 		FloorClearCap = 25,
 		RoofBonus = 25,
+		-- Soft sink at workbench: spend tokens for one Bandage when scrap is tight.
+		BandageCost = 15,
 	},
 
 	-- Testing: every upgrade costs 1 of each listed item. Never ship with this on.
@@ -8131,9 +8133,9 @@ local S: { [string]: Entry } = {
 	},
 
 	["interact.noStorage"] = {
-		uk = "Скрині ще немає. Збудуй її за 8 металобрухту",
-		ru = "Сундука ещё нет. Построй его за 8 металлолома",
-		en = "No chest yet. Build it for 8 scrap",
+		uk = "Скрині ще немає. Збудуй її за 4 металобрухту",
+		ru = "Сундука ещё нет. Построй его за 4 металлолома",
+		en = "No chest yet. Build it for 4 scrap",
 	},
 	["interact.gateLocked"] = {
 		uk = "Двері заблоковано. Потрібен генератор на даху",
@@ -8311,9 +8313,9 @@ local S: { [string]: Entry } = {
 		en = "Return to the roof with your loot",
 	},
 	["tutorial.4"] = {
-		uk = "Збудуй скриню на даху (8 металобрухту)",
-		ru = "Построй сундук на крыше (8 металлолома)",
-		en = "Build the chest on the roof (8 scrap)",
+		uk = "Збудуй скриню на даху (4 металобрухту)",
+		ru = "Построй сундук на крыше (4 металлолома)",
+		en = "Build the chest on the roof (4 scrap)",
 	},
 	["tutorial.5"] = {
 		uk = "Знайди 4 електроніки",
@@ -8451,6 +8453,32 @@ local S: { [string]: Entry } = {
 	["hud.weight"] = { uk = "Вага %d / %d", ru = "Вес %d / %d", en = "Weight %d / %d" },
 	["hud.objective"] = { uk = "Ціль: %s", ru = "Цель: %s", en = "Objective: %s" },
 	["hud.systems"] = { uk = "Системи %d/3", ru = "Системы %d/3", en = "Systems %d/3" },
+	["hud.tokens"] = { uk = "Жетони %d", ru = "Жетоны %d", en = "Tokens %d" },
+	["toast.lootPersonal"] = {
+		uk = "Лут особистий — кожен збирає собі. Скриня команди спільна.",
+		ru = "Лут личный — каждый собирает себе. Сундук команды общий.",
+		en = "Loot is personal — each of you gathers your own. The team chest is shared.",
+	},
+	["drop.notParty"] = {
+		uk = "Це чужий дроп — лише для твоєї групи",
+		ru = "Это чужой дроп — только для твоей группы",
+		en = "That drop belongs to another party",
+	},
+	["craft.tokenBandage"] = {
+		uk = "Бинт за жетони",
+		ru = "Бинт за жетоны",
+		en = "Bandage for tokens",
+	},
+	["craft.tokenCost"] = {
+		uk = "Потрібно: %d жетонів",
+		ru = "Нужно: %d жетонов",
+		en = "Needs: %d tokens",
+	},
+	["craft.needTokens"] = {
+		uk = "Не вистачає жетонів (%d)",
+		ru = "Не хватает жетонов (%d)",
+		en = "Not enough tokens (%d)",
+	},
 	["hud.toxic"] = {
 		uk = "⚠ ТОКСИЧНЕ ПОВІТРЯ",
 		ru = "⚠ ТОКСИЧНЫЙ ВОЗДУХ",
@@ -8917,7 +8945,7 @@ return MusicConfig
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b18 · elevator-entry-restore",
+	Build = "b19 · must-fix-ship",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
@@ -8927,7 +8955,8 @@ local PlacesConfig = {
 		{ id = "LiftA", countdown = 20, fullCountdown = 5 },
 		{ id = "LiftB", countdown = 20, fullCountdown = 5 },
 	},
-	MinPartySize = 2,
+	-- Product lock: solo allowed (modal 1–6). Must match lobby PlacesConfig.
+	MinPartySize = 1,
 	MaxPartySize = 6,
 
 	-- Party hand-off from the lobby to the reserved tower server.
@@ -9117,7 +9146,8 @@ local Upgrades: { [string]: UpgradeDef } = {
 		id = "StorageCrate",
 		displayName = "Сховище",
 		description = "Ящик на даху на 60 одиниць ваги.",
-		cost = { Scrap = 8 },
+		-- Tutorial cliff fix: after scrap 3/3, chest must be buildable without a silent grind to 8.
+		cost = { Scrap = 4 },
 		requires = {},
 		order = 1,
 	},
@@ -10289,6 +10319,7 @@ local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
 local RateLimiter = require(script.Parent.RateLimiter)
 local StorageService = require(script.Parent.StorageService)
+local TokenService = require(script.Parent.TokenService)
 
 local CraftService = {}
 
@@ -10304,7 +10335,28 @@ function CraftService.Open(player: Player): (boolean, any)
 	return true, nil
 end
 
+local TOKEN_BANDAGE_ID = "BandageToken"
+
 local function craft(player: Player, recipeId: any): (boolean, any)
+	if not workbench or not CharacterUtil.IsNear(player, workbench, GameConfig.InteractionDistance + 4) then
+		return false, "craft.tooFar"
+	end
+
+	-- Soft token sink: Bandage for Tokens.BandageCost (HUD + spend path).
+	if recipeId == TOKEN_BANDAGE_ID then
+		local cost = GameConfig.Tokens.BandageCost or 15
+		if not InventoryService.CanAdd(player, "Bandage", 1) then
+			return false, "storage.invFull"
+		end
+		if not TokenService.TrySpend(player, cost) then
+			return false, { "craft.needTokens", cost }
+		end
+		InventoryService.ForceAdd(player, "Bandage", 1)
+		SfxService.PlayAtPlayer("Build", player, 0.8)
+		Net.Notify(player, { "craft.done", Locale.Item("Bandage") }, "success")
+		return true, nil
+	end
+
 	local recipe = nil
 	for _, r in GameConfig.Recipes do
 		if r.id == recipeId then
@@ -10313,9 +10365,6 @@ local function craft(player: Player, recipeId: any): (boolean, any)
 	end
 	if not recipe then
 		return false, "craft.unknown"
-	end
-	if not workbench or not CharacterUtil.IsNear(player, workbench, GameConfig.InteractionDistance + 4) then
-		return false, "craft.tooFar"
 	end
 	local def = ItemDefinitions.Items[recipe.id]
 	if def.weapon and InventoryService.GetCount(player, recipe.id) &gt; 0 then
@@ -11502,6 +11551,21 @@ local function isMember(player: Player): boolean
 	return party ~= nil and party.members[player.UserId] == true
 end
 
+-- Ground drops / shared actions: same reserved party, or everyone when there is no party record (Studio/solo).
+function PartyService.CanShareWorld(a: Player, b: Player): boolean
+	if a == b then
+		return true
+	end
+	if not party then
+		return true
+	end
+	return isMember(a) and isMember(b)
+end
+
+function PartyService.HasParty(): boolean
+	return party ~= nil
+end
+
 local function leaderData()
 	if not party then
 		return nil
@@ -11553,6 +11617,12 @@ local function onDataLoaded(player: Player)
 	local leader = party and Players:GetPlayerByUserId(party.leaderUserId)
 	if leader then
 		Net.Notify(player, { "party.leader", leader.DisplayName }, "info")
+		-- Co-op clarity once per join: personal loot nodes vs shared team chest.
+		task.delay(2.5, function()
+			if player.Parent then
+				Net.Notify(player, "toast.lootPersonal", "info")
+			end
+		end)
 	end
 end
 
@@ -12376,6 +12446,7 @@ local ResourceService = {}
 type PlayerNodes = {
 	depleted: { [string]: boolean }, -- normal nodes, refilled on roof return
 	cleared: { [string]: boolean }, -- rubble, cleared for this session
+	lootHintShown: boolean?,
 }
 
 local state: { [Player]: PlayerNodes } = {}
@@ -12383,7 +12454,7 @@ local state: { [Player]: PlayerNodes } = {}
 local function getState(player: Player): PlayerNodes
 	local s = state[player]
 	if not s then
-		s = { depleted = {}, cleared = {} }
+		s = { depleted = {}, cleared = {}, lootHintShown = false }
 		state[player] = s
 	end
 	return s
@@ -12457,7 +12528,15 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 	InventoryService.Add(player, id, count)
 	SfxService.Play("Pickup", node.Position, 0.8)
 	StateSyncService.Request(player)
-	Net.Notify(player, { "res.collected", Locale.Item(id), count }, "success")
+	local nodeState = getState(player)
+	if not nodeState.lootHintShown then
+		nodeState.lootHintShown = true
+		-- First pickup: honest co-op clarity (personal nodes vs shared team chest).
+		Net.Notify(player, "toast.lootPersonal", "info")
+	else
+		-- Objective line carries n/m; soft toast is throttled to avoid spam.
+		Net.Notify(player, { "res.collected", Locale.Item(id), count }, "info")
+	end
 	return true, nil
 end
 
@@ -13446,6 +13525,7 @@ local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
+local PartyService = require(script.Parent.PartyService)
 local RateLimiter = require(script.Parent.RateLimiter)
 local StateSyncService = require(script.Parent.StateSyncService)
 
@@ -13552,6 +13632,10 @@ function DropService.Pickup(player: Player, part: BasePart): (boolean, any)
 	if not entry or entry.part ~= part then
 		return false, "drop.gone"
 	end
+	local owner = Players:GetPlayerByUserId(entry.ownerUserId)
+	if owner and not PartyService.CanShareWorld(player, owner) then
+		return false, "drop.notParty"
+	end
 	if not InventoryService.CanAdd(player, entry.itemId, entry.amount) then
 		return false, "res.full"
 	end
@@ -13653,9 +13737,10 @@ end
 
 function WeatherService.Start()
 	ensureRain()
-	-- Start slightly rainy at dusk so the gloomy look matches art notes.
-	cycleSeconds = DAY_LENGTH * 0.55
-	setRain(true)
+	-- Start mid-afternoon dry; rain only at dusk/night so tutorial plate stays readable.
+	cycleSeconds = DAY_LENGTH * 0.35
+	setRain(false)
+	local lastBrightnessBucket = ""
 
 	RunService.Heartbeat:Connect(function(dt)
 		cycleSeconds = (cycleSeconds + dt) % DAY_LENGTH
@@ -13676,9 +13761,13 @@ function WeatherService.Start()
 			end
 		end
 
-		-- Nudge exposure with the cycle without fighting the base grade hard.
-		Lighting.Brightness = if isNight then 0.7 elseif isDusk then 1.2 else 1.8
-		Lighting.ExposureCompensation = if isNight then -0.35 elseif isDusk then -0.2 else -0.05
+		-- Only retarget Brightness when the day bucket changes — avoids fighting Atmosphere every frame.
+		local bucket = if isNight then "night" elseif isDusk then "dusk" else "day"
+		if bucket ~= lastBrightnessBucket then
+			lastBrightnessBucket = bucket
+			Lighting.Brightness = if isNight then 0.7 elseif isDusk then 1.2 else 1.6
+			Lighting.ExposureCompensation = if isNight then -0.35 elseif isDusk then -0.2 else -0.15
+		end
 	end)
 end
 
@@ -13721,8 +13810,23 @@ function TokenService.Add(player: Player, amount: number, reason: string?)
 	PlayerDataService.MarkDirty(player)
 	StateSyncService.Request(player)
 	if reason then
-		Net.Notify(player, { "tokens.earned", amount, { ref = reason } }, "success")
+		-- Soft toast (throttled); balance lives on the HUD tokens line.
+		Net.Notify(player, { "tokens.earned", amount, { ref = reason } }, "info")
 	end
+end
+
+function TokenService.TrySpend(player: Player, amount: number): boolean
+	if amount &lt;= 0 then
+		return true
+	end
+	local data = PlayerDataService.Get(player)
+	if not data or (data.tokens or 0) &lt; amount then
+		return false
+	end
+	data.tokens = (data.tokens or 0) - amount
+	PlayerDataService.MarkDirty(player)
+	StateSyncService.Request(player)
+	return true
 end
 
 function TokenService.OnZombieKill(killer: Player?)
@@ -14747,7 +14851,10 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	for i = 4, 18 do
 		resourceNode(interactables, level, "F1_Scrap_" .. i, "Scrap", 1, at("open"))
 	end
-	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, at("open"))
+	-- Safe electronics path for tutorial.5 (no toxic): enough open nodes on F1+F2.
+	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, Vector2.new(-22, -32))
+	resourceNode(interactables, level, "F1_Elec_Open_2", "Electronics", 1, Vector2.new(32, -48))
+	resourceNode(interactables, level, "F1_Elec_Open_3", "Electronics", 1, at("open"))
 	resourceNode(interactables, level, "F1_Elec_2", "Electronics", 2, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	lootCrate(interactables, level, "F1_Crate_1", "Common", at("open"))
@@ -14768,19 +14875,29 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	wallBetween(floor, "Wall", level, S(45), -S(90), S(45), -S(60), WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, S(45), -S(35), S(45), -S(25), WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, S(65), -S(25), S(90), -S(25), WALL_HEIGHT)
+	-- Mid-floor decisions: rubble wings with electronics behind (GD empty-feel patch).
+	cornerRoom(floor, interactables, level, 1, -1, "F2_Rubble_A", { requiresTool = "Crowbar" })
+	cornerRoom(floor, interactables, level, -1, 1, "F2_Rubble_B", { requiresTool = "Crowbar" })
 
 	furnish(floor, level)
-	local at = makePlacer(level, floor, {})
+	local at = makePlacer(level, floor, { "roomPP", "roomNP" })
 	resourceNode(interactables, level, "F2_Food_1", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_2", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_3", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_4", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_5", "Food", 1, at("open"))
+	-- Prefer craft for heals: only one floor medkit (was 2).
 	resourceNode(interactables, level, "F2_Medkit_1", "Medkit", 1, at("open"))
-	resourceNode(interactables, level, "F2_Medkit_2", "Medkit", 1, at("open"))
-	for i = 1, 20 do
+	for i = 1, 14 do
 		resourceNode(interactables, level, "F2_Scrap_" .. i, "Scrap", 1, at("open"))
 	end
+	-- Safe electronics (tutorial path) + gated behind rubble wings.
+	resourceNode(interactables, level, "F2_Elec_1", "Electronics", 1, Vector2.new(20, 30))
+	resourceNode(interactables, level, "F2_Elec_2", "Electronics", 1, Vector2.new(-28, -22))
+	resourceNode(interactables, level, "F2_Elec_3", "Electronics", 1, at("open"))
+	resourceNode(interactables, level, "F2_Elec_4", "Electronics", 1, at("open"))
+	resourceNode(interactables, level, "F2_Elec_A", "Electronics", 2, at("roomPP"), { requiresRubble = "F2_Rubble_A" })
+	resourceNode(interactables, level, "F2_Elec_B", "Electronics", 2, at("roomNP"), { requiresRubble = "F2_Rubble_B" })
 	resourceNode(interactables, level, "F2_Flashlight", "Flashlight", 1, at("open"), { unique = true })
 	lootCrate(interactables, level, "F2_Crate_1", "Common", at("open"))
 	lootCrate(interactables, level, "F2_Crate_2", "Common", at("open"))
@@ -15869,6 +15986,52 @@ local function renderCraft()
 			remote(RemoteNames.Craft):FireServer(recipe.id)
 		end)
 	end
+	-- Soft token sink: Bandage for tokens (shown after scrap recipes).
+	local tokenCost = GameConfig.Tokens.BandageCost or 15
+	local tokens = s.tokens or 0
+	local canToken = tokens &gt;= tokenCost
+	local tokenRow = UIKit.New("Frame", {
+		Size = UDim2.new(1, -8, 0, 72),
+		BackgroundColor3 = C.panelLight,
+		BorderSizePixel = 0,
+		LayoutOrder = 90,
+		Parent = craftList,
+	}, { UIKit.Corner(8), UIKit.Padding(8) })
+	UIKit.Label({
+		Size = UDim2.fromOffset(56, 56),
+		Text = ItemDefinitions.Items.Bandage.icon,
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = tokenRow,
+	})
+	UIKit.Label({
+		Position = UDim2.fromOffset(66, 0),
+		Size = UDim2.new(1, -200, 0, 28),
+		Text = Lang.T("craft.tokenBandage"),
+		FontFace = Theme.Heading,
+		TextSize = 22,
+		Parent = tokenRow,
+	})
+	UIKit.Label({
+		Position = UDim2.fromOffset(66, 28),
+		Size = UDim2.new(1, -200, 0, 26),
+		Text = Lang.T("craft.tokenCost", tokenCost) .. ("  ·  %d"):format(tokens),
+		TextSize = 15,
+		TextColor3 = if canToken then C.text else C.bad,
+		Parent = tokenRow,
+	})
+	local tokenBtn = UIKit.Button({
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(1, 0.5),
+		Size = UDim2.fromOffset(120, 48),
+		Text = Lang.T("craft.button"),
+		BackgroundColor3 = if canToken then Color3.fromRGB(60, 110, 60) else C.panel,
+		TextColor3 = if canToken then C.text else C.muted,
+		Parent = tokenRow,
+	})
+	tokenBtn.Activated:Connect(function()
+		remote(RemoteNames.Craft):FireServer("BandageToken")
+	end)
 end
 
 local function buildCraft(screen: ScreenGui)
@@ -16031,6 +16194,7 @@ local healthFill: Frame
 local healthText: TextLabel
 local hungerFill: Frame
 local hungerText: TextLabel
+local tokensText: TextLabel
 local flashlightText: TextLabel
 local warningText: TextLabel
 local objectiveText: TextLabel
@@ -16093,6 +16257,13 @@ local function buildStatusPanel(screen: ScreenGui)
 		TextSize = 14,
 		ZIndex = 2,
 		Parent = hungerBar,
+	})
+	tokensText = UIKit.Label({
+		Size = UDim2.new(1, 0, 0, 20),
+		Text = "",
+		TextColor3 = C.accent,
+		LayoutOrder = 3,
+		Parent = panel,
 	})
 	flashlightText = UIKit.Label({
 		Size = UDim2.new(1, 0, 0, 20),
@@ -16162,6 +16333,8 @@ local function buildToasts(screen: ScreenGui)
 end
 
 local toastCounter = 0
+local lastSoftToastAt = 0
+local TOAST_SOFT_GAP = 15 -- UX: max 1 soft toast / 15s; critical kinds bypass.
 local KIND_COLORS = {
 	info = C.text,
 	success = C.good,
@@ -16170,6 +16343,15 @@ local KIND_COLORS = {
 }
 
 function HUDController.Toast(text: string, kind: string?)
+	local k = kind or "info"
+	-- Soft info toasts (loot / tokens / party chatter) max 1 / 15s; success/warn/error always show.
+	if k == "info" then
+		local now = os.clock()
+		if now - lastSoftToastAt &lt; TOAST_SOFT_GAP then
+			return
+		end
+		lastSoftToastAt = now
+	end
 	toastCounter += 1
 	local children = toastHolder:GetChildren()
 	local toasts = {}
@@ -16196,7 +16378,7 @@ function HUDController.Toast(text: string, kind: string?)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = text,
 		TextSize = 15,
-		TextColor3 = KIND_COLORS[kind or "info"] or C.text,
+		TextColor3 = KIND_COLORS[k] or C.text,
 		Parent = toast,
 	})
 	task.delay(3.5, function()
@@ -16280,6 +16462,7 @@ end
 local function onState(s: { [string]: any })
 	objectiveText.Text = objectiveLine(s)
 	actsText.Text = Lang.T("hud.systems", s.acts or 0)
+	tokensText.Text = Lang.T("hud.tokens", math.floor(s.tokens or 0))
 	updateFlashlight()
 end
 
@@ -16325,9 +16508,19 @@ function HUDController.Start()
 	buildToasts(screen)
 
 	ClientState.Changed:Connect(onState)
+	local initial = ClientState.Get()
+	if initial then
+		onState(initial)
+	else
+		tokensText.Text = Lang.T("hud.tokens", 0)
+	end
 	Lang.Changed:Connect(function()
 		updateHealth()
 		updateWarnings()
+		local s = ClientState.Get()
+		if s then
+			onState(s)
+		end
 	end)
 	player:GetAttributeChangedSignal("InToxic"):Connect(updateWarnings)
 	player:GetAttributeChangedSignal("Hungry"):Connect(updateWarnings)
@@ -16715,6 +16908,8 @@ local lastSlotItem: string? = nil
 local dropHintShown = false
 local teamChestHintShown = false
 local LONG_PRESS = 0.55
+-- After a long-press drop, the finger-up Activated must not use/equip the same slot.
+local suppressActivateUntil = 0
 
 local function clearRows(list: Frame)
 	for _, child in list:GetChildren() do
@@ -16822,6 +17017,7 @@ local function dropItem(itemId: string)
 		showTooltip(Lang.T("drop.cantDrop"))
 		return
 	end
+	suppressActivateUntil = os.clock() + 0.45
 	(remotes:FindFirstChild(RemoteNames.DropItem) :: RemoteEvent):FireServer(itemId, 1)
 	if not dropHintShown then
 		dropHintShown = true
@@ -16830,6 +17026,9 @@ local function dropItem(itemId: string)
 end
 
 local function activateSlot(i: number)
+	if os.clock() &lt; suppressActivateUntil then
+		return
+	end
 	local itemId = slotItems[i]
 	local def = if itemId then ItemDefinitions.Get(itemId) else nil
 	if not def then

@@ -141,7 +141,7 @@ local function buildLift(parent: Instance, def: { id: string }, x: number, z: nu
 	-- outside, and a fullscreen Active GUI then eats mobile touch controls so they can't walk in.
 	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
 	zone.Transparency = 1
-	zone.CanCollide = false
+	zone.CanCollide = false -- block() defaults true; zone must never be a physics barrier
 	zone.CanQuery = false
 	zone.CanTouch = false
 

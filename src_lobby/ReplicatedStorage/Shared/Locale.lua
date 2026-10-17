@@ -160,9 +160,9 @@ local S: { [string]: Entry } = {
 	},
 
 	["interact.noStorage"] = {
-		uk = "Скрині ще немає. Збудуй її за 8 металобрухту",
-		ru = "Сундука ещё нет. Построй его за 8 металлолома",
-		en = "No chest yet. Build it for 8 scrap",
+		uk = "Скрині ще немає. Збудуй її за 4 металобрухту",
+		ru = "Сундука ещё нет. Построй его за 4 металлолома",
+		en = "No chest yet. Build it for 4 scrap",
 	},
 	["interact.gateLocked"] = {
 		uk = "Двері заблоковано. Потрібен генератор на даху",
@@ -330,9 +330,9 @@ local S: { [string]: Entry } = {
 		en = "Return to the roof",
 	},
 	["tutorial.4"] = {
-		uk = "Збудуй скриню на даху (8 металобрухту)",
-		ru = "Построй сундук на крыше (8 металлолома)",
-		en = "Build the chest on the roof (8 scrap)",
+		uk = "Збудуй скриню на даху (4 металобрухту)",
+		ru = "Построй сундук на крыше (4 металлолома)",
+		en = "Build the chest on the roof (4 scrap)",
 	},
 	["tutorial.5"] = {
 		uk = "Знайди 4 електроніки",
@@ -520,6 +520,11 @@ local S: { [string]: Entry } = {
 		uk = "Лідер обрав: %d",
 		ru = "Лидер выбрал: %d",
 		en = "Leader chose: %d",
+	},
+	["lobby.leaderPicking"] = {
+		uk = "Лідер обирає розмір групи…",
+		ru = "Лидер выбирает размер группы…",
+		en = "Leader is picking party size…",
 	},
 	["lobby.howTitle"] = { uk = "ЯК ГРАТИ", ru = "КАК ИГРАТЬ", en = "HOW TO PLAY" },
 	["lobby.howBody"] = {

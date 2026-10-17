@@ -979,7 +979,10 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	for i = 4, 18 do
 		resourceNode(interactables, level, "F1_Scrap_" .. i, "Scrap", 1, at("open"))
 	end
-	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, at("open"))
+	-- Safe electronics path for tutorial.5 (no toxic): enough open nodes on F1+F2.
+	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, Vector2.new(-22, -32))
+	resourceNode(interactables, level, "F1_Elec_Open_2", "Electronics", 1, Vector2.new(32, -48))
+	resourceNode(interactables, level, "F1_Elec_Open_3", "Electronics", 1, at("open"))
 	resourceNode(interactables, level, "F1_Elec_2", "Electronics", 2, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	lootCrate(interactables, level, "F1_Crate_1", "Common", at("open"))
@@ -1000,19 +1003,29 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	wallBetween(floor, "Wall", level, S(45), -S(90), S(45), -S(60), WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, S(45), -S(35), S(45), -S(25), WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, S(65), -S(25), S(90), -S(25), WALL_HEIGHT)
+	-- Mid-floor decisions: rubble wings with electronics behind (GD empty-feel patch).
+	cornerRoom(floor, interactables, level, 1, -1, "F2_Rubble_A", { requiresTool = "Crowbar" })
+	cornerRoom(floor, interactables, level, -1, 1, "F2_Rubble_B", { requiresTool = "Crowbar" })
 
 	furnish(floor, level)
-	local at = makePlacer(level, floor, {})
+	local at = makePlacer(level, floor, { "roomPP", "roomNP" })
 	resourceNode(interactables, level, "F2_Food_1", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_2", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_3", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_4", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_5", "Food", 1, at("open"))
+	-- Prefer craft for heals: only one floor medkit (was 2).
 	resourceNode(interactables, level, "F2_Medkit_1", "Medkit", 1, at("open"))
-	resourceNode(interactables, level, "F2_Medkit_2", "Medkit", 1, at("open"))
-	for i = 1, 20 do
+	for i = 1, 14 do
 		resourceNode(interactables, level, "F2_Scrap_" .. i, "Scrap", 1, at("open"))
 	end
+	-- Safe electronics (tutorial path) + gated behind rubble wings.
+	resourceNode(interactables, level, "F2_Elec_1", "Electronics", 1, Vector2.new(20, 30))
+	resourceNode(interactables, level, "F2_Elec_2", "Electronics", 1, Vector2.new(-28, -22))
+	resourceNode(interactables, level, "F2_Elec_3", "Electronics", 1, at("open"))
+	resourceNode(interactables, level, "F2_Elec_4", "Electronics", 1, at("open"))
+	resourceNode(interactables, level, "F2_Elec_A", "Electronics", 2, at("roomPP"), { requiresRubble = "F2_Rubble_A" })
+	resourceNode(interactables, level, "F2_Elec_B", "Electronics", 2, at("roomNP"), { requiresRubble = "F2_Rubble_B" })
 	resourceNode(interactables, level, "F2_Flashlight", "Flashlight", 1, at("open"), { unique = true })
 	lootCrate(interactables, level, "F2_Crate_1", "Common", at("open"))
 	lootCrate(interactables, level, "F2_Crate_2", "Common", at("open"))

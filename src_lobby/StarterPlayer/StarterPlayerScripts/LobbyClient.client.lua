@@ -305,8 +305,11 @@ task.spawn(function()
 	if not remote then
 		return
 	end
+	-- Never open from a late remote after walk-out — attributes are source of truth.
 	remote.OnClientEvent:Connect(function()
-		setPickVisible(true)
+		if player:GetAttribute("LiftPickOpen") == true then
+			setPickVisible(true)
+		end
 	end)
 end)
 
@@ -329,12 +332,14 @@ Lang.Changed:Connect(function(code)
 end)
 
 -- Lift countdown ------------------------------------------------------------------------------------------
+-- Top-center: never cover mobile jump / thumbstick (nuance Top #2).
 local liftPanel = UIKit.Panel({
 	Name = "LiftCountdown",
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -24),
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 72),
 	Size = UDim2.fromOffset(300, 96),
 	Visible = false,
+	Active = false,
 	ZIndex = 5,
 	Parent = screen,
 })

@@ -18,7 +18,7 @@ local Upgrades: { [string]: UpgradeDef } = {
 		id = "StorageCrate",
 		displayName = "Сховище",
 		description = "Ящик на даху на 60 одиниць ваги.",
-		cost = { Scrap = 8 },
+		cost = { Scrap = 4 },
 		requires = {},
 		order = 1,
 	},

@@ -120,6 +120,8 @@ local GameConfig = {
 		FloorClearPerLevel = 2,
 		FloorClearCap = 25,
 		RoofBonus = 25,
+		-- Soft sink at workbench: spend tokens for one Bandage when scrap is tight.
+		BandageCost = 15,
 	},
 
 	-- Testing: every upgrade costs 1 of each listed item. Never ship with this on.

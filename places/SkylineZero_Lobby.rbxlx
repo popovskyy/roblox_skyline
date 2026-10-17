@@ -382,9 +382,9 @@ local S: { [string]: Entry } = {
 	},
 
 	["interact.noStorage"] = {
-		uk = "Скрині ще немає. Збудуй її за 8 металобрухту",
-		ru = "Сундука ещё нет. Построй его за 8 металлолома",
-		en = "No chest yet. Build it for 8 scrap",
+		uk = "Скрині ще немає. Збудуй її за 4 металобрухту",
+		ru = "Сундука ещё нет. Построй его за 4 металлолома",
+		en = "No chest yet. Build it for 4 scrap",
 	},
 	["interact.gateLocked"] = {
 		uk = "Двері заблоковано. Потрібен генератор на даху",
@@ -552,9 +552,9 @@ local S: { [string]: Entry } = {
 		en = "Return to the roof",
 	},
 	["tutorial.4"] = {
-		uk = "Збудуй скриню на даху (8 металобрухту)",
-		ru = "Построй сундук на крыше (8 металлолома)",
-		en = "Build the chest on the roof (8 scrap)",
+		uk = "Збудуй скриню на даху (4 металобрухту)",
+		ru = "Построй сундук на крыше (4 металлолома)",
+		en = "Build the chest on the roof (4 scrap)",
 	},
 	["tutorial.5"] = {
 		uk = "Знайди 4 електроніки",
@@ -742,6 +742,11 @@ local S: { [string]: Entry } = {
 		uk = "Лідер обрав: %d",
 		ru = "Лидер выбрал: %d",
 		en = "Leader chose: %d",
+	},
+	["lobby.leaderPicking"] = {
+		uk = "Лідер обирає розмір групи…",
+		ru = "Лидер выбирает размер группы…",
+		en = "Leader is picking party size…",
 	},
 	["lobby.howTitle"] = { uk = "ЯК ГРАТИ", ru = "КАК ИГРАТЬ", en = "HOW TO PLAY" },
 	["lobby.howBody"] = {
@@ -998,7 +1003,7 @@ return MusicConfig
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b18 · elevator-entry-restore",
+	Build = "b19 · must-fix-ship",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
@@ -1154,7 +1159,7 @@ local Upgrades: { [string]: UpgradeDef } = {
 		id = "StorageCrate",
 		displayName = "Сховище",
 		description = "Ящик на даху на 60 одиниць ваги.",
-		cost = { Scrap = 8 },
+		cost = { Scrap = 4 },
 		requires = {},
 		order = 1,
 	},
@@ -1319,6 +1324,7 @@ type Lift = {
 	deadline: number?,
 	launching: boolean,
 	blocked: { [Player]: boolean }, -- after a failed start: must step out before rejoining
+	leaderPickToast: { [Player]: boolean }, -- once-per-stay “leader is picking” toast
 	pendingLeader: Player?, -- inside the empty lift, waiting to pick a size
 }
 
@@ -1621,16 +1627,21 @@ local function tick()
 				local inside = root ~= nil and isInside(lift.zone, root.Position)
 				if not inside then
 					lift.blocked[player] = nil
-				elseif not lift.blocked[player] and not liftOf(player) then
+					lift.leaderPickToast[player] = nil
+				elseif not liftOf(player) then
 					if lift.capacity == nil then
 						if lift.pendingLeader == nil then
 							beginPick(lift, player)
+						elseif lift.pendingLeader ~= player and not lift.leaderPickToast[player] then
+							-- Second rider while leader still picking: soft feedback, no second modal.
+							-- Do NOT set blocked — that would prevent join after capacity is chosen.
+							notify(player, "lobby.leaderPicking", "info")
+							lift.leaderPickToast[player] = true
 						end
-					elseif #lift.members &lt; (lift.capacity :: number) then
-						addMember(lift, player)
-					elseif not liftOf(player) then
-						-- Full: only toast once per stay via blocked flag after notify.
-						if not lift.blocked[player] then
+					elseif not lift.blocked[player] then
+						if #lift.members &lt; (lift.capacity :: number) then
+							addMember(lift, player)
+						else
 							notify(player, "lobby.full", "warning")
 							lift.blocked[player] = true
 						end
@@ -1661,6 +1672,7 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 				deadline = nil,
 				launching = false,
 				blocked = {},
+				leaderPickToast = {},
 				pendingLeader = nil,
 			}
 			table.insert(lifts, lift)
@@ -1918,7 +1930,7 @@ local function buildLift(parent: Instance, def: { id: string }, x: number, z: nu
 	-- outside, and a fullscreen Active GUI then eats mobile touch controls so they can't walk in.
 	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
 	zone.Transparency = 1
-	zone.CanCollide = false
+	zone.CanCollide = false -- block() defaults true; zone must never be a physics barrier
 	zone.CanQuery = false
 	zone.CanTouch = false
 
@@ -2810,8 +2822,11 @@ task.spawn(function()
 	if not remote then
 		return
 	end
+	-- Never open from a late remote after walk-out — attributes are source of truth.
 	remote.OnClientEvent:Connect(function()
-		setPickVisible(true)
+		if player:GetAttribute("LiftPickOpen") == true then
+			setPickVisible(true)
+		end
 	end)
 end)
 
@@ -2834,12 +2849,14 @@ Lang.Changed:Connect(function(code)
 end)
 
 -- Lift countdown ------------------------------------------------------------------------------------------
+-- Top-center: never cover mobile jump / thumbstick (nuance Top #2).
 local liftPanel = UIKit.Panel({
 	Name = "LiftCountdown",
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -24),
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 72),
 	Size = UDim2.fromOffset(300, 96),
 	Visible = false,
+	Active = false,
 	ZIndex = 5,
 	Parent = screen,
 })

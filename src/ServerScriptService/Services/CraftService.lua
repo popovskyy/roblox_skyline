@@ -13,6 +13,7 @@ local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
 local RateLimiter = require(script.Parent.RateLimiter)
 local StorageService = require(script.Parent.StorageService)
+local TokenService = require(script.Parent.TokenService)
 
 local CraftService = {}
 
@@ -28,7 +29,28 @@ function CraftService.Open(player: Player): (boolean, any)
 	return true, nil
 end
 
+local TOKEN_BANDAGE_ID = "BandageToken"
+
 local function craft(player: Player, recipeId: any): (boolean, any)
+	if not workbench or not CharacterUtil.IsNear(player, workbench, GameConfig.InteractionDistance + 4) then
+		return false, "craft.tooFar"
+	end
+
+	-- Soft token sink: Bandage for Tokens.BandageCost (HUD + spend path).
+	if recipeId == TOKEN_BANDAGE_ID then
+		local cost = GameConfig.Tokens.BandageCost or 15
+		if not InventoryService.CanAdd(player, "Bandage", 1) then
+			return false, "storage.invFull"
+		end
+		if not TokenService.TrySpend(player, cost) then
+			return false, { "craft.needTokens", cost }
+		end
+		InventoryService.ForceAdd(player, "Bandage", 1)
+		SfxService.PlayAtPlayer("Build", player, 0.8)
+		Net.Notify(player, { "craft.done", Locale.Item("Bandage") }, "success")
+		return true, nil
+	end
+
 	local recipe = nil
 	for _, r in GameConfig.Recipes do
 		if r.id == recipeId then
@@ -37,9 +59,6 @@ local function craft(player: Player, recipeId: any): (boolean, any)
 	end
 	if not recipe then
 		return false, "craft.unknown"
-	end
-	if not workbench or not CharacterUtil.IsNear(player, workbench, GameConfig.InteractionDistance + 4) then
-		return false, "craft.tooFar"
 	end
 	local def = ItemDefinitions.Items[recipe.id]
 	if def.weapon and InventoryService.GetCount(player, recipe.id) > 0 then

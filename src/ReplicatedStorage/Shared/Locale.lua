@@ -185,9 +185,9 @@ local S: { [string]: Entry } = {
 	},
 
 	["interact.noStorage"] = {
-		uk = "Скрині ще немає. Збудуй її за 8 металобрухту",
-		ru = "Сундука ещё нет. Построй его за 8 металлолома",
-		en = "No chest yet. Build it for 8 scrap",
+		uk = "Скрині ще немає. Збудуй її за 4 металобрухту",
+		ru = "Сундука ещё нет. Построй его за 4 металлолома",
+		en = "No chest yet. Build it for 4 scrap",
 	},
 	["interact.gateLocked"] = {
 		uk = "Двері заблоковано. Потрібен генератор на даху",
@@ -365,9 +365,9 @@ local S: { [string]: Entry } = {
 		en = "Return to the roof with your loot",
 	},
 	["tutorial.4"] = {
-		uk = "Збудуй скриню на даху (8 металобрухту)",
-		ru = "Построй сундук на крыше (8 металлолома)",
-		en = "Build the chest on the roof (8 scrap)",
+		uk = "Збудуй скриню на даху (4 металобрухту)",
+		ru = "Построй сундук на крыше (4 металлолома)",
+		en = "Build the chest on the roof (4 scrap)",
 	},
 	["tutorial.5"] = {
 		uk = "Знайди 4 електроніки",
@@ -505,6 +505,32 @@ local S: { [string]: Entry } = {
 	["hud.weight"] = { uk = "Вага %d / %d", ru = "Вес %d / %d", en = "Weight %d / %d" },
 	["hud.objective"] = { uk = "Ціль: %s", ru = "Цель: %s", en = "Objective: %s" },
 	["hud.systems"] = { uk = "Системи %d/3", ru = "Системы %d/3", en = "Systems %d/3" },
+	["hud.tokens"] = { uk = "Жетони %d", ru = "Жетоны %d", en = "Tokens %d" },
+	["toast.lootPersonal"] = {
+		uk = "Лут особистий — кожен збирає собі. Скриня команди спільна.",
+		ru = "Лут личный — каждый собирает себе. Сундук команды общий.",
+		en = "Loot is personal — each of you gathers your own. The team chest is shared.",
+	},
+	["drop.notParty"] = {
+		uk = "Це чужий дроп — лише для твоєї групи",
+		ru = "Это чужой дроп — только для твоей группы",
+		en = "That drop belongs to another party",
+	},
+	["craft.tokenBandage"] = {
+		uk = "Бинт за жетони",
+		ru = "Бинт за жетоны",
+		en = "Bandage for tokens",
+	},
+	["craft.tokenCost"] = {
+		uk = "Потрібно: %d жетонів",
+		ru = "Нужно: %d жетонов",
+		en = "Needs: %d tokens",
+	},
+	["craft.needTokens"] = {
+		uk = "Не вистачає жетонів (%d)",
+		ru = "Не хватает жетонов (%d)",
+		en = "Not enough tokens (%d)",
+	},
 	["hud.toxic"] = {
 		uk = "⚠ ТОКСИЧНЕ ПОВІТРЯ",
 		ru = "⚠ ТОКСИЧНЫЙ ВОЗДУХ",

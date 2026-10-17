@@ -72,9 +72,10 @@ end
 
 function WeatherService.Start()
 	ensureRain()
-	-- Start slightly rainy at dusk so the gloomy look matches art notes.
-	cycleSeconds = DAY_LENGTH * 0.55
-	setRain(true)
+	-- Start mid-afternoon dry; rain only at dusk/night so tutorial plate stays readable.
+	cycleSeconds = DAY_LENGTH * 0.35
+	setRain(false)
+	local lastBrightnessBucket = ""
 
 	RunService.Heartbeat:Connect(function(dt)
 		cycleSeconds = (cycleSeconds + dt) % DAY_LENGTH
@@ -95,9 +96,13 @@ function WeatherService.Start()
 			end
 		end
 
-		-- Nudge exposure with the cycle without fighting the base grade hard.
-		Lighting.Brightness = if isNight then 0.7 elseif isDusk then 1.2 else 1.8
-		Lighting.ExposureCompensation = if isNight then -0.35 elseif isDusk then -0.2 else -0.05
+		-- Only retarget Brightness when the day bucket changes — avoids fighting Atmosphere every frame.
+		local bucket = if isNight then "night" elseif isDusk then "dusk" else "day"
+		if bucket ~= lastBrightnessBucket then
+			lastBrightnessBucket = bucket
+			Lighting.Brightness = if isNight then 0.7 elseif isDusk then 1.2 else 1.6
+			Lighting.ExposureCompensation = if isNight then -0.35 elseif isDusk then -0.2 else -0.15
+		end
 	end)
 end
 

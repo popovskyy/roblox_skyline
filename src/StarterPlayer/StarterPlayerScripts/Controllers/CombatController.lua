@@ -188,6 +188,52 @@ local function renderCraft()
 			remote(RemoteNames.Craft):FireServer(recipe.id)
 		end)
 	end
+	-- Soft token sink: Bandage for tokens (shown after scrap recipes).
+	local tokenCost = GameConfig.Tokens.BandageCost or 15
+	local tokens = s.tokens or 0
+	local canToken = tokens >= tokenCost
+	local tokenRow = UIKit.New("Frame", {
+		Size = UDim2.new(1, -8, 0, 72),
+		BackgroundColor3 = C.panelLight,
+		BorderSizePixel = 0,
+		LayoutOrder = 90,
+		Parent = craftList,
+	}, { UIKit.Corner(8), UIKit.Padding(8) })
+	UIKit.Label({
+		Size = UDim2.fromOffset(56, 56),
+		Text = ItemDefinitions.Items.Bandage.icon,
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = tokenRow,
+	})
+	UIKit.Label({
+		Position = UDim2.fromOffset(66, 0),
+		Size = UDim2.new(1, -200, 0, 28),
+		Text = Lang.T("craft.tokenBandage"),
+		FontFace = Theme.Heading,
+		TextSize = 22,
+		Parent = tokenRow,
+	})
+	UIKit.Label({
+		Position = UDim2.fromOffset(66, 28),
+		Size = UDim2.new(1, -200, 0, 26),
+		Text = Lang.T("craft.tokenCost", tokenCost) .. ("  ·  %d"):format(tokens),
+		TextSize = 15,
+		TextColor3 = if canToken then C.text else C.bad,
+		Parent = tokenRow,
+	})
+	local tokenBtn = UIKit.Button({
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(1, 0.5),
+		Size = UDim2.fromOffset(120, 48),
+		Text = Lang.T("craft.button"),
+		BackgroundColor3 = if canToken then Color3.fromRGB(60, 110, 60) else C.panel,
+		TextColor3 = if canToken then C.text else C.muted,
+		Parent = tokenRow,
+	})
+	tokenBtn.Activated:Connect(function()
+		remote(RemoteNames.Craft):FireServer("BandageToken")
+	end)
 end
 
 local function buildCraft(screen: ScreenGui)

@@ -57,13 +57,16 @@ python3 tools/inject_scripts.py places/SkylineZero_Lobby.rbxlx src_lobby -o plac
 
 ## Shipped so far
 
-- Elevators: 2–6 party-size dialog (no Solo/2/4/6 signs)
+- Elevators: modal **1–6** (solo allowed); sticky-modal race fixed; countdown top-center (mobile-safe)
 - Rubble clearable + electronics prompt gating; shared server collision
-- Floor scale 240 + denser loot / tutorial scrap path
-- Ground item drop (G / long-press) for teammates
-- Shared team chest
-- Live loot `n/m` HUD; objective marker → nearest scrap/electronics
-- Downed teammate markers (dir + meters)
-- No zombie respawn after floor clear
+- Floor scale 240; F1/F2 safe electronics + F2 rubble wings
+- Ground item drop (G / long-press) with activate suppress + party pickup gate
+- Shared team chest (tutorial cost **4 scrap**); personal loot clarified in toast
+- Live loot `n/m` HUD; idle 45s objective ping; tokens HUD + workbench token bandage sink
+- Craft: Bandage Scrap×4, Medkit Scrap×6+Elec×2
+- Downed teammate markers; no zombie respawn after floor clear
+- Weather cycle without per-frame Brightness fight
 
-Still open: atmosphere/lighting/roof, weather, onboarding polish, medkit craft balance, tokens, mobile melee anims.
+Build stamp: `b19 · must-fixes-ship` (print on join). Play: https://www.roblox.com/games/128619231370772/Skyline-Zero
+
+Still open: rubble shared 3–5s hold bar; live mobile melee verify (JOIN-BLOCKED); hunger soft until tutorial.done.

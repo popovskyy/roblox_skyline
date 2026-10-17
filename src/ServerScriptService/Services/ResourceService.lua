@@ -22,6 +22,7 @@ local ResourceService = {}
 type PlayerNodes = {
 	depleted: { [string]: boolean }, -- normal nodes, refilled on roof return
 	cleared: { [string]: boolean }, -- rubble, cleared for this session
+	lootHintShown: boolean?,
 }
 
 local state: { [Player]: PlayerNodes } = {}
@@ -29,7 +30,7 @@ local state: { [Player]: PlayerNodes } = {}
 local function getState(player: Player): PlayerNodes
 	local s = state[player]
 	if not s then
-		s = { depleted = {}, cleared = {} }
+		s = { depleted = {}, cleared = {}, lootHintShown = false }
 		state[player] = s
 	end
 	return s
@@ -103,7 +104,15 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 	InventoryService.Add(player, id, count)
 	SfxService.Play("Pickup", node.Position, 0.8)
 	StateSyncService.Request(player)
-	Net.Notify(player, { "res.collected", Locale.Item(id), count }, "success")
+	local nodeState = getState(player)
+	if not nodeState.lootHintShown then
+		nodeState.lootHintShown = true
+		-- First pickup: honest co-op clarity (personal nodes vs shared team chest).
+		Net.Notify(player, "toast.lootPersonal", "info")
+	else
+		-- Objective line carries n/m; soft toast is throttled to avoid spam.
+		Net.Notify(player, { "res.collected", Locale.Item(id), count }, "info")
+	end
 	return true, nil
 end
 

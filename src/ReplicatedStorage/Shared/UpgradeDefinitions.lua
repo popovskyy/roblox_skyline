@@ -18,7 +18,8 @@ local Upgrades: { [string]: UpgradeDef } = {
 		id = "StorageCrate",
 		displayName = "Сховище",
 		description = "Ящик на даху на 60 одиниць ваги.",
-		cost = { Scrap = 8 },
+		-- Tutorial cliff fix: after scrap 3/3, chest must be buildable without a silent grind to 8.
+		cost = { Scrap = 4 },
 		requires = {},
 		order = 1,
 	},

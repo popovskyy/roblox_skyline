@@ -57,6 +57,8 @@ local lastSlotItem: string? = nil
 local dropHintShown = false
 local teamChestHintShown = false
 local LONG_PRESS = 0.55
+-- After a long-press drop, the finger-up Activated must not use/equip the same slot.
+local suppressActivateUntil = 0
 
 local function clearRows(list: Frame)
 	for _, child in list:GetChildren() do
@@ -164,6 +166,7 @@ local function dropItem(itemId: string)
 		showTooltip(Lang.T("drop.cantDrop"))
 		return
 	end
+	suppressActivateUntil = os.clock() + 0.45
 	(remotes:FindFirstChild(RemoteNames.DropItem) :: RemoteEvent):FireServer(itemId, 1)
 	if not dropHintShown then
 		dropHintShown = true
@@ -172,6 +175,9 @@ local function dropItem(itemId: string)
 end
 
 local function activateSlot(i: number)
+	if os.clock() < suppressActivateUntil then
+		return
+	end
 	local itemId = slotItems[i]
 	local def = if itemId then ItemDefinitions.Get(itemId) else nil
 	if not def then
