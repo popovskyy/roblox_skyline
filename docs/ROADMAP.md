@@ -1,13 +1,15 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build b27 (includes b26). One list for every agent; work top to bottom unless the owner
-says otherwise. When an item ships, move it to `CHANGELOG.md` and delete it here. Do not add items the
-owner did not ask for: put ideas in `docs/design/brainstorm-hooks.md` instead.
+Owner: Popovskyi. Updated 17.10, build b27 (includes b26); local unreleased Phase A + tablet anim fix.
+One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
+to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
+`docs/design/brainstorm-hooks.md` instead.
 
 ## Now: check b24–b27 in the game (owner)
 
 The owner tests on PC, phone, tablet and PS5. Open questions for that pass:
-- b26: swing and punch animations on phone and tablet, and whether zombies take damage from taps.
+- ~~b26: swing and punch animations on phone and tablet~~ — tablet path fixed locally (Unreleased); re-check
+  tablet tap swing vs camera drag, and whether zombies take damage from taps.
 - b26: keys on floors 3 and 4, carrying two keys, the diamond crate, a key into a full chest.
 - b26: hotbar after crafting a Pipe / Machete on a 5-slot phone (items stay in their slots, nothing
   hidden on page 2).
@@ -31,12 +33,16 @@ Questions for the owner:
 
 ## Next (in this order)
 
-1. **Bugs from the b24–b26 test pass.** Always first.
-2. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
+1. **Slow survival Phase A** (`docs/design/slow-survival-loop.md`): barricade AI, scrap path, soft rubble,
+   loot rarity, pacing. Owner approved (+). No publish until Phase C playtest.
+2. **Remaining LOCAL_AGENT_STEPS** (#2 flicker, #3 weapon replace, #4 blur, #5 text overflow, #6 crates
+   shared — #6 overlaps Phase A). Tablet anim (#1) done locally.
+3. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
    model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
-   sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent).
-3. **Launch**: store copy drafted in `docs/design/marketing-draft.md` (uk/ru/en, roof→bridge fantasy).
-   Blocked on: owner b26 test pass + store art (`store-visual-brief.md`; `media/marketing/` still empty) +
+   sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent). **Only after**
+   Phase C loop feels right.
+4. **Launch**: store copy drafted in `docs/design/marketing-draft.md` (uk/ru/en, roof→bridge fantasy).
+   Blocked on: owner test pass + store art (`store-visual-brief.md`; `media/marketing/` still empty) +
    explicit owner OK to publish. Then bump `PlacesConfig.Build`, `bash scripts/publish.sh`, Creator
    Dashboard → Public.
 

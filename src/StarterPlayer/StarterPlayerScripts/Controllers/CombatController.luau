@@ -113,7 +113,19 @@ local function play(name: string, fade: number?)
 		ensureTracks()
 		track = tracks[name]
 	end
+	-- Tablets can still be loading the Animator a beat after CharacterAdded; retry briefly.
 	if not track then
+		local missing = name
+		local missingFade = fade
+		task.spawn(function()
+			for _ = 1, 20 do
+				task.wait(0.1)
+				if ensureTracks() and tracks[missing] then
+					play(missing, missingFade)
+					return
+				end
+			end
+		end)
 		return
 	end
 	local spec = ANIMATIONS[name]
@@ -135,7 +147,7 @@ local function play(name: string, fade: number?)
 		end
 	end
 	start(track)
-	-- On a phone Play() before the clip has downloaded is ignored and never retried.
+	-- On a phone/tablet Play() before the clip has downloaded is ignored and never retried.
 	if oneShot and track.Length == 0 then
 		local playing = track
 		task.spawn(function()
@@ -541,10 +553,12 @@ end
 -- A finger tap on a phone or tablet jitters by tens of pixels. The old 14px test, on the full
 -- Vector3 (touch Position.Z is not a pixel), classed every hit as a camera drag, so attackInput
 -- never ran and the swing never played. Mouse and R2 do not go through this test.
+-- Tablets: larger viewport + finger travel; allow a wider band than phones.
 local function tapSlop(): number
 	local camera = workspace.CurrentCamera
-	local height = if camera then camera.ViewportSize.Y else 800
-	return math.clamp(height * 0.06, 40, 96)
+	local size = if camera then camera.ViewportSize else Vector2.new(800, 800)
+	local base = math.max(size.X, size.Y) * 0.055
+	return math.clamp(base, 48, 160)
 end
 
 local function touchTravel(from: Vector3, toPos: Vector3): number
@@ -553,8 +567,24 @@ local function touchTravel(from: Vector3, toPos: Vector3): number
 	return math.sqrt(dx * dx + dy * dy)
 end
 
+-- True when this screen point sits on a tappable GUI (jump, hotbar, menu). Camera/world taps
+-- that Roblox still marks processed (common on tablets) must still count as attacks.
+local function touchOnGuiButton(screenPos: Vector3): boolean
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	if not gui then
+		return false
+	end
+	local objects = gui:GetGuiObjectsAtPosition(screenPos.X, screenPos.Y)
+	for _, obj in objects do
+		if obj:IsA("GuiButton") or obj:IsA("TextBox") then
+			return true
+		end
+	end
+	return false
+end
+
 function CombatController.Start(remoteFolder: Folder)
-	-- Phones download clips slower than Studio. Preload so the first tap is not a silent Play().
+	-- Phones/tablets download clips slower than Studio. Preload so the first tap is not a silent Play().
 	task.spawn(function()
 		local ContentProvider = game:GetService("ContentProvider")
 		local assets: { Instance } = {}
@@ -568,13 +598,19 @@ function CombatController.Start(remoteFolder: Folder)
 		end)
 	end)
 	-- Attack input (weapon, item or fist): a tap on the world, a click or R2.
-	-- Phones: a short tap that barely moves (not a camera drag). Tracked by hand because TouchTapInWorld
-	-- does not fire reliably next to the touch controls. The held Tool stays ManualActivationOnly.
+	-- Phones/tablets: a short tap that barely moves (not a camera drag). Tracked by hand because
+	-- TouchTapInWorld does not fire reliably next to the touch controls. The held Tool stays
+	-- ManualActivationOnly. On tablets Touch often arrives with processed=true even on the world —
+	-- only skip real GUI buttons.
 	local touches: { [InputObject]: { at: Vector3, started: number, moved: number } } = {}
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if input.UserInputType == Enum.UserInputType.Touch and not processed then
-			touches[input] = { at = input.Position, started = os.clock(), moved = 0 }
+		if input.UserInputType ~= Enum.UserInputType.Touch then
+			return
 		end
+		if processed and touchOnGuiButton(input.Position) then
+			return
+		end
+		touches[input] = { at = input.Position, started = os.clock(), moved = 0 }
 	end)
 	UserInputService.InputChanged:Connect(function(input)
 		local start = touches[input]
@@ -593,7 +629,7 @@ function CombatController.Start(remoteFolder: Folder)
 		end
 		touches[input] = nil
 		local dist = math.max(start.moved, touchTravel(start.at, input.Position))
-		if os.clock() - start.started <= 0.5 and dist <= tapSlop() then
+		if os.clock() - start.started <= 0.55 and dist <= tapSlop() then
 			attackInput()
 		end
 	end)

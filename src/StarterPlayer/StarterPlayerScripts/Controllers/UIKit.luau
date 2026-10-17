@@ -66,9 +66,20 @@ end
 -- Phones use their own layout at scale 1; nothing smaller than this stays readable there.
 local TOUCH_MIN_TEXT = 13
 
--- A phone or tablet without a keyboard: gets the touch layout.
+-- Phone / tablet touch layout. Tablets often report KeyboardEnabled (on-screen or BT keyboard)
+-- even when the player is tapping; Prefer Touch when that is the preferred input.
 function UIKit.IsTouch(): boolean
-	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	if not UserInputService.TouchEnabled then
+		return false
+	end
+	local preferred = UserInputService.PreferredInput
+	if preferred == Enum.PreferredInput.Touch then
+		return true
+	end
+	if preferred == Enum.PreferredInput.Gamepad then
+		return false
+	end
+	return not UserInputService.KeyboardEnabled
 end
 
 function UIKit.Label(props: { [string]: any }): TextLabel

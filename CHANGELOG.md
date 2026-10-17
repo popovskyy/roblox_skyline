@@ -3,6 +3,16 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## Unreleased (local) · 17.10
+
+### Tablet hit animation
+- Tablet taps for attack were often marked `processed` by Roblox even on the world (unlike phones), so
+  the swing never started; tablets with KeyboardEnabled also skipped the touch HUD. Touch taps now count
+  unless they land on a real GUI button; tap slop scales up to ~160 px on large screens; swing/punch
+  retries if the Animator is still loading. `UIKit.IsTouch` follows `PreferredInput.Touch`.
+- Check in game: tablet short tap = visible swing/punch (portrait and landscape); camera drag still aims;
+  jump/hotbar taps do not attack; phone and PS5 unchanged.
+
 ## b27 · 17.10 15:20
 Ship tag for all b26 work below plus rarity polish: Theme-aligned weapon slot frames, phone hotbar
 sizing clear of the thumbstick, workbench shows rarity names and tinted icons (Bat uses the club icon
