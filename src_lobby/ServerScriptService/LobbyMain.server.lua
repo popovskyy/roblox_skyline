@@ -22,6 +22,9 @@ setLanguage.Parent = remotes
 local chooseLiftSize = Instance.new("RemoteEvent")
 chooseLiftSize.Name = "ChooseLiftSize"
 chooseLiftSize.Parent = remotes
+local openLiftPick = Instance.new("RemoteEvent")
+openLiftPick.Name = "OpenLiftSizePick"
+openLiftPick.Parent = remotes
 remotes.Parent = ReplicatedStorage
 
 -- The lobby keeps the language choice only for this visit; the tower saves it with the player's progress.

@@ -136,11 +136,22 @@ local function buildLift(parent: Instance, def: { id: string }, x: number, z: nu
 		cable.CanCollide = false
 	end
 
-	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
+	-- Tall roomy trigger so standing anywhere in the cabin counts (R15 root ~3 studs up).
+	local zone = block(folder, "Zone", Vector3.new(10, 12, 10), CFrame.new(x, 6, z), accent)
 	zone.Transparency = 1
 	zone.CanCollide = false
 	zone.CanQuery = false
 	zone.CanTouch = false
+
+	-- Backup interact if zone edge-cases miss a step-in (mobile especially).
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "LiftEnterPrompt"
+	prompt.ActionText = "ЛІФТ"
+	prompt.ObjectText = "Skyline Zero"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = zone
 
 	-- Head count only (e.g. "2 / 4"); no Solo/2/4/6 capacity signs on the cabin.
 	local billboard = Instance.new("BillboardGui")
@@ -268,7 +279,7 @@ function LobbyWorld.Build(): Refs
 		beam.Parent = flood
 	end
 
-	-- Two identical boarding lifts; party size 2–6 is chosen in a dialog after stepping in.
+	-- Two identical boarding lifts; party size 1–6 is chosen in a ScreenGui modal after stepping in.
 	local lifts: { [string]: LiftRefs } = {}
 	local count = #PlacesConfig.Lifts
 	for i, def in PlacesConfig.Lifts do
