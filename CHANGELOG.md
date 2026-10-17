@@ -23,12 +23,19 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
   5. Workbench: 2 scrap. Also in common crates (8%) and rare crates (30%). The pipe and the machete are
   found and crafted exactly as before. The Bat has no model of its own yet: it is the club's model, longer,
   with a blue-grey metal barrel, and the club icon tinted blue.
+- Roof horde: after 8–10 minutes a siren and a warning toast, then 6–10 zombies climb the stairs onto the
+  roof (solo 6, +1 per extra player, max 10); repeats every 8–10 minutes. Floor zombies still do not
+  respawn. New upgrade Barricade (8 scrap + 2 electronics, needs the Chest): boards across the stair
+  mouth so the wave piles up behind them; players can still jump over.
 - Check in game: slot colours of all four weapons on PC, phone and PS5 (in hand and not); the Bat in the
   hand (grip and swing look right) and its icon; crafting a Bat; the Fighter still hits harder; the name
   over the slot in uk / ru / en.
 - Check in game: swing and punch animations on phone and tablet, and whether zombies take damage from
   taps; keys on floors 3 and 4, carrying two keys, the diamond crate, a key into the chest; the hotbar
   after crafting a Pipe / Machete on a 5-slot phone; the lobby buttons on PC, phone and PS5.
+- Check in game: first horde at ~8–10 min (siren + toast, uk/ru/en); wave size solo vs group; fight on
+  the roof without a barricade; build Barricade and confirm the next wave is blocked at the stairs;
+  floor zombies still stay dead after clear.
 
 ## b25 · 17.10
 - Classes, bought with tokens in the lobby ("Класи" button under the tokens) and picked before the lift:

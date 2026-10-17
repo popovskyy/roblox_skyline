@@ -23,6 +23,7 @@ local InteractionService = require(Services.InteractionService)
 local PartyService = require(Services.PartyService)
 local DamageService = require(Services.DamageService)
 local ZombieService = require(Services.ZombieService)
+local HordeService = require(Services.HordeService)
 local CombatService = require(Services.CombatService)
 local CraftService = require(Services.CraftService)
 local MatchService = require(Services.MatchService)
@@ -48,6 +49,7 @@ if GameConfig.World.Mode == "Generated" then
 	CraftService.SetWorkbench(world.workbench)
 	DropService.SetFolder(world.interactables)
 	ZombieService.Start(world.root)
+	HordeService.Start(world.root)
 else
 	warn("[ServerMain] World.Mode is Manual: wire a hand-built map into the services before playing")
 end

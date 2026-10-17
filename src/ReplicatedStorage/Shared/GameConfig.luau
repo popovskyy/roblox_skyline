@@ -66,6 +66,20 @@ local GameConfig = {
 		PerFloor = { 1, 2, 3, 4 }, -- floors 1..4: one more zombie on every floor down; the roof is always safe
 	},
 
+	-- Timed roof horde: does not respawn floor zombies; only spawns a new wave up the stairs.
+	-- First wave after FirstDelayMin..Max seconds of match time, then every IntervalMin..Max.
+	-- Count scales with players in the server: solo = CountMin, each extra player +1, capped at CountMax.
+	Horde = {
+		FirstDelayMin = 480, -- 8 min
+		FirstDelayMax = 600, -- 10 min
+		IntervalMin = 480,
+		IntervalMax = 600,
+		CountMin = 6,
+		CountMax = 10,
+		SpawnStaggerSeconds = 0.7,
+		SirenVolume = 1.35,
+	},
+
 	-- Downed instead of dead: you lie there until a teammate with a Bandage lifts you up.
 	-- Everyone down = the match is lost; after GameOverSeconds the party goes back to the lobby.
 	ReviveHealth = 35,

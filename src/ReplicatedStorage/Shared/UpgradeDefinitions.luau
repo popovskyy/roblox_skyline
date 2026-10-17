@@ -49,9 +49,17 @@ local Upgrades: { [string]: UpgradeDef } = {
 		act = 3,
 		order = 4,
 	},
+	Barricade = {
+		id = "Barricade",
+		displayName = "Барикада",
+		description = "Дошки біля сходів: зомбі з орди не можуть вийти на дах.",
+		cost = { Scrap = 8, Electronics = 2 },
+		requires = { "StorageCrate" },
+		order = 5,
+	},
 }
 
-local Order = { "StorageCrate", "Generator", "AirFilter", "Bridge" }
+local Order = { "StorageCrate", "Generator", "AirFilter", "Bridge", "Barricade" }
 
 local UpgradeDefinitions = {
 	Upgrades = Upgrades,

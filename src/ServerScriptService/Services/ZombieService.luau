@@ -25,7 +25,7 @@ type Zombie = {
 	model: Model,
 	humanoid: Humanoid,
 	root: BasePart,
-	level: number,
+	level: number, -- 0 = roof (horde only); 1..4 = floors
 	home: Vector3,
 	lastAttack: number,
 	lastPath: number,
@@ -36,6 +36,8 @@ type Zombie = {
 	idleTrack: AnimationTrack?,
 	alertPos: Vector3?, -- a noise to investigate until alertUntil
 	alertUntil: number,
+	-- Studs of Y drift allowed before snap-back. Floor zombies stay ~14; horde may climb the last flight.
+	maxDrift: number,
 }
 
 local zombies: { Zombie } = {}
@@ -101,6 +103,67 @@ local function playAnimations(z: Zombie)
 	end)
 end
 
+local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxDrift: number)
+	if not folder then
+		return
+	end
+	local ok, model = pcall(function()
+		return Players:CreateHumanoidModelFromDescription(zombieDescription(), Enum.HumanoidRigType.R15)
+	end)
+	if not ok or not model then
+		warn("[Zombie] could not create a zombie:", model)
+		return
+	end
+	model.Name = "Zombie"
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	humanoid.MaxHealth = Z.MaxHealth
+	humanoid.Health = Z.MaxHealth
+	humanoid.WalkSpeed = Z.WalkSpeed
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+	humanoid.HealthDisplayDistance = 30
+	humanoid.NameDisplayDistance = 0
+	model:SetAttribute("Zombie", true)
+	if level == 0 then
+		model:SetAttribute("Horde", true)
+	end
+	model:PivotTo(CFrame.new(spawnAt))
+	model.Parent = folder
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d:SetNetworkOwner(nil)
+		end
+	end
+
+	local z: Zombie = {
+		model = model,
+		humanoid = humanoid,
+		root = root,
+		level = level,
+		home = home,
+		lastAttack = 0,
+		lastPath = 0,
+		waypoints = {},
+		waypointIndex = 0,
+		wanderAt = 0,
+		alertUntil = 0,
+		maxDrift = maxDrift,
+	}
+	table.insert(zombies, z)
+	playAnimations(z)
+
+	humanoid.Died:Once(function()
+		local index = table.find(zombies, z)
+		if index then
+			table.remove(zombies, index)
+		end
+		task.delay(3, function()
+			model:Destroy()
+		end)
+		-- No respawn: a cleared floor stays cleared for the rest of the match.
+	end)
+end
+
 local spawnZombie: (level: number) -> ()
 
 spawnZombie = function(level: number)
@@ -127,57 +190,12 @@ spawnZombie = function(level: number)
 			home, bestScore = point, score
 		end
 	end
-	local ok, model = pcall(function()
-		return Players:CreateHumanoidModelFromDescription(zombieDescription(), Enum.HumanoidRigType.R15)
-	end)
-	if not ok or not model then
-		warn("[Zombie] could not create a zombie:", model)
-		return
-	end
-	model.Name = "Zombie"
-	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
-	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
-	humanoid.MaxHealth = Z.MaxHealth
-	humanoid.Health = Z.MaxHealth
-	humanoid.WalkSpeed = Z.WalkSpeed
-	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
-	humanoid.HealthDisplayDistance = 30
-	humanoid.NameDisplayDistance = 0
-	model:SetAttribute("Zombie", true)
-	model:PivotTo(CFrame.new(home))
-	model.Parent = folder
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") then
-			d:SetNetworkOwner(nil)
-		end
-	end
+	createZombie(level, home, home, 14)
+end
 
-	local z: Zombie = {
-		model = model,
-		humanoid = humanoid,
-		root = root,
-		level = level,
-		home = home,
-		lastAttack = 0,
-		lastPath = 0,
-		waypoints = {},
-		waypointIndex = 0,
-		wanderAt = 0,
-		alertUntil = 0,
-	}
-	table.insert(zombies, z)
-	playAnimations(z)
-
-	humanoid.Died:Once(function()
-		local index = table.find(zombies, z)
-		if index then
-			table.remove(zombies, index)
-		end
-		task.delay(3, function()
-			model:Destroy()
-		end)
-		-- No respawn: a cleared floor stays cleared for the rest of the match.
-	end)
+-- Roof horde: spawn on / just below the stair exit, chase anyone on the roof. Never respawns floor packs.
+function ZombieService.SpawnHordeZombie(spawnAt: Vector3, home: Vector3)
+	createZombie(0, spawnAt, home, 28)
 end
 
 -- Nearest standing player on the same floor within aggro range.
@@ -236,8 +254,8 @@ local function think(z: Zombie, now: number)
 	if z.humanoid.Health <= 0 then
 		return
 	end
-	-- Never let a zombie leave its floor (and never onto the roof).
-	if math.abs(z.root.Position.Y - (floorY(z.level) + 3)) > 14 then
+	-- Keep floor zombies on their floor; horde (level 0) may climb the last flight onto the roof.
+	if math.abs(z.root.Position.Y - (floorY(z.level) + 3)) > z.maxDrift then
 		z.model:PivotTo(CFrame.new(z.home))
 		return
 	end

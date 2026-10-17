@@ -121,6 +121,13 @@ local S: { [string]: Entry } = {
 		en = "Air filter",
 	},
 	["upgrade.Bridge.name"] = { uk = "Міст", ru = "Мост", en = "Bridge" },
+	["upgrade.Barricade.name"] = { uk = "Барикада", ru = "Баррикада", en = "Barricade" },
+
+	["horde.warning"] = {
+		uk = "Сирена! Орда піднімається сходами!",
+		ru = "Сирена! Орда поднимается по лестнице!",
+		en = "Siren! A horde is coming up the stairs!",
+	},
 
 	-- Generic server replies
 	["err.notLoaded"] = {

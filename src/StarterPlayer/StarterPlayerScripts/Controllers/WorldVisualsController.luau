@@ -141,6 +141,7 @@ local function applyUpgradeVisual(part: BasePart, s: { [string]: any })
 	end
 	local owned = s.upgrades and s.upgrades[upgradeId] == true
 	local mode = part:GetAttribute("VisualMode")
+	local barricadeBlock = part:GetAttribute("BarricadeBlock") == true
 	if mode == "Hide" then
 		setPartState(part, if owned then "hidden" else "normal")
 		for _, d in part:GetDescendants() do
@@ -153,8 +154,15 @@ local function applyUpgradeVisual(part: BasePart, s: { [string]: any })
 		end
 	elseif owned then
 		setPartState(part, "normal")
+		-- Barricade walls start non-colliding on the server; force collide for the local player when built.
+		if barricadeBlock then
+			part.CanCollide = true
+		end
 	else
 		setPartState(part, if missingRequirement(upgradeId, s) then "locked" else "ghost")
+		if barricadeBlock then
+			part.CanCollide = false
+		end
 	end
 end
 

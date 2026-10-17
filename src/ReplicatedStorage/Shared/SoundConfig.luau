@@ -27,6 +27,8 @@ local SoundConfig = {
 		LootUpgrade = { 9126073001 },
 		LootBanner = { 9116395085 },
 		BreakIn = { 9116673915 },
+		-- No dedicated siren asset in HANDOFF / Creator Store list; reuse the noisy break-in cue.
+		HordeSiren = { 9116673915 },
 	} :: { [string]: { number } },
 }
 
