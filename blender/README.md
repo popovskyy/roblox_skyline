@@ -1,46 +1,50 @@
 # Blender моделі
 
-`build_roof_props.py` будує low-poly будівлі для даху (сховище, генератор, фільтр, пульт мосту):
+Headless scripts build low-poly props for Skyline Zero. **1 Blender unit = 1 stud.** Mesh names are
+`<Prop>_<Part>_<Paint>`; in-game colour/material comes from `<Paint>` (`PropLibrary` / `WorldBuilder`).
+
+## Scripts
+
+| Script | Output | Notes |
+|--------|--------|-------|
+| `build_weapons.py` | `assets/models/Weapons.fbx` | Club, **WeaponBat**, **WeaponCrowbar**, Pipe, Machete |
+| `build_interior_props.py` | `assets/models/InteriorProps.fbx` | Filler + **LootCrate**\* / ScrapNode / ElectronicsNode / Soft-HardRubble / BarricadeBoards |
+| `build_roof_props.py` | `assets/models/RoofProps.fbx` | Storage / Generator / AirFilter / Bridge |
+| `build_icons.py` | `assets/icons/*.png` | 3D icon renders (owner rejected look — prefer SVG path) |
+
+SVG / Chrome icons (preferred for hotbar): `python scripts/build_icons.py [Bat …]`.
+
+### Owner PC (Blender 5.x example)
 
 ```
-"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --factory-startup --python blender/build_roof_props.py
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --factory-startup --python blender/build_weapons.py
 ```
 
-Результат:
-- `assets/models/RoofProps.fbx` — для імпорту в Studio;
-- `blender/RoofProps.blend` — джерело, можна відкрити й правити руками;
-- `assets/previews/RoofProps.png` — прев'ю.
+### Cloud / Linux (verified Blender 4.2 LTS)
 
-Кожна деталь називається `<Будівля>_<Частина>_<Фарба>`. Колір і матеріал у грі беруться з `<Фарба>` (таблиця `PROP_PAINTS` у `WorldBuilder.luau`), текстури не потрібні.
+Needs Mesa EGL + a display for Workbench preview (use `xvfb-run`):
 
-## Як моделі потрапляють у гру
+```bash
+xvfb-run -a blender --background --factory-startup --python blender/build_weapons.py
+xvfb-run -a blender --background --factory-startup --python blender/build_interior_props.py
+xvfb-run -a blender --background --factory-startup --python blender/build_roof_props.py
+```
 
-Roblox приймає меші тільки через Studio, тому один раз:
+Also writes `.blend` sources and `assets/previews/*.png`.
 
-1. Studio → вкладка **Home** → **Import** (3D Importer) → вибрати `assets/models/RoofProps.fbx` → **Import**.
-2. У Explorer правий клік по імпортованій моделі → **Save to File…** → `C:\Roblox\assets\models\RoofProps.rbxm`.
-3. Проєкт Rojo кладе цей файл у `ReplicatedStorage.Models`, а `WorldBuilder` ставить моделі на місце сірих коробок.
+## How models reach the live game
 
-Якщо `ReplicatedStorage.Models` немає, гра працює зі звичайними сірими блоками.
+1. **Weapons / Interior (Open Cloud Model):**  
+   `bash scripts/upload_model.sh assets/models/<pack>.fbx <Name>` → print asset id → paste into
+   `PropLibrary.ASSETS` (**never invent ids**).
+2. **RoofProps (Studio rbxm):** Studio Import FBX → Save to File `assets/models/RoofProps.rbxm` → Rojo
+   maps to `ReplicatedStorage.Models`.
 
-## Phase D polish (final-pass branch)
+Until re-upload: CombatService falls back to Part LOOKS for Bat/Crowbar; WorldBuilder dresses crates /
+nodes / rubble / boards only when `PropLibrary.Has` — grey-box Parts otherwise.
 
-Headless scripts (owner PC Blender 5.x — **not** on Cloud VM):
+Live ids today: InteriorProps `76157686296384`, Weapons `126001413949023`.
 
-| Script | Adds / refresh | Upload |
-|--------|----------------|--------|
-| `build_weapons.py` | **WeaponBat**, **WeaponCrowbar** (+ Club/Pipe/Machete) | `bash scripts/upload_model.sh assets/models/Weapons.fbx SkylineZero_Weapons` → paste id into `PropLibrary.ASSETS.Weapons` |
-| `build_interior_props.py` | LootCrate* tiers, ScrapNode, ElectronicsNode, Soft/HardRubble, BarricadeBoards | same for InteriorProps |
-| `build_roof_props.py` | Storage/Gen/Filter/Bridge fidelity | RoofProps.rbxm Studio path above |
+## Owner gates
 
-**Never invent asset ids.** Until re-upload, CombatService falls back to Part LOOKS when `WeaponBat` / `WeaponCrowbar` are missing from the live pack. WorldBuilder dresses crates / Scrap-Elec / rubble / barricade boards only when `PropLibrary.Has` — Part grey-box otherwise.
-
-### Cloud VM blockers (final-pass)
-
-| Need | Status on Cloud agent VM |
-|------|--------------------------|
-| Blender CLI (`blender --background …`) | **Missing** — run scripts on owner PC |
-| `.roblox_api_key` for `upload_model.sh` | **Missing** — owner PC only; never commit the key |
-| Paste printed asset id → `PropLibrary.ASSETS` | Owner after successful upload |
-
-Until those land, keep scaffolding + Has()-gated dress; do not invent PropLibrary ids.
+See `docs/design/owner-gates.md` — upload key, heartbeat SFX, Creator Hub Public are owner-only.
