@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Re-publish owner-uploaded original places (artifact b15). No inject.
+set -euo pipefail
+KEY_FILE="${ROBLOX_API_KEY_FILE:-/cursor/stores/bc-c7dd64b7-c0e6-4288-b04f-766744c8d32e/secrets/.roblox_api_key}"
+KEY=$(tr -d '\n\r' < "$KEY_FILE")
+UNIVERSE=10771270901
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN_DIR="${ROLLBACK_BIN_DIR:-${SCRIPT_DIR}/rollback-artifact-b15}"
+upload() {
+  local pid="$1" file="$2" label="$3"
+  HTTP=$(curl -sS -o "/tmp/artifact_rollback_${label}.json" -w "%{http_code}" \
+    -X POST "https://apis.roblox.com/universes/v1/${UNIVERSE}/places/${pid}/versions?versionType=Published" \
+    -H "x-api-key: ${KEY}" \
+    -H "Content-Type: application/octet-stream" \
+    --data-binary @"${file}")
+  echo "$label HTTP $HTTP $(cat /tmp/artifact_rollback_${label}.json)"
+}
+upload 104145307601846 "${BIN_DIR}/tower-artifact.rbxl" tower
+upload 128619231370772 "${BIN_DIR}/lobby-artifact.rbxl" lobby
