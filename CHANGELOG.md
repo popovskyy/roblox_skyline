@@ -20,10 +20,13 @@ Epic final-pass branch (no publish until owner merge). Phase A A1–A10 already 
 - Fix: attack teach tip no longer lost if first Floor zone lands during intro soft-silence (retry until
   shown). Eat hint stays once/match (no re-fire after hunger recovers).
 
-### Phase D scaffold
-- Blender `build_weapons.py`: **WeaponBat** + **WeaponCrowbar**. CombatService MESHES point at them with
-  Part LOOKS fallback until a real `upload_model.sh` id. Interior props scaffolded for crates/nodes/rubble.
-  **No invented PropLibrary ids.**
+### Phase D scaffold + Has()-dress
+- Blender `build_weapons.py`: **WeaponBat** + **WeaponCrowbar**. CombatService MESHES + Part LOOKS fallback.
+- Interior props: crates / ScrapNode / ElectronicsNode / Soft-HardRubble / BarricadeBoards.
+- WorldBuilder dresses those props when `PropLibrary.Has` (after a real upload); grey-box Parts otherwise.
+- **No invented PropLibrary ids.** Upload blocked on Cloud VM (no Blender CLI / API key) — owner PC path in
+  `blender/README.md` + `HANDOFF.md`.
+- Block 1 verify: A1–A8 / §8 knobs still match design; no retune.
 
 ### Launch prep (docs only)
 - `marketing-draft.md` status + fantasy aligned to live roof→down→back→bridge; Creator Hub still owner gate.
