@@ -20,7 +20,7 @@ Live **b34** already shipped: HUD declutter, Phase D scaffold + Has()-dress, lau
 ## Next (owner only — see `docs/design/owner-gates.md`)
 
 1. **Blender upload** — `upload_model.sh` on PC with `.roblox_api_key` → paste printed ids into `PropLibrary.ASSETS`. Re-import RoofProps.fbx → `.rbxm` in Studio. Optional: upload Bat.png Image → `ItemDefinitions.Bat.iconImage`.
-2. **Heartbeat SFX** — only after a real Creator Store / HANDOFF sound id (do not invent).
+2. **Heartbeat SFX** — done (id `9043365842` wired in `SoundConfig` + `VitalsController` low-HP loop).
 3. **Launch Public** — Art approve `assets/store/` → Creator Hub Public when you say so.
 4. Brainstorm hooks — only when you pull them forward.
 

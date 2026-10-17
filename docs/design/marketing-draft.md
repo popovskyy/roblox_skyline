@@ -120,7 +120,7 @@ Robux never skips the game and never buys tokens directly.
 | Dynamic weather as a main USP | Rain/night exist; not TLOU-grade showcase |
 | Fire-door / perfect Bat model | FBX regenerated; live mesh only after owner `upload_model.sh` |
 | “Perfect on every device” | Phone/tablet still need owner pass after merge |
-| Heartbeat low-HP SFX | **Blocked** — no Creator Store / HANDOFF sound id yet (do not invent) |
+| Heartbeat low-HP SFX | Wired (`9043365842`) — verify in a low-HP playtest after publish |
 
 **Safe to sell now:** co-op roof → floors → base → bridge · token classes · weapon rarity · roof horde + barricade · blackout · shared chest · matches from zero · quieter HUD (objective-first).
 

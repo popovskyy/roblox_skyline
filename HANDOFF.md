@@ -76,8 +76,8 @@ Edit multi-line Cyrillic strings with a real editor, not shell heredocs (they br
 
 Full runbook: **`docs/design/owner-gates.md`**.
 
-- **Low-HP heartbeat SFX:** no Creator Store / HANDOFF sound id yet. `SoundConfig` has a comment placeholder
-  only — do **not** add a fake `rbxassetid`. Ship without heartbeat until a real id is pasted here.
+- **Low-HP heartbeat SFX:** id `9043365842` (`rbxassetid://9043365842`) in `SoundConfig.Sounds.Heartbeat`;
+  `VitalsController` loops it while HP ≤ 30 (not downed / not match-over).
 - **Phase D mesh re-upload:** FBX packs regenerated (Weapons with Bat/Crowbar, Interior with crates/nodes/rubble/boards, RoofProps). Live `PropLibrary.ASSETS` still InteriorProps `76157686296384` / Weapons `126001413949023` until `bash scripts/upload_model.sh` prints new ids on the owner PC (needs `.roblox_api_key`). RoofProps.rbxm still needs Studio re-import from the new FBX.
 - **Bat icon Image:** `assets/icons/Bat.png` ready; `ItemDefinitions.Bat.iconImage` still Club id + tint until Open Cloud Image upload prints a real id.
 - **Creator Hub Public + store art:** concepts in `assets/store/`; Art approve then owner uploads — do not flip Public without owner OK.

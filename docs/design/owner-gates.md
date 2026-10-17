@@ -1,8 +1,9 @@
 # Skyline Zero — owner-only gates (do not fake)
 
 > **Status (17.10, roadmap-continue):** Everything else on the roadmap that agents can do in-cloud
-> is done or verified. These three steps still need the owner’s PC / Creator Hub. **Do not invent
-> Roblox asset or sound ids.** Do not bump `PlacesConfig.Build` or publish until the owner says so.
+> is done or verified. Heartbeat SFX is wired (`9043365842`). Remaining owner steps: Blender/mesh
+> upload + Creator Hub Public. **Do not invent Roblox asset or sound ids.** Do not bump
+> `PlacesConfig.Build` or publish until the owner says so.
 
 ---
 
@@ -38,12 +39,12 @@ Upload as Open Cloud Image → paste id into `ItemDefinitions.Bat.iconImage` and
 
 ---
 
-## 2. Heartbeat low-HP SFX
+## 2. Heartbeat low-HP SFX — done
 
-Blocked until a **valid Creator Store / HANDOFF sound id** exists.
+Owner id pasted: **`9043365842`** (`rbxassetid://9043365842`).
 
-- `SoundConfig` has a comment placeholder only — **no stub SoundId**.
-- Paste the real id into `SoundConfig` + note it in `HANDOFF.md`, then wire low-HP playback.
+- `SoundConfig.Sounds.Heartbeat = { 9043365842 }`
+- `VitalsController` plays a looped client SFX while HP ≤ 30 (stops when healed, downed, or match over).
 
 ---
 
