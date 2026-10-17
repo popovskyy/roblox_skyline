@@ -33,7 +33,11 @@ local Loot = GameConfig.Loot
 local TIER_COLORS = Theme.Rarity
 local DIAMOND_TOP = Color3.fromRGB(190, 120, 255)
 local SPARKLES = "rbxasset://textures/particles/sparkles_main.dds"
-local SHAKE_STRENGTH: { [string]: number } = { Common = 0.15, Rare = 0.2, Gold = 0.45, Diamond = 0.7 }
+-- Gold/Diamond must read clearly louder than Commons (§10.5); Common/Rare stay restrained.
+local SHAKE_STRENGTH: { [string]: number } = { Common = 0.15, Rare = 0.2, Gold = 0.75, Diamond = 1.1 }
+local BANNER_SECONDS: { [string]: number } = { Gold = 5.0, Diamond = 5.5 }
+local BANNER_VOLUME: { [string]: number } = { Gold = 0.85, Diamond = 1.0 }
+local OPEN_BURST: { [string]: number } = { Common = 20, Rare = 35, Gold = 70, Diamond = 95 }
 
 type CrateFx = {
 	crate: BasePart,
@@ -480,8 +484,10 @@ local function showBanner(name: string, tier: string)
 	label.TextStrokeTransparency = 1
 	label.Visible = true
 	TweenService:Create(label, TweenInfo.new(0.3), { TextTransparency = 0, TextStrokeTransparency = 0.2 }):Play()
-	playOnce("LootBanner", nil, 0.5)
-	task.delay(3.5, function()
+	-- Banner SFX only here; open ding for Gold/Diamond is played once in onLootOpened (opener).
+	playOnce("LootBanner", nil, BANNER_VOLUME[tier] or 0.5)
+	local hold = BANNER_SECONDS[tier] or 3.5
+	task.delay(hold, function()
 		if bannerToken == token then
 			TweenService:Create(label, TweenInfo.new(0.6), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		end
@@ -512,9 +518,16 @@ local function onLootOpened(
 				local color = TIER_COLORS[final] or TIER_COLORS.Common
 				local rank = table.find(Loot.TierOrder, final) or 1
 				popLid(crate)
-				burst(crate, color, 20 + rank * 15)
+				burst(crate, color, OPEN_BURST[final] or (20 + rank * 15))
 				local strength = SHAKE_STRENGTH[final] or 0.2
-				shakeCamera(if mine then strength else strength * 0.4, 0.35 + rank * 0.08)
+				local shakeSeconds = if final == "Diamond"
+					then 0.7
+					elseif final == "Gold" then 0.55
+					else 0.35 + rank * 0.08
+				shakeCamera(if mine then strength else strength * 0.4, shakeSeconds)
+				if mine and (final == "Gold" or final == "Diamond") then
+					playOnce("LootUpgrade", crate, if final == "Diamond" then 0.9 else 0.65)
+				end
 				if mine and type(loot) == "table" then
 					local index = 0
 					for _, itemId in ItemDefinitions.Order do

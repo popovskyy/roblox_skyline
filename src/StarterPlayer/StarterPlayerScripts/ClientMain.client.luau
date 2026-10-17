@@ -73,7 +73,10 @@ end)
 remote(RemoteNames.Notify).OnClientEvent:Connect(function(message, kind)
 	local text = Lang.Format(message)
 	if text ~= "" then
-		HUDController.Toast(text, if type(kind) == "string" then kind else nil)
+		-- First Scrap teach must share the beat with "collected" (soft throttle would delay it 15s).
+		local force = message == "hint.scrapNotCrowbar"
+			or (type(message) == "table" and message[1] == "hint.scrapNotCrowbar")
+		HUDController.Toast(text, if type(kind) == "string" then kind else nil, force)
 	end
 end)
 
