@@ -13,8 +13,8 @@ local PropLibrary = {}
 -- Phase D: re-run build_* scripts then upload_model.sh and paste the *printed* id here.
 -- Never invent ids. Until re-upload, WorldBuilder / CombatService fall back to Parts.
 local ASSETS: { [string]: number } = {
-	InteriorProps = 76157686296384,
-	Weapons = 126001413949023,
+	InteriorProps = 97341263879744,
+	Weapons = 91152894600749,
 }
 
 local PAINTS: { [string]: { color: Color3, material: Enum.Material } } = {
