@@ -345,6 +345,42 @@ local function buildStairwell(parent: Folder)
 			Vector3.new(LANE_CENTER, lower, HOLE_MIN_Z),
 			LANE_WIDTH
 		)
+		-- Lamps along the way down: caged wall lamps at the top, the landing and the exit, plus a green
+		-- emergency light over each floor's doorway. Bright on the first floors, dimmer deeper down.
+		local strength = if flight <= 1 then 1 elseif flight == 2 then 0.75 else 0.55
+		local warm = Color3.fromRGB(255, 205, 150)
+		local function wallLamp(position: Vector3, facing: number, color: Color3, range: number)
+			local lamp =
+				block(stairs, "StairLamp", Vector3.new(0.5, 0.8, 1.4), CFrame.new(position), color, Enum.Material.Neon)
+			lamp.CanCollide = false
+			lamp.CastShadow = false
+			local cage = block(
+				stairs,
+				"LampCage",
+				Vector3.new(0.7, 1, 1.6),
+				CFrame.new(position + Vector3.new(facing * 0.1, 0, 0)),
+				COLORS.metal,
+				Enum.Material.Metal
+			)
+			cage.Transparency = 0.6
+			cage.CanCollide = false
+			pointLight(lamp, color, range, 1.1 * strength, true)
+		end
+		wallLamp(Vector3.new(-HOLE_X + 0.1, upper + 6, HOLE_MIN_Z + 3), 1, warm, 20)
+		wallLamp(Vector3.new(-HOLE_X + 0.1, mid + 6, HOLE_MAX_Z - 3), 1, warm, 22)
+		wallLamp(Vector3.new(HOLE_X - 0.1, mid + 6, HOLE_MAX_Z - 3), -1, warm, 22)
+		wallLamp(Vector3.new(HOLE_X - 0.1, lower + 6, HOLE_MIN_Z + 3), -1, warm, 20)
+		local exitLamp = block(
+			stairs,
+			"ExitLamp",
+			Vector3.new(3, 0.6, 0.4),
+			CFrame.new(LANE_CENTER, lower + 10.5, HOLE_MIN_Z - 0.3),
+			Color3.fromRGB(90, 255, 130),
+			Enum.Material.Neon
+		)
+		exitLamp.CanCollide = false
+		pointLight(exitLamp, Color3.fromRGB(90, 255, 130), 16, 0.9 * strength, true)
+
 		-- Floor number above each stairwell exit, so players always know where they are.
 		local isBottom = flight + 1 == World.FloorCount
 		sign(
