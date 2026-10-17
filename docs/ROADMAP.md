@@ -1,10 +1,10 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build b26 (not published yet). One list for every agent; work top to bottom unless the owner
+Owner: Popovskyi. Updated 17.10, build b27 (not published yet; includes b26). One list for every agent; work top to bottom unless the owner
 says otherwise. When an item ships, move it to `CHANGELOG.md` and delete it here. Do not add items the
 owner did not ask for: put ideas in `docs/design/brainstorm-hooks.md` instead.
 
-## Now: check b24–b26 in the game (owner)
+## Now: check b24–b27 in the game (owner)
 
 The owner tests on PC, phone, tablet and PS5. Open questions for that pass:
 - b26: swing and punch animations on phone and tablet, and whether zombies take damage from taps.

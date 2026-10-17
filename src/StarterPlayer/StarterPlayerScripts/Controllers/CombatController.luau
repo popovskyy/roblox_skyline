@@ -444,17 +444,28 @@ local function renderCraft()
 			LayoutOrder = order,
 			Parent = craftList,
 		}, { UIKit.Corner(8), UIKit.Padding(8) })
-		UIKit.Label({
-			Size = UDim2.fromOffset(56, 56),
-			Text = def.icon,
-			TextScaled = true,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Parent = row,
-		})
+		if def.iconImage then
+			UIKit.New("ImageLabel", {
+				Size = UDim2.fromOffset(56, 56),
+				BackgroundTransparency = 1,
+				Image = def.iconImage,
+				ImageColor3 = def.iconTint or Color3.new(1, 1, 1),
+				ScaleType = Enum.ScaleType.Fit,
+				Parent = row,
+			})
+		else
+			UIKit.Label({
+				Size = UDim2.fromOffset(56, 56),
+				Text = def.icon,
+				TextScaled = true,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Parent = row,
+			})
+		end
 		UIKit.Label({
 			Position = UDim2.fromOffset(66, 0),
 			Size = UDim2.new(1, -200, 0, 28),
-			Text = Lang.T("item." .. recipe.id .. ".name"),
+			Text = Lang.ItemWithRarity(recipe.id),
 			FontFace = Theme.Heading,
 			TextSize = 22,
 			TextColor3 = if def.rarity then Theme.Rarity[def.rarity] else C.text,

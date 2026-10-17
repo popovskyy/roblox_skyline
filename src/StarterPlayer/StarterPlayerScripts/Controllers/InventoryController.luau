@@ -28,15 +28,31 @@ local remotes: Folder
 local touch = UIKit.IsTouch()
 local T = Theme.Colors
 -- Phone: 6 slots (5 on narrow screens) between the thumbstick and the jump button. PC / console: 8.
+-- HUD_SPEC phone artboard is landscape 844×390; keep the centred row's left edge at ≥ 26% width.
 local function slotCountFor(): number
 	if not touch then
 		return 8
 	end
 	local camera = workspace.CurrentCamera
-	return if camera and camera.ViewportSize.X < 760 then 5 else 6
+	local width = if camera then camera.ViewportSize.X else 844
+	return if width < 760 then 5 else 6
+end
+local function phoneSlotSize(count: number): number
+	local camera = workspace.CurrentCamera
+	local width = if camera then camera.ViewportSize.X else 844
+	local gap = 6
+	local size = 54
+	local function rowWidth(slotSize: number): number
+		return count * slotSize + (count - 1) * gap
+	end
+	-- Centred row: left = (W - row) / 2 ≥ 0.26 W  →  row ≤ 0.48 W. Floor at 44 (touch target).
+	while size > 44 and rowWidth(size) > width * 0.48 do
+		size -= 2
+	end
+	return size
 end
 local SLOT_COUNT = slotCountFor()
-local SLOT_SIZE = if touch then 54 else 68
+local SLOT_SIZE = if touch then phoneSlotSize(SLOT_COUNT) else 68
 local SLOT_GAP = if touch then 6 else 8
 local NUMBER_KEYS = {
 	Enum.KeyCode.One,

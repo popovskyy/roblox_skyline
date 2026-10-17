@@ -10,11 +10,11 @@ local UIKit = require(script.Parent.UIKit)
 
 local ItemSlot = {}
 
-local C = UIKit.Colors
--- Dark worn slots with a thin cream edge, to match the cream item icons.
-local EMPTY_COLOR = Color3.fromRGB(20, 21, 23)
+local T = Theme.Colors
+-- Theme.Slot / Stroke for empty and non-weapon slots; rarity stroke comes from Theme.Rarity.
+local EMPTY_COLOR = T.Slot
 local FILLED_COLOR = Color3.fromRGB(27, 28, 30)
-local CREAM = Color3.fromRGB(233, 223, 198)
+local CREAM = T.Stroke
 
 export type Slot = {
 	frame: TextButton,
@@ -31,11 +31,11 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		LayoutOrder = layoutOrder,
 		Parent = parent,
 	}, { UIKit.Corner(8) })
-	frame.BackgroundTransparency = 0.12
+	frame.BackgroundTransparency = 0.18
 	local stroke = UIKit.New("UIStroke", {
-		Thickness = 1.5,
+		Thickness = 1,
 		Color = CREAM,
-		Transparency = 0.8,
+		Transparency = 0.65,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = frame,
 	})
@@ -64,7 +64,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		Size = UDim2.fromOffset(40, 20),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		FontFace = Theme.Display,
-		TextSize = 16,
+		TextSize = 17,
 		TextStrokeTransparency = 0.4,
 		Text = "",
 		Parent = frame,
@@ -74,14 +74,16 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		local def = if itemId then ItemDefinitions.Get(itemId) else nil
 		if not def or count <= 0 then
 			frame.BackgroundColor3 = EMPTY_COLOR
+			frame.BackgroundTransparency = 0.18
 			stroke.Color = CREAM
-			stroke.Transparency = 0.85
-			stroke.Thickness = 1.5
+			stroke.Transparency = 0.65
+			stroke.Thickness = 1
 			emoji.Text = ""
 			image.Visible = false
 			countLabel.Text = ""
 			return
 		end
+		frame.BackgroundTransparency = 0.12
 		local rarityColor = if def.rarity then Theme.Rarity[def.rarity] else nil
 		if rarityColor then
 			-- Weapons always wear their rarity colour; in hand the edge thickens and the slot takes its tint.
@@ -92,7 +94,7 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		else
 			frame.BackgroundColor3 = FILLED_COLOR
 			-- The item in hand gets a bright amber edge; the rest a faint cream one.
-			stroke.Color = if selected then C.accent else CREAM
+			stroke.Color = if selected then T.Amber else CREAM
 			stroke.Transparency = if selected then 0 else 0.6
 			stroke.Thickness = if selected then 2.5 else 1.5
 		end

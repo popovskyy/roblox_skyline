@@ -3,7 +3,11 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
-## b26 · 17.10 (not published yet)
+## b27 · 17.10 15:20 (not published yet)
+Ship tag for all b26 work below plus rarity polish: Theme-aligned weapon slot frames, phone hotbar
+sizing clear of the thumbstick, workbench shows rarity names and tinted icons (Bat uses the club icon
+in blue).
+
 - Hit, swing and punch animations now play on phones and tablets: taps were discarded as camera
   drags (14 px on Vector3 including Z); tap test is now X/Y only, ~40–96 px and 0.5 s, plus
   reload/retry and Action4 priorities so the swing wins over walk.
