@@ -1,7 +1,7 @@
 --!strict
 -- Lobby lifts. Standing inside a lift's zone joins it; walking out leaves it. The first player in is the leader
--- and must pick a party size (1–6, solo allowed) before the countdown starts. When the countdown ends the
--- server reserves a private tower server, stores the party in MemoryStore and teleports everyone together.
+-- and must pick a party size (2–6) before the countdown starts. When the countdown ends the server
+-- reserves a private tower server, stores the party in MemoryStore and teleports everyone together.
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
@@ -24,7 +24,6 @@ type Lift = {
 	deadline: number?,
 	launching: boolean,
 	blocked: { [Player]: boolean }, -- after a failed start: must step out before rejoining
-	leaderPickToast: { [Player]: boolean }, -- once-per-stay “leader is picking” toast
 	pendingLeader: Player?, -- inside the empty lift, waiting to pick a size
 }
 
@@ -34,7 +33,6 @@ local lifts: { Lift } = {}
 local notify: Notify = function(_player, _message, _kind) end
 local TICK = 0.25
 local chooseRemote: RemoteEvent? = nil
-local openPickRemote: RemoteEvent? = nil
 
 local function isInside(part: BasePart, position: Vector3): boolean
 	local p = part.CFrame:PointToObjectSpace(position)
@@ -239,12 +237,8 @@ local function beginPick(lift: Lift, player: Player)
 		return
 	end
 	lift.pendingLeader = player
-	-- Attribute for clients that poll it; remote so the modal opens even if AttributeChanged is missed.
 	player:SetAttribute("LiftPickOpen", true)
 	player:SetAttribute("LiftPickId", lift.def.id)
-	if openPickRemote then
-		openPickRemote:FireClient(player, lift.def.id)
-	end
 	notify(player, "lobby.pickSizeHint", "info")
 	updateStatus(lift)
 end
@@ -284,14 +278,8 @@ function LiftService.ChooseSize(player: Player, size: any)
 	end
 	lift.capacity = size
 	lift.pendingLeader = nil
-	clearPickPrompt(player)
 	addMember(lift, player)
 	notify(player, { "lobby.sizeChosen", size }, "success")
-	-- Solo (1): leave almost immediately after pick so a lone player is not stuck waiting 20s.
-	if size == 1 and lift.deadline then
-		lift.deadline = math.min(lift.deadline, os.clock() + lift.def.fullCountdown)
-		updateStatus(lift)
-	end
 end
 
 local function tick()
@@ -327,21 +315,16 @@ local function tick()
 				local inside = root ~= nil and isInside(lift.zone, root.Position)
 				if not inside then
 					lift.blocked[player] = nil
-					lift.leaderPickToast[player] = nil
-				elseif not liftOf(player) then
+				elseif not lift.blocked[player] and not liftOf(player) then
 					if lift.capacity == nil then
 						if lift.pendingLeader == nil then
 							beginPick(lift, player)
-						elseif lift.pendingLeader ~= player and not lift.leaderPickToast[player] then
-							-- Second rider while leader still picking: soft feedback, no second modal.
-							-- Do NOT set blocked — that would prevent join after capacity is chosen.
-							notify(player, "lobby.leaderPicking", "info")
-							lift.leaderPickToast[player] = true
 						end
-					elseif not lift.blocked[player] then
-						if #lift.members < (lift.capacity :: number) then
-							addMember(lift, player)
-						else
+					elseif #lift.members < (lift.capacity :: number) then
+						addMember(lift, player)
+					elseif not liftOf(player) then
+						-- Full: only toast once per stay via blocked flag after notify.
+						if not lift.blocked[player] then
 							notify(player, "lobby.full", "warning")
 							lift.blocked[player] = true
 						end
@@ -372,7 +355,6 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 				deadline = nil,
 				launching = false,
 				blocked = {},
-				leaderPickToast = {},
 				pendingLeader = nil,
 			}
 			table.insert(lifts, lift)
@@ -390,15 +372,6 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 			remote.Name = "ChooseLiftSize"
 			remote.Parent = remotes
 			chooseRemote = remote
-		end
-		local openExisting = remotes:FindFirstChild("OpenLiftSizePick")
-		if openExisting and openExisting:IsA("RemoteEvent") then
-			openPickRemote = openExisting
-		else
-			local openRemote = Instance.new("RemoteEvent")
-			openRemote.Name = "OpenLiftSizePick"
-			openRemote.Parent = remotes
-			openPickRemote = openRemote
 		end
 		(chooseRemote :: RemoteEvent).OnServerEvent:Connect(function(player, size)
 			LiftService.ChooseSize(player, size)

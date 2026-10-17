@@ -708,24 +708,24 @@ local S: { [string]: Entry } = {
 	["lobby.liftSolo"] = { uk = "ЛІФТ", ru = "ЛИФТ", en = "LIFT" },
 	["lobby.liftGroup"] = { uk = "ЛІФТ", ru = "ЛИФТ", en = "LIFT" },
 	["lobby.hint"] = {
-		uk = "Зайди в ліфт і обери скільки гравців (1–6), щоб піднятися на дах.",
-		ru = "Зайди в лифт и выбери сколько игроков (1–6), чтобы подняться на крышу.",
-		en = "Step into a lift and pick how many players (1–6) to go up to the roof.",
+		uk = "Зайди в ліфт і обери розмір групи (2–6), щоб піднятися на дах.",
+		ru = "Зайди в лифт и выбери размер группы (2–6), чтобы подняться на крышу.",
+		en = "Step into a lift and pick a party size (2–6) to go up to the roof.",
 	},
 	["lobby.pickSizeTitle"] = {
-		uk = "ЛІФТ",
-		ru = "ЛИФТ",
-		en = "LIFT",
+		uk = "Скільки гравців?",
+		ru = "Сколько игроков?",
+		en = "How many players?",
 	},
 	["lobby.pickSizeBody"] = {
-		uk = "Скільки вас іде? Обери 1–6. Старт, коли таймер закінчиться.",
-		ru = "Сколько вас едет? Выбери 1–6. Старт, когда таймер закончится.",
-		en = "How many of you are going? Pick 1–6. Leaves when the timer ends.",
+		uk = "Обери максимум місць у ліфті. Старт, коли таймер закінчиться.",
+		ru = "Выбери максимум мест в лифте. Старт, когда таймер закончится.",
+		en = "Choose how many seats to hold. The lift leaves when the timer ends.",
 	},
 	["lobby.pickSizeHint"] = {
-		uk = "Обери кількість гравців 1–6",
-		ru = "Выбери количество игроков 1–6",
-		en = "Pick 1 to 6 players",
+		uk = "Обери розмір групи 2–6",
+		ru = "Выбери размер группы 2–6",
+		en = "Pick a party size from 2 to 6",
 	},
 	["lobby.sizeChosen"] = {
 		uk = "Місць: %d. Чекаємо…",
@@ -737,14 +737,9 @@ local S: { [string]: Entry } = {
 		ru = "Выбери от 1 до 6 игроков",
 		en = "Pick between 1 and 6 players",
 	},
-	["lobby.pickSolo"] = { uk = "Один", ru = "Один", en = "Solo" },
-	["lobby.leaderPicked"] = {
-		uk = "Лідер обрав: %d",
 		ru = "Лидер выбрал: %d",
 		en = "Leader chose: %d",
 	},
-	["lobby.leaderPicking"] = {
-		uk = "Лідер обирає розмір групи…",
 		ru = "Лидер выбирает размер группы…",
 		en = "Leader is picking party size…",
 	},
@@ -1003,7 +998,7 @@ return MusicConfig
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b19 · must-fix-ship",
+	Build = "b20 · lift-rollback-orig",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,
@@ -1013,8 +1008,7 @@ local PlacesConfig = {
 		{ id = "LiftA", countdown = 20, fullCountdown = 5 },
 		{ id = "LiftB", countdown = 20, fullCountdown = 5 },
 	},
-	-- Solo allowed: 1..6 (owner playtest + UX update).
-	MinPartySize = 1,
+	MinPartySize = 2,
 	MaxPartySize = 6,
 
 	-- Party hand-off from the lobby to the reserved tower server.
@@ -1300,8 +1294,8 @@ return LeaderboardService
         <string name="Name">LiftService</string>
         <string name="Source">--!strict
 -- Lobby lifts. Standing inside a lift's zone joins it; walking out leaves it. The first player in is the leader
--- and must pick a party size (1–6, solo allowed) before the countdown starts. When the countdown ends the
--- server reserves a private tower server, stores the party in MemoryStore and teleports everyone together.
+-- and must pick a party size (2–6) before the countdown starts. When the countdown ends the server
+-- reserves a private tower server, stores the party in MemoryStore and teleports everyone together.
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
@@ -1324,7 +1318,6 @@ type Lift = {
 	deadline: number?,
 	launching: boolean,
 	blocked: { [Player]: boolean }, -- after a failed start: must step out before rejoining
-	leaderPickToast: { [Player]: boolean }, -- once-per-stay “leader is picking” toast
 	pendingLeader: Player?, -- inside the empty lift, waiting to pick a size
 }
 
@@ -1334,7 +1327,6 @@ local lifts: { Lift } = {}
 local notify: Notify = function(_player, _message, _kind) end
 local TICK = 0.25
 local chooseRemote: RemoteEvent? = nil
-local openPickRemote: RemoteEvent? = nil
 
 local function isInside(part: BasePart, position: Vector3): boolean
 	local p = part.CFrame:PointToObjectSpace(position)
@@ -1539,12 +1531,8 @@ local function beginPick(lift: Lift, player: Player)
 		return
 	end
 	lift.pendingLeader = player
-	-- Attribute for clients that poll it; remote so the modal opens even if AttributeChanged is missed.
 	player:SetAttribute("LiftPickOpen", true)
 	player:SetAttribute("LiftPickId", lift.def.id)
-	if openPickRemote then
-		openPickRemote:FireClient(player, lift.def.id)
-	end
 	notify(player, "lobby.pickSizeHint", "info")
 	updateStatus(lift)
 end
@@ -1584,14 +1572,8 @@ function LiftService.ChooseSize(player: Player, size: any)
 	end
 	lift.capacity = size
 	lift.pendingLeader = nil
-	clearPickPrompt(player)
 	addMember(lift, player)
 	notify(player, { "lobby.sizeChosen", size }, "success")
-	-- Solo (1): leave almost immediately after pick so a lone player is not stuck waiting 20s.
-	if size == 1 and lift.deadline then
-		lift.deadline = math.min(lift.deadline, os.clock() + lift.def.fullCountdown)
-		updateStatus(lift)
-	end
 end
 
 local function tick()
@@ -1627,21 +1609,16 @@ local function tick()
 				local inside = root ~= nil and isInside(lift.zone, root.Position)
 				if not inside then
 					lift.blocked[player] = nil
-					lift.leaderPickToast[player] = nil
-				elseif not liftOf(player) then
+				elseif not lift.blocked[player] and not liftOf(player) then
 					if lift.capacity == nil then
 						if lift.pendingLeader == nil then
 							beginPick(lift, player)
-						elseif lift.pendingLeader ~= player and not lift.leaderPickToast[player] then
-							-- Second rider while leader still picking: soft feedback, no second modal.
-							-- Do NOT set blocked — that would prevent join after capacity is chosen.
-							notify(player, "lobby.leaderPicking", "info")
-							lift.leaderPickToast[player] = true
 						end
-					elseif not lift.blocked[player] then
-						if #lift.members &lt; (lift.capacity :: number) then
-							addMember(lift, player)
-						else
+					elseif #lift.members &lt; (lift.capacity :: number) then
+						addMember(lift, player)
+					elseif not liftOf(player) then
+						-- Full: only toast once per stay via blocked flag after notify.
+						if not lift.blocked[player] then
 							notify(player, "lobby.full", "warning")
 							lift.blocked[player] = true
 						end
@@ -1672,7 +1649,6 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 				deadline = nil,
 				launching = false,
 				blocked = {},
-				leaderPickToast = {},
 				pendingLeader = nil,
 			}
 			table.insert(lifts, lift)
@@ -1690,15 +1666,6 @@ function LiftService.Start(zones: { [string]: { zone: BasePart, statusLabel: Tex
 			remote.Name = "ChooseLiftSize"
 			remote.Parent = remotes
 			chooseRemote = remote
-		end
-		local openExisting = remotes:FindFirstChild("OpenLiftSizePick")
-		if openExisting and openExisting:IsA("RemoteEvent") then
-			openPickRemote = openExisting
-		else
-			local openRemote = Instance.new("RemoteEvent")
-			openRemote.Name = "OpenLiftSizePick"
-			openRemote.Parent = remotes
-			openPickRemote = openRemote
 		end
 		(chooseRemote :: RemoteEvent).OnServerEvent:Connect(function(player, size)
 			LiftService.ChooseSize(player, size)
@@ -1760,9 +1727,6 @@ setLanguage.Parent = remotes
 local chooseLiftSize = Instance.new("RemoteEvent")
 chooseLiftSize.Name = "ChooseLiftSize"
 chooseLiftSize.Parent = remotes
-local openLiftPick = Instance.new("RemoteEvent")
-openLiftPick.Name = "OpenLiftSizePick"
-openLiftPick.Parent = remotes
 remotes.Parent = ReplicatedStorage
 
 -- The lobby keeps the language choice only for this visit; the tower saves it with the player's progress.
@@ -1925,12 +1889,9 @@ local function buildLift(parent: Instance, def: { id: string }, x: number, z: nu
 		cable.CanCollide = false
 	end
 
-	-- Zone must stay CanCollide=false and inside the open cabin (same as pre-b17 — entry was fine).
-	-- Do NOT enlarge past the doorway: an oversized zone opens the modal while the player is still
-	-- outside, and a fullscreen Active GUI then eats mobile touch controls so they can't walk in.
 	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
 	zone.Transparency = 1
-	zone.CanCollide = false -- block() defaults true; zone must never be a physics barrier
+	zone.CanCollide = false
 	zone.CanQuery = false
 	zone.CanTouch = false
 
@@ -2060,7 +2021,7 @@ function LobbyWorld.Build(): Refs
 		beam.Parent = flood
 	end
 
-	-- Two identical boarding lifts; party size 1–6 is chosen in a ScreenGui modal after stepping in.
+	-- Two identical boarding lifts; party size 2–6 is chosen in a dialog after stepping in.
 	local lifts: { [string]: LiftRefs } = {}
 	local count = #PlacesConfig.Lifts
 	for i, def in PlacesConfig.Lifts do
@@ -2516,14 +2477,13 @@ return Scenery
         <Properties>
           <string name="Name">LobbyClient</string>
           <string name="Source">--!strict
--- Lobby client: lift size modal (1–6), toasts, language, countdown, teleport GUI, music.
+-- Lobby client: translates world text, shows short messages from the lifts and a language switch.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 Shared:WaitForChild("Locale")
@@ -2535,26 +2495,10 @@ local Lang = require(script.Parent:WaitForChild("Lang"))
 local UIKit = require(script.Parent:WaitForChild("UIKit"))
 
 local C = UIKit.Colors
+local screen = UIKit.Screen()
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- Dedicated high-order ScreenGui so the modal is never buried under touch controls / other UI.
-local screen = Instance.new("ScreenGui")
-screen.Name = "SkylineLobbyUI"
-screen.ResetOnSpawn = false
-screen.IgnoreGuiInset = true
-screen.DisplayOrder = 80
-screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screen.Parent = playerGui
-
 local remotesFolder = ReplicatedStorage:WaitForChild("Remotes")
--- Do not block the whole UI if a remote is late; bind when present.
-local chooseLiftSize: RemoteEvent? = nil
-local openLiftPick: RemoteEvent? = nil
-task.spawn(function()
-	chooseLiftSize = remotesFolder:WaitForChild("ChooseLiftSize", 30) :: RemoteEvent?
-	openLiftPick = remotesFolder:WaitForChild("OpenLiftSizePick", 30) :: RemoteEvent?
-end)
+local chooseLiftSize = remotesFolder:WaitForChild("ChooseLiftSize") :: RemoteEvent
 
 -- World text ------------------------------------------------------------------------------------------
 local function localize(label: Instance)
@@ -2595,7 +2539,7 @@ end)
 -- Messages ---------------------------------------------------------------------------------------------
 local toastHolder = UIKit.New("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 72),
+	Position = UDim2.new(0.5, 0, 0, 64),
 	Size = UDim2.fromOffset(460, 200),
 	BackgroundTransparency = 1,
 	Parent = screen,
@@ -2636,199 +2580,79 @@ local function toast(text: string, kind: string?)
 	end)
 end
 
-task.spawn(function()
-	local notify = remotesFolder:WaitForChild("Notify", 30) :: RemoteEvent?
-	if not notify then
-		return
+local notify = remotesFolder:WaitForChild("Notify") :: RemoteEvent
+notify.OnClientEvent:Connect(function(message, kind)
+	local text = Lang.Format(message)
+	if text ~= "" then
+		toast(text, if type(kind) == "string" then kind else nil)
 	end
-	notify.OnClientEvent:Connect(function(message, kind)
-		local text = Lang.Format(message)
-		if text ~= "" then
-			toast(text, if type(kind) == "string" then kind else nil)
-		end
-	end)
 end)
 
--- Party size modal (1–6). Opened AFTER physics entry into the cabin zone (attribute + remote).
--- Critical for mobile: NEVER cover the full screen with an Active GuiObject — that steals the
--- thumbstick/jump and makes it feel like you "cannot enter" the lift.
-local dimmer = UIKit.New("Frame", {
-	Name = "LiftPickDimmer",
-	-- Soft vignette only behind the panel area (not the bottom touch controls).
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.42),
-	Size = UDim2.fromOffset(420, 360),
-	BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-	BackgroundTransparency = 0.55,
-	BorderSizePixel = 0,
-	Visible = false,
-	Active = false, -- must stay false so world touch movement keeps working
-	ZIndex = 10,
-	Parent = screen,
-}, { UIKit.Corner(16) })
-
-local pickPanel = UIKit.New("Frame", {
+-- Party size dialog (2–6) — first rider in an empty lift picks capacity; Designer can restyle later.
+local pickPanel = UIKit.Panel({
 	Name = "LiftSizePick",
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	-- Upper-mid so jump / thumbstick at the bottom stay free on phones.
-	Position = UDim2.fromScale(0.5, 0.42),
-	Size = UDim2.fromOffset(340, 280),
-	BackgroundColor3 = Color3.fromRGB(28, 26, 24),
-	BackgroundTransparency = 0.02,
-	BorderSizePixel = 0,
+	Position = UDim2.fromScale(0.5, 0.45),
+	Size = UDim2.fromOffset(360, 210),
 	Visible = false,
-	Active = true,
-	ZIndex = 11,
+	BackgroundTransparency = 0.05,
 	Parent = screen,
-}, {
-	UIKit.Corner(12),
-	UIKit.New("UIStroke", {
-		Color = C.accent,
-		Thickness = 2,
-		Transparency = 0.15,
-	}),
 })
 UIKit.Padding(16).Parent = pickPanel
-
--- Scale panel for narrow phones without shrinking the whole lobby HUD.
-local pickScale = Instance.new("UIScale")
-pickScale.Parent = pickPanel
-local function updatePickScale()
-	local cam = workspace.CurrentCamera
-	if not cam then
-		return
-	end
-	local w = cam.ViewportSize.X
-	pickScale.Scale = if w &lt; 420 then math.clamp(w / 380, 0.75, 1) else 1
-end
-updatePickScale()
-if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updatePickScale)
-end
-workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(updatePickScale)
-
 local pickTitle = UIKit.Label({
-	Size = UDim2.new(1, 0, 0, 36),
+	Size = UDim2.new(1, 0, 0, 32),
 	TextXAlignment = Enum.TextXAlignment.Center,
 	FontFace = Theme.Display,
-	TextSize = 28,
+	TextSize = 26,
 	TextColor3 = C.accent,
-	ZIndex = 12,
 	Parent = pickPanel,
 })
 local pickBody = UIKit.Label({
-	Position = UDim2.fromOffset(0, 40),
-	Size = UDim2.new(1, 0, 0, 48),
+	Position = UDim2.fromOffset(0, 36),
+	Size = UDim2.new(1, 0, 0, 40),
 	TextXAlignment = Enum.TextXAlignment.Center,
-	TextSize = 16,
+	TextSize = 15,
 	TextColor3 = C.muted,
-	ZIndex = 12,
 	Parent = pickPanel,
 })
-
-local pickGrid = UIKit.New("Frame", {
-	Position = UDim2.fromOffset(0, 100),
-	Size = UDim2.new(1, 0, 0, 140),
+local pickRow = UIKit.New("Frame", {
+	Position = UDim2.fromOffset(0, 90),
+	Size = UDim2.new(1, 0, 0, 56),
 	BackgroundTransparency = 1,
-	ZIndex = 12,
 	Parent = pickPanel,
 })
-UIKit.New("UIGridLayout", {
-	CellSize = UDim2.fromOffset(92, 56),
-	CellPadding = UDim2.fromOffset(10, 10),
-	FillDirectionMaxCells = 3,
+UIKit.New("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	VerticalAlignment = Enum.VerticalAlignment.Center,
-	SortOrder = Enum.SortOrder.LayoutOrder,
-	Parent = pickGrid,
+	Padding = UDim.new(0, 8),
+	Parent = pickRow,
 })
-
-local minSize = PlacesConfig.MinPartySize or 1
+local minSize = PlacesConfig.MinPartySize or 2
 local maxSize = PlacesConfig.MaxPartySize or 6
-local selectedSize: number? = nil
-
-local function styleSizeButton(button: TextButton, size: number, selected: boolean)
-	if selected then
-		button.BackgroundColor3 = C.accent
-		button.TextColor3 = Color3.fromRGB(20, 18, 16)
-	else
-		button.BackgroundColor3 = Color3.fromRGB(42, 40, 38)
-		button.TextColor3 = C.text
-	end
-	if size == 1 then
-		button.Text = Lang.T("lobby.pickSolo")
-	else
-		button.Text = tostring(size)
-	end
-end
-
-local sizeButtons: { [number]: TextButton } = {}
 for size = minSize, maxSize do
 	local button = UIKit.Button({
-		Text = if size == 1 then "Solo" else tostring(size),
-		TextSize = if size == 1 then 18 else 24,
-		FontFace = Theme.Bold,
-		AutoButtonColor = true,
-		LayoutOrder = size,
-		ZIndex = 13,
-		Parent = pickGrid,
+		Size = UDim2.fromOffset(52, 52),
+		Text = tostring(size),
+		TextSize = 22,
+		Parent = pickRow,
 	})
-	styleSizeButton(button, size, false)
 	button.Activated:Connect(function()
-		selectedSize = size
-		for s, b in sizeButtons do
-			styleSizeButton(b, s, s == size)
-		end
-		local remote = chooseLiftSize or remotesFolder:FindFirstChild("ChooseLiftSize")
-		if remote and remote:IsA("RemoteEvent") then
-			remote:FireServer(size)
-		end
+		chooseLiftSize:FireServer(size)
 	end)
-	sizeButtons[size] = button
 end
 
 local function refreshPickCopy()
 	pickTitle.Text = Lang.T("lobby.pickSizeTitle")
 	pickBody.Text = Lang.T("lobby.pickSizeBody")
-	for s, b in sizeButtons do
-		styleSizeButton(b, s, selectedSize == s)
-	end
 end
 refreshPickCopy()
 Lang.Changed:Connect(refreshPickCopy)
 
-local pickOpen = false
-local function setPickVisible(visible: boolean)
-	pickOpen = visible
-	pickPanel.Visible = visible
-	dimmer.Visible = visible
-	if not visible then
-		selectedSize = nil
-		for s, b in sizeButtons do
-			styleSizeButton(b, s, false)
-		end
-	end
-end
-
 local function updatePickDialog()
-	local open = player:GetAttribute("LiftPickOpen") == true
-	setPickVisible(open)
+	pickPanel.Visible = player:GetAttribute("LiftPickOpen") == true
 end
 player:GetAttributeChangedSignal("LiftPickOpen"):Connect(updatePickDialog)
 updatePickDialog()
-
-task.spawn(function()
-	local remote = remotesFolder:WaitForChild("OpenLiftSizePick", 30) :: RemoteEvent?
-	if not remote then
-		return
-	end
-	-- Never open from a late remote after walk-out — attributes are source of truth.
-	remote.OnClientEvent:Connect(function()
-		if player:GetAttribute("LiftPickOpen") == true then
-			setPickVisible(true)
-		end
-	end)
-end)
 
 -- Language switch ----------------------------------------------------------------------------------------
 local languageButton = UIKit.Button({
@@ -2836,7 +2660,6 @@ local languageButton = UIKit.Button({
 	Position = UDim2.new(1, -12, 0, 8),
 	Size = UDim2.fromOffset(52, 44),
 	Text = string.upper(Lang.Get()),
-	ZIndex = 5,
 	Parent = screen,
 })
 languageButton.Activated:Connect(function()
@@ -2849,15 +2672,13 @@ Lang.Changed:Connect(function(code)
 end)
 
 -- Lift countdown ------------------------------------------------------------------------------------------
--- Top-center: never cover mobile jump / thumbstick (nuance Top #2).
+-- The server sets LiftSeconds / LiftCount / LiftCapacity on riders; show them big at the bottom of the screen.
 local liftPanel = UIKit.Panel({
 	Name = "LiftCountdown",
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 72),
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -24),
 	Size = UDim2.fromOffset(300, 96),
 	Visible = false,
-	Active = false,
-	ZIndex = 5,
 	Parent = screen,
 })
 local liftSeconds = UIKit.Label({
@@ -2878,11 +2699,6 @@ local liftRiders = UIKit.Label({
 })
 
 local function updateLift()
-	-- Hide countdown while the pick modal is open so they don't fight.
-	if pickOpen then
-		liftPanel.Visible = false
-		return
-	end
 	local seconds = player:GetAttribute("LiftSeconds")
 	local count = player:GetAttribute("LiftCount")
 	local capacity = player:GetAttribute("LiftCapacity")
@@ -2900,7 +2716,9 @@ end
 Lang.Changed:Connect(updateLift)
 updateLift()
 
+
 -- Teleport screen ------------------------------------------------------------------------------------------
+-- Replaces Roblox's default loading screen, which shows the raw place name.
 local teleportGui = Instance.new("ScreenGui")
 teleportGui.Name = "SkylineTeleport"
 teleportGui.IgnoreGuiInset = true
@@ -2968,7 +2786,6 @@ local musicButton = UIKit.Button({
 	Size = UDim2.fromOffset(44, 44),
 	Text = "♪",
 	TextSize = 22,
-	ZIndex = 5,
 	Parent = screen,
 })
 musicButton.Activated:Connect(function()
@@ -2978,9 +2795,6 @@ musicButton.Activated:Connect(function()
 		track.Volume = if muted then 0 else MusicConfig.Volume
 	end
 end)
-
--- Touch: dimmer tap does not close (must pick a size or walk out). Keeps modal sticky on mobile.
-_ = UserInputService
 </string>
         </Properties>
       </Item>

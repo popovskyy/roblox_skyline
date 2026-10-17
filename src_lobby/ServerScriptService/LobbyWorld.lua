@@ -136,12 +136,9 @@ local function buildLift(parent: Instance, def: { id: string }, x: number, z: nu
 		cable.CanCollide = false
 	end
 
-	-- Zone must stay CanCollide=false and inside the open cabin (same as pre-b17 — entry was fine).
-	-- Do NOT enlarge past the doorway: an oversized zone opens the modal while the player is still
-	-- outside, and a fullscreen Active GUI then eats mobile touch controls so they can't walk in.
 	local zone = block(folder, "Zone", Vector3.new(9, 9, 9), CFrame.new(x, 5, z), accent)
 	zone.Transparency = 1
-	zone.CanCollide = false -- block() defaults true; zone must never be a physics barrier
+	zone.CanCollide = false
 	zone.CanQuery = false
 	zone.CanTouch = false
 
@@ -271,7 +268,7 @@ function LobbyWorld.Build(): Refs
 		beam.Parent = flood
 	end
 
-	-- Two identical boarding lifts; party size 1–6 is chosen in a ScreenGui modal after stepping in.
+	-- Two identical boarding lifts; party size 2–6 is chosen in a dialog after stepping in.
 	local lifts: { [string]: LiftRefs } = {}
 	local count = #PlacesConfig.Lifts
 	for i, def in PlacesConfig.Lifts do
