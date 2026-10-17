@@ -12,6 +12,7 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local Atmosphere = require(script.Parent.Atmosphere)
 local PropLibrary = require(script.Parent.PropLibrary)
+local Ruins = require(script.Parent.Ruins)
 local Scenery = require(script.Parent.Scenery)
 
 local World = GameConfig.World
@@ -52,6 +53,22 @@ local COLORS = {
 	fabric = Color3.fromRGB(80, 90, 110),
 	silhouette = Color3.fromRGB(45, 48, 55),
 }
+
+-- Collapsed spots in a floor slab: the floor of that level is broken there and you look down into the
+-- level below (fenced by invisible walls). Furnishing and zombie spawns keep clear of them.
+local CEILING_HOLES: { [number]: Ruins.Rect } = {
+	[1] = { minX = 20, maxX = 28, minZ = 2.5, maxZ = 9.5 },
+	[2] = { minX = -10, maxX = -2, minZ = -27.5, maxZ = -20.5 },
+	[3] = { minX = -30, maxX = -22, minZ = 2.5, maxZ = 9.5 },
+}
+
+local function nearHole(rect: Ruins.Rect?, x: number, z: number, margin: number): boolean
+	return rect ~= nil
+		and x > rect.minX - margin
+		and x < rect.maxX + margin
+		and z > rect.minZ - margin
+		and z < rect.maxZ + margin
+end
 
 local function levelY(level: number): number
 	return World.RoofY - level * World.FloorSpacing
@@ -196,31 +213,39 @@ local function pointLight(parent: BasePart, color: Color3, range: number, bright
 	return light
 end
 
--- Slab with the stairwell hole cut out (built from four rectangles around it).
-local function slab(parent: Instance, name: string, size: number, topY: number, withHole: boolean, color: Color3)
+-- Slab with the stairwell hole (and any collapsed spot) cut out, built from solid strips around them.
+local function slab(
+	parent: Instance,
+	name: string,
+	size: number,
+	topY: number,
+	withHole: boolean,
+	color: Color3,
+	extraHole: Ruins.Rect?
+)
 	local t = World.SlabThickness
 	local y = topY - t / 2
 	local half = size / 2
-	if not withHole then
+	local holes: { Ruins.Rect } = {}
+	if withHole then
+		table.insert(holes, { minX = -HOLE_X, maxX = HOLE_X, minZ = HOLE_MIN_Z, maxZ = HOLE_MAX_Z })
+	end
+	if extraHole then
+		table.insert(holes, extraHole)
+	end
+	if #holes == 0 then
 		block(parent, name, Vector3.new(size, t, size), CFrame.new(0, y, 0), color)
 		return
 	end
-	block(parent, name .. "_W", Vector3.new(half - HOLE_X, t, size), CFrame.new(-(half + HOLE_X) / 2, y, 0), color)
-	block(parent, name .. "_E", Vector3.new(half - HOLE_X, t, size), CFrame.new((half + HOLE_X) / 2, y, 0), color)
-	block(
-		parent,
-		name .. "_S",
-		Vector3.new(HOLE_X * 2, t, half + HOLE_MIN_Z),
-		CFrame.new(0, y, (-half + HOLE_MIN_Z) / 2),
-		color
-	)
-	block(
-		parent,
-		name .. "_N",
-		Vector3.new(HOLE_X * 2, t, half - HOLE_MAX_Z),
-		CFrame.new(0, y, (half + HOLE_MAX_Z) / 2),
-		color
-	)
+	for i, strip in Ruins.SlabStrips(half, holes) do
+		block(
+			parent,
+			name .. "_" .. i,
+			Vector3.new(strip.maxX - strip.minX, t, strip.maxZ - strip.minZ),
+			CFrame.new((strip.minX + strip.maxX) / 2, y, (strip.minZ + strip.maxZ) / 2),
+			color
+		)
+	end
 end
 
 -- A sloped walkway whose top surface runs exactly from a to b.
@@ -337,7 +362,14 @@ end
 local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 	local floorY = levelY(level)
 	local half = World.FloorSize / 2
-	slab(parent, "Floor", World.FloorSize, floorY, level < World.FloorCount, COLORS.concrete)
+	slab(parent, "Floor", World.FloorSize, floorY, level < World.FloorCount, COLORS.concrete, CEILING_HOLES[level])
+	local ruin = Random.new()
+	if CEILING_HOLES[level] then
+		Ruins.HoleRim(parent, floorY, World.SlabThickness, CEILING_HOLES[level], ruin)
+	end
+	if CEILING_HOLES[level - 1] then
+		Ruins.DebrisPile(parent, floorY, floorY + WALL_HEIGHT, CEILING_HOLES[level - 1], ruin)
+	end
 
 	-- Outer walls: solid band, a band of unbreakable glass, solid band.
 	local bands = {
@@ -370,6 +402,29 @@ local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 			if band.glass then
 				px.Transparency = 0.55
 				pz.Transparency = 0.55
+				-- Split the glass into panes; some of them are smashed (still blocking the way out).
+				for _, pane in { px, pz } do
+					local alongX = pane.Size.X > pane.Size.Z
+					local length = if alongX then pane.Size.X else pane.Size.Z
+					local count = 7
+					local step = length / count
+					for i = 1, count do
+						local offset = -length / 2 + step * (i - 0.5)
+						local piece = pane:Clone()
+						piece.Size = if alongX
+							then Vector3.new(step, pane.Size.Y, pane.Size.Z)
+							else Vector3.new(pane.Size.X, pane.Size.Y, step)
+						piece.CFrame = pane.CFrame
+							* CFrame.new(if alongX then offset else 0, 0, if alongX then 0 else offset)
+						piece.Parent = parent
+						if ruin:NextNumber() < 0.35 then
+							local inward = Vector3.new(-pane.Position.X, 0, -pane.Position.Z).Unit
+							inward = if alongX then Vector3.new(0, 0, inward.Z) else Vector3.new(inward.X, 0, 0)
+							Ruins.ShatteredPane(parent, piece, floorY, inward.Unit, ruin)
+						end
+					end
+					pane:Destroy()
+				end
 			end
 		end
 	end
@@ -799,6 +854,12 @@ local FURNISHING: { [number]: { Furnishing } } = {
 local function furnish(floor: Folder, level: number)
 	local floorY = levelY(level)
 	for _, item in FURNISHING[level] or {} do
+		-- Nothing stands over a collapsed spot or on the debris under one.
+		if
+			nearHole(CEILING_HOLES[level], item.x, item.z, 2) or nearHole(CEILING_HOLES[level - 1], item.x, item.z, 2)
+		then
+			continue
+		end
 		-- Ceiling panels hang from the ceiling instead of standing on the floor.
 		local y = if item.high then floorY + WALL_HEIGHT - item.fit.Y - 0.5 else floorY
 		local base = Vector3.new(item.x, y, item.z)
@@ -953,6 +1014,21 @@ local function makePlacer(level: number, floor: Folder, rooms: { string }): (zon
 	end
 end
 
+-- Rubble heaps and torn cables in new spots every match (placed before the items, which avoid them).
+local function ruinDecor(floor: Folder, level: number, at: (zone: string) -> Vector2, heaps: number)
+	local rng = Random.new()
+	local floorY = levelY(level)
+	for _ = 1, heaps do
+		Ruins.RubbleHeap(floor, floorY, at("open"), rng)
+	end
+	for _ = 1, 3 + level do
+		local pos = Vector2.new(rng:NextNumber(-30, 30), rng:NextNumber(-30, 30))
+		if math.abs(pos.X) > HOLE_X + 2 or math.abs(pos.Y) > HOLE_MAX_Z + 2 then
+			Ruins.HangingCable(floor, floorY + WALL_HEIGHT, pos, rng)
+		end
+	end
+end
+
 local function buildFloor1(parent: Folder, interactables: Folder)
 	local level = 1
 	local floor = Instance.new("Folder")
@@ -974,6 +1050,7 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, { "roomPP" })
+	ruinDecor(floor, level, at, 2)
 	resourceNode(interactables, level, "F1_Scrap_1", "Scrap", 2, at("open"))
 	resourceNode(interactables, level, "F1_Scrap_2", "Scrap", 1, at("open"))
 	resourceNode(interactables, level, "F1_Scrap_3", "Scrap", 2, at("open"))
@@ -1005,6 +1082,7 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, {})
+	ruinDecor(floor, level, at, 3)
 	resourceNode(interactables, level, "F2_Food_1", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_2", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_3", "Food", 1, at("open"))
@@ -1088,6 +1166,7 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, {})
+	ruinDecor(floor, level, at, 3)
 	resourceNode(interactables, level, "F3_Elec_1", "Electronics", 2, at("toxic"))
 	resourceNode(interactables, level, "F3_Elec_2", "Electronics", 2, at("toxic"))
 	resourceNode(interactables, level, "F3_Elec_3", "Electronics", 2, at("toxic"))
@@ -1156,6 +1235,7 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	furnish(floor, level)
 	-- Items land somewhere new every match.
 	local at = makePlacer(level, floor, { "roomNN", "roomPP" })
+	ruinDecor(floor, level, at, 4)
 	resourceNode(interactables, level, "F4_Cable_1", "Cable", 2, at("open"), gen)
 	resourceNode(interactables, level, "F4_Cable_2", "Cable", 2, at("open"), gen)
 	resourceNode(

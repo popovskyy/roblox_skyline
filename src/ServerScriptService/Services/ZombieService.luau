@@ -45,9 +45,9 @@ local spawnPoints: { [number]: { Vector3 } } = {}
 -- Open spots on each floor, away from the stairwell and the rubble rooms (x, z).
 local SPAWNS: { [number]: { Vector2 } } = {
 	[1] = { Vector2.new(0, 28), Vector2.new(-28, 15), Vector2.new(26, -5), Vector2.new(-6, -28) },
-	[2] = { Vector2.new(8, 24), Vector2.new(-26, -8), Vector2.new(26, 8), Vector2.new(-6, -28) },
+	[2] = { Vector2.new(8, 24), Vector2.new(-26, -8), Vector2.new(30, -4), Vector2.new(-6, -32) },
 	[3] = { Vector2.new(-26, -6), Vector2.new(-16, 24), Vector2.new(22, -12), Vector2.new(24, 18) },
-	[4] = { Vector2.new(-28, 10), Vector2.new(14, -26), Vector2.new(26, 8), Vector2.new(-10, 26), Vector2.new(4, -28) },
+	[4] = { Vector2.new(-28, 17), Vector2.new(14, -26), Vector2.new(26, 8), Vector2.new(-10, 26), Vector2.new(4, -28) },
 }
 
 local function floorY(level: number): number
