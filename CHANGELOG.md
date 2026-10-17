@@ -3,9 +3,9 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
-## Unreleased · `cursor/roadmap-final-pass`
+## b34 · 17.10 19:30
 
-Epic final-pass branch (no publish until owner merge). Phase A A1–A10 already live on master (b28–b32).
+Final-pass ship: HUD declutter + Phase D scaffold + launch prep docs. Phase A A1–A10 already live (b28–b32).
 
 ### HUD declutter (P0)
 - Quieter tower HUD: no toast on every pickup (`res.collected`), tutorial step (`tutorial.new`), rubble
