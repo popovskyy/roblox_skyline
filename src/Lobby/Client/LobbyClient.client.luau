@@ -90,6 +90,8 @@ local topScreen = UIKit.New("ScreenGui", {
 	IgnoreGuiInset = true,
 	ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	-- Above SkylineUI (lift card, toasts); below teleport overlay (100). Same band as UIKit.TopScreen.
+	DisplayOrder = 2,
 	Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
 })
 local tokenChip = UIKit.New("Frame", {
@@ -346,7 +348,8 @@ local classPanel = UIKit.New("Frame", {
 	Name = "Classes",
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.new(0, 560, 0.9, 0),
+	-- Same as Records / How sheets: scale to the phone, cap on PC (fixed 560 overflowed small viewports).
+	Size = UDim2.fromScale(if touch then 0.96 else 0.9, if touch then 0.94 else 0.9),
 	BackgroundColor3 = T.PanelSolid,
 	BorderSizePixel = 0,
 	Visible = false,
@@ -742,7 +745,10 @@ Lang.Changed:Connect(function()
 end)
 
 -- Gamepad: X opens Records, Y opens How to play, B closes whatever is open.
-UserInputService.InputBegan:Connect(function(input)
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed or not usingGamepad() then
+		return
+	end
 	if input.KeyCode == Enum.KeyCode.ButtonX then
 		toggleRecords()
 	elseif input.KeyCode == Enum.KeyCode.ButtonY then
@@ -813,7 +819,8 @@ local liftPanel = UIKit.New("Frame", {
 	Name = "LiftCard",
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -10),
-	Size = UDim2.fromOffset(if compact then 420 else 480, 0),
+	-- Fill with side margin, then cap to the HUD_SPEC width so narrow phones are not clipped.
+	Size = UDim2.new(1, -20, 0, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundColor3 = T.PanelSolid,
 	BackgroundTransparency = 0.1,
@@ -821,6 +828,10 @@ local liftPanel = UIKit.New("Frame", {
 	Visible = false,
 	Parent = screen,
 }, { UIKit.Corner(12) })
+UIKit.New("UISizeConstraint", {
+	MaxSize = Vector2.new(if compact then 420 else 480, 10000),
+	Parent = liftPanel,
+})
 UIKit.Padding(14).Parent = liftPanel
 UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = liftPanel })
 local headRow = UIKit.New("Frame", {
