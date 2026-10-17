@@ -84,7 +84,10 @@ local GameConfig = {
 	-- Timed roof horde: does not respawn floor zombies; only spawns a new wave up the stairs.
 	-- First wave after FirstDelayMin..Max seconds of match time, then every IntervalMin..Max.
 	-- Count scales with players in the server: solo = CountMin, each extra player +1, capped at CountMax.
+	-- Enabled = false: QA kill-switch (Phase A10) — no siren/waves if Barricade fails owner playtest.
+	-- Barricade collision wiring still runs so boards stay authoritative when built.
 	Horde = {
+		Enabled = true,
 		FirstDelayMin = 480, -- 8 min
 		FirstDelayMax = 600, -- 10 min
 		IntervalMin = 480,

@@ -139,7 +139,7 @@ end
 function HordeService.Reset()
 	generation += 1
 	applyBarricadeCollision(teamHasBarricade())
-	if running then
+	if running and H.Enabled then
 		scheduleLoop(generation)
 	end
 end
@@ -149,12 +149,16 @@ function HordeService.Start(root: Folder)
 		return
 	end
 	running = true
+	-- Barricade boards still harden on purchase even when waves are off (QA kill-switch).
 	collectBarricadeParts(root)
 	BaseUpgradeService.OnPurchased(function(_player: Player, upgradeId: string)
 		if upgradeId == "Barricade" then
 			applyBarricadeCollision(true)
 		end
 	end)
+	if not H.Enabled then
+		return
+	end
 	generation += 1
 	scheduleLoop(generation)
 end

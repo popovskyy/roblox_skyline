@@ -1,24 +1,30 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build b31 · 17.10 16:50 (tooltip structure fix).
+Owner: Popovskyi. Updated 17.10, after Phase B/C readiness slice (Unreleased, post-b31).
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
 
-## Now: check b31 in the game (owner)
+## Now: Phase C playtest gate (owner)
 
-The owner tests on PC, phone, tablet and PS5. Focus for this pass:
-- Tap Club / Food / Medkit — name plate above hotbar is **crisp** (not smeared), same clarity as ЦІЛЬ.
-- Touch: action caption above the round interact button also crisp.
-- Still OK from b30: soft rubble hold-clear; stair shaft no floating lip; no yellow default Health.
+Code readiness for Phase B/C is in (Unreleased): `Horde.Enabled` kill-switch, Scrap≠Лом tip same beat,
+Gold/Diamond open juice. **Owner signs Phase C** before any Phase D / polish / publish.
+
+Focus in game (solo + 2–3 co-op):
+- First Scrap tip visible with pickup; F1 scrap path + soft rubble still obvious.
+- Barricade before ~8–10 min → horde stuck behind boards (video); if not → set `Horde.Enabled = false`.
+- Gold/Diamond open clearly louder than Common; crates stay party-shared and scarce.
+- Co-op Bridge typically **≥ 25 min**; solo **≥ 30 min** without AFK.
+
+Still OK from b31: crisp hotbar tooltip / touch caption; soft rubble hold-clear; stair shaft; no yellow Health.
 
 Questions for the owner:
 - A gamepad has no button to open the Classes panel in the lobby. Add one?
 
 ## Next (in this order)
 
-1. **Slow survival Phase B/C** (`docs/design/slow-survival-loop.md`): playtest b30 / Phase A, then continue
-   the loop redesign. Do not pull brainstorm ideas ahead of that doc.
+1. **Slow survival Phase B/C** — owner Phase C sign-off (`docs/design/slow-survival-loop.md` §10). LOCAL
+   #2–#5 and C-gate hardening are done; do not pull brainstorm ideas or Phase D ahead of that sign-off.
 2. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
    model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
    sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent). **Only after**

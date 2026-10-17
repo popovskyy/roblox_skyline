@@ -3,6 +3,25 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## Unreleased · Phase B/C readiness (post-b31)
+C-gate hardening only: horde QA switch, Scrap≠Лом tip same beat, louder Gold/Diamond opens. No balance
+retune, no Blender, no publish.
+
+### Horde kill-switch (A10)
+- `GameConfig.Horde.Enabled` (default `true`). When `false`, no siren and no waves; Barricade boards still
+  harden on purchase.
+- Check in game: normal match still gets first horde ~8–10 min; with `Enabled = false` (Studio/config) —
+  whole match with no siren/wave.
+
+### First Scrap tip visible same beat (A9)
+- `hint.scrapNotCrowbar` bypasses the 15 s soft-toast throttle so it is not delayed behind "collected".
+- Check in game: pick first Scrap on F1 — "зібрано" and the Scrap≠Лом line both show together (uk/ru/en).
+
+### Gold / Diamond open louder (§10.5)
+- Stronger camera shake, denser burst, longer/louder banner; open ding on Gold/Diamond. Common/Rare unchanged.
+- Check in game: open Common vs Gold/Diamond — rare tiers clearly out-read three Commons; party still sees
+  the banner; shared empty crates unchanged.
+
 ## b31 · 17.10 16:50
 Hotbar item tooltip / touch action caption actually readable (structure fix, not another paint tweak).
 

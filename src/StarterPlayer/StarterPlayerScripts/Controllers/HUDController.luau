@@ -193,10 +193,12 @@ local function flushPending()
 	showToast(pending.text, pending.kind)
 end
 
-function HUDController.Toast(text: string, kind: string?)
+-- force: one-shot teach tips (e.g. Scrap≠Crowbar) land in the same beat as the pickup toast
+-- without shortening ToastMinIntervalSeconds for other info/success lines.
+function HUDController.Toast(text: string, kind: string?, force: boolean?)
 	local rank = KIND_RANK[kind or "info"] or 1
 	-- Danger always lands; soft tips wait so loot / tutorial lines do not stack.
-	if rank >= 3 then
+	if force or rank >= 3 then
 		pendingToast = nil
 		pendingToken += 1
 		lastToastAt = os.clock()
