@@ -34,6 +34,8 @@ type Zombie = {
 	wanderAt: number,
 	walkTrack: AnimationTrack?,
 	idleTrack: AnimationTrack?,
+	alertPos: Vector3?, -- a noise to investigate until alertUntil
+	alertUntil: number,
 }
 
 local zombies: { Zombie } = {}
@@ -106,7 +108,25 @@ spawnZombie = function(level: number)
 	if not points or not folder then
 		return
 	end
-	local home = points[math.random(1, #points)]
+	-- The spot farthest from every player and every other zombie, so nobody pops up in someone's face.
+	local home = points[1]
+	local bestScore = -math.huge
+	for _, point in points do
+		local nearest = math.huge
+		for _, player in Players:GetPlayers() do
+			local root = CharacterUtil.GetRoot(player)
+			if root then
+				nearest = math.min(nearest, (root.Position - point).Magnitude)
+			end
+		end
+		for _, other in zombies do
+			nearest = math.min(nearest, (other.root.Position - point).Magnitude * 1.5)
+		end
+		local score = nearest + math.random() * 4
+		if score > bestScore then
+			home, bestScore = point, score
+		end
+	end
 	local ok, model = pcall(function()
 		return Players:CreateHumanoidModelFromDescription(zombieDescription(), Enum.HumanoidRigType.R15)
 	end)
@@ -143,6 +163,7 @@ spawnZombie = function(level: number)
 		waypoints = {},
 		waypointIndex = 0,
 		wanderAt = 0,
+		alertUntil = 0,
 	}
 	table.insert(zombies, z)
 	playAnimations(z)
@@ -241,6 +262,13 @@ local function think(z: Zombie, now: number)
 		end
 		return
 	end
+	-- A noise nearby (crowbar break-in): go and look.
+	if z.alertPos and now < z.alertUntil then
+		if (z.alertPos - z.root.Position).Magnitude > 4 then
+			moveAlongPath(z, z.alertPos, now)
+		end
+		return
+	end
 	-- Nobody around: shuffle near home.
 	if now >= z.wanderAt then
 		z.wanderAt = now + math.random(4, 9)
@@ -259,6 +287,18 @@ function ZombieService.GetZombieAt(part: Instance): (Humanoid?, BasePart?)
 		end
 	end
 	return nil, nil
+end
+
+-- A loud noise: zombies on the same floor within radius come to check it out.
+function ZombieService.Alert(position: Vector3, radius: number, seconds: number)
+	local now = os.clock()
+	for _, z in zombies do
+		local offset = z.root.Position - position
+		if math.abs(offset.Y) < 9 and offset.Magnitude <= radius then
+			z.alertPos = position
+			z.alertUntil = now + seconds
+		end
+	end
 end
 
 -- Every living zombie: { humanoid, root }.

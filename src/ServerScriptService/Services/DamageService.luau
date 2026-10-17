@@ -65,7 +65,8 @@ local function checkAllDown()
 		return
 	end
 	for _, player in Players:GetPlayers() do
-		if not downed[player] and CharacterUtil.GetHumanoid(player) then
+		-- A player between characters (respawning) is not lying down, so they do not end the match.
+		if not downed[player] then
 			return
 		end
 	end

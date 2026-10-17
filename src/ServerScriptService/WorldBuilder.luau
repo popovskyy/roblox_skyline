@@ -441,6 +441,8 @@ local function nodeLook(itemId: string): (Vector3, Color3, Enum.Material, Enum.P
 		return Vector3.new(1.2, 2.4, 2.4), Color3.fromRGB(25, 25, 25), Enum.Material.Rubber, Enum.PartType.Cylinder
 	elseif itemId == "Motor" then
 		return Vector3.new(2.2, 2, 2.2), Color3.fromRGB(60, 70, 85), Enum.Material.Metal, Enum.PartType.Block
+	elseif itemId == "Key" then
+		return Vector3.new(0.4, 1.4, 0.7), Color3.fromRGB(230, 185, 70), Enum.Material.Neon, Enum.PartType.Block
 	elseif itemId == "Flashlight" then
 		return Vector3.new(0.8, 0.8, 1.8),
 			Color3.fromRGB(240, 200, 40),
@@ -463,7 +465,29 @@ local CRATE_LOOKS: { [string]: { body: Color3, trim: Color3, glow: boolean } } =
 	Diamond = { body = Color3.fromRGB(40, 60, 70), trim = Color3.fromRGB(110, 240, 255), glow = true },
 }
 
--- Loot crate; the higher the tier, the brighter the trim. Opened per player, refilled on roof return.
+local tierRng = Random.new()
+
+-- Rarity for a crate on this floor, from GameConfig.Loot.TierOdds.
+local function rollTier(level: number): string
+	local odds = GameConfig.Loot.TierOdds[level] or GameConfig.Loot.TierOdds[1]
+	local total = 0
+	for _, weight in odds do
+		total += weight
+	end
+	local roll = tierRng:NextNumber(0, total)
+	for i, weight in odds do
+		roll -= weight
+		if roll <= 0 then
+			return GameConfig.Loot.TierOrder[i]
+		end
+	end
+	return "Common"
+end
+
+-- Loot crate; the higher the tier, the brighter the trim ("Roll" picks the tier from the floor's odds).
+-- Opened per player, refilled on roof return. Glow, sparkles and sounds are added by each client
+-- (LootFxController) so they can switch off for players who already emptied the crate.
+-- Diamond crates are locked: a Key or a long crowbar break-in.
 local function lootCrate(
 	parent: Instance,
 	level: number,
@@ -473,6 +497,9 @@ local function lootCrate(
 	options: { requiresUpgrade: string?, requiresRubble: string? }?
 )
 	local x, z = pos.X, pos.Y
+	if tier == "Roll" then
+		tier = rollTier(level)
+	end
 	local look = CRATE_LOOKS[tier]
 	local crate = onFloor(parent, nodeId, level, x, z, Vector3.new(3.4, 2.2, 2.4), look.body, Enum.Material.WoodPlanks)
 	if tier ~= "Common" then
@@ -509,10 +536,12 @@ local function lootCrate(
 		)
 		band.CanCollide = false
 	end
-	if look.glow then
-		pointLight(crate, look.trim, 12, 1.2, true)
+	if tier == "Diamond" then
+		crate:SetAttribute("Locked", true)
+		addPrompt(crate, "prompt.unlock", "loot." .. tier, GameConfig.Loot.BreakInSeconds)
+	else
+		addPrompt(crate, "prompt.open", "loot." .. tier, GameConfig.Loot.HoldSeconds)
 	end
-	addPrompt(crate, "prompt.open", "loot." .. tier, 0.6)
 	return crate
 end
 
@@ -954,8 +983,8 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, at("open"))
 	resourceNode(interactables, level, "F1_Elec_2", "Electronics", 2, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, at("roomPP"), { requiresRubble = "F1_Rubble" })
-	lootCrate(interactables, level, "F1_Crate_1", "Common", at("open"))
-	lootCrate(interactables, level, "F1_Crate_2", "Common", at("open"))
+	lootCrate(interactables, level, "F1_Crate_1", "Roll", at("open"))
+	lootCrate(interactables, level, "F1_Crate_2", "Roll", at("open"))
 	resourceNode(interactables, level, "F1_Food_1", "Food", 1, at("open"))
 end
 
@@ -987,9 +1016,9 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F2_Scrap_2", "Scrap", 1, at("open"))
 	resourceNode(interactables, level, "F2_Scrap_3", "Scrap", 1, at("open"))
 	resourceNode(interactables, level, "F2_Flashlight", "Flashlight", 1, at("open"), { unique = true })
-	lootCrate(interactables, level, "F2_Crate_1", "Common", at("open"))
-	lootCrate(interactables, level, "F2_Crate_2", "Common", at("open"))
-	lootCrate(interactables, level, "F2_Crate_3", "Rare", at("open"))
+	lootCrate(interactables, level, "F2_Crate_1", "Roll", at("open"))
+	lootCrate(interactables, level, "F2_Crate_2", "Roll", at("open"))
+	lootCrate(interactables, level, "F2_Crate_3", "Roll", at("open"))
 end
 
 local function buildFloor3(parent: Folder, interactables: Folder)
@@ -1067,8 +1096,10 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F3_Scrap_1", "Scrap", 2, at("safe"))
 	resourceNode(interactables, level, "F3_Scrap_2", "Scrap", 2, at("safe"))
 	resourceNode(interactables, level, "F3_Scrap_3", "Scrap", 1, at("safe"))
-	lootCrate(interactables, level, "F3_Crate_1", "Rare", at("safe"))
-	lootCrate(interactables, level, "F3_Crate_2", "Gold", at("toxic"))
+	lootCrate(interactables, level, "F3_Crate_1", "Roll", at("safe"))
+	lootCrate(interactables, level, "F3_Crate_2", "Roll", at("toxic"))
+	lootCrate(interactables, level, "F3_Crate_3", "Roll", at("safe"))
+	resourceNode(interactables, level, "F3_Key", "Key", 1, at("toxic"), { unique = true })
 	resourceNode(interactables, level, "F3_Food_1", "Food", 1, at("safe"))
 end
 
@@ -1151,8 +1182,9 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F4_Scrap_4", "Scrap", 1, at("open"), gen)
 	resourceNode(interactables, level, "F4_Elec_1", "Electronics", 2, at("open"), gen)
 	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 1, at("open"), gen)
-	lootCrate(interactables, level, "F4_Crate_1", "Rare", at("open"), gen)
-	lootCrate(interactables, level, "F4_Crate_2", "Gold", at("open"), gen)
+	lootCrate(interactables, level, "F4_Crate_1", "Roll", at("open"), gen)
+	lootCrate(interactables, level, "F4_Crate_2", "Roll", at("open"), gen)
+	resourceNode(interactables, level, "F4_Key", "Key", 1, at("open"), { unique = true })
 	resourceNode(interactables, level, "F4_Food_1", "Food", 2, at("open"), gen)
 	resourceNode(interactables, level, "F4_Food_2", "Food", 1, at("open"), gen)
 	lootCrate(
@@ -1331,6 +1363,29 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	)
 	barrier:SetAttribute("UpgradeVisual", "Bridge")
 	barrier:SetAttribute("VisualMode", "Hide")
+
+	-- Invisible walls well above jump height, so nobody can hop the railing and fall off the tower.
+	-- The one across the bridge gap disappears (per player) once the bridge is built.
+	local WALL_H = 14
+	local function edgeWall(folder: Instance, size: Vector3, at: CFrame): BasePart
+		local wall = block(folder, "EdgeWall", size, at, COLORS.rail, Enum.Material.SmoothPlastic)
+		wall.Transparency = 1
+		wall.CanQuery = false
+		wall.CastShadow = false
+		return wall
+	end
+	for _, side in { -1, 1 } do
+		edgeWall(roof, Vector3.new(World.RoofSize + 1, WALL_H, 0.6), CFrame.new(0, roofY + WALL_H / 2, side * half))
+		edgeWall(
+			roof,
+			Vector3.new(0.6, WALL_H, eastLen),
+			CFrame.new(half, roofY + WALL_H / 2, side * (gap + eastLen / 2))
+		)
+	end
+	edgeWall(roof, Vector3.new(0.6, WALL_H, World.RoofSize), CFrame.new(-half, roofY + WALL_H / 2, 0))
+	local gapWall = edgeWall(visuals, Vector3.new(0.8, WALL_H, gap * 2), CFrame.new(half, roofY + WALL_H / 2, 0))
+	gapWall:SetAttribute("UpgradeVisual", "Bridge")
+	gapWall:SetAttribute("VisualMode", "Hide")
 	sign(
 		visuals,
 		"sign.bridgeBroken",

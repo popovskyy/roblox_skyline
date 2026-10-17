@@ -8,6 +8,7 @@
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(ReplicatedStorage.Shared.Theme)
@@ -136,6 +137,7 @@ local function renderInventory(s: { [string]: any })
 		if def.resource then
 			if count > 0 then
 				local chip = UIKit.New("Frame", {
+					Name = itemId,
 					Size = UDim2.fromOffset(0, 24),
 					AutomaticSize = Enum.AutomaticSize.X,
 					BackgroundColor3 = C.panel,
@@ -231,6 +233,22 @@ local function activateSlot(i: number)
 	end
 end
 
+-- Gamepad: L1 / R1 (or D-pad left / right) step through the hotbar and take that item in hand.
+local gamepadSlot = 0
+local function stepSlot(direction: number)
+	local count = #slotItems
+	if count == 0 then
+		return
+	end
+	local current = table.find(slotItems, player:GetAttribute("Equipped") or "") or gamepadSlot
+	local nextSlot = ((current - 1 + direction) % count) + 1
+	if current == 0 then
+		nextSlot = if direction > 0 then 1 else count
+	end
+	gamepadSlot = nextSlot
+	activateSlot(nextSlot)
+end
+
 local function buildHotbar(screen: ScreenGui)
 	local width = SLOT_COUNT * SLOT_SIZE + (SLOT_COUNT - 1) * SLOT_GAP
 	local holder = UIKit.New("Frame", {
@@ -243,7 +261,7 @@ local function buildHotbar(screen: ScreenGui)
 	})
 
 	weightLabel = UIKit.Label({
-		Size = UDim2.fromOffset(120, 16),
+		Size = UDim2.fromOffset(120, 18),
 		Text = "",
 		TextSize = 13,
 		TextColor3 = C.muted,
@@ -415,6 +433,36 @@ local function renderStorage(s: { [string]: any })
 	end)
 end
 
+-- "+N" over the pouch counter when loot flies into it, with a little bump of the counter.
+function InventoryController.FlashPouch(itemId: string, amount: number)
+	local chip = pouch:FindFirstChild(itemId)
+	local holder = pouch.Parent :: GuiObject
+	local x = if chip and chip:IsA("GuiObject")
+		then chip.AbsolutePosition.X - holder.AbsolutePosition.X + chip.AbsoluteSize.X / 2
+		else 20
+	local popup = UIKit.Label({
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromOffset(x, -30),
+		Size = UDim2.fromOffset(80, 24),
+		Text = "+" .. tostring(amount),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		FontFace = Theme.Display,
+		TextSize = 22,
+		TextColor3 = C.good,
+		TextStrokeTransparency = 0.3,
+		Parent = holder,
+	})
+	TweenService:Create(popup, TweenInfo.new(0.9), { Position = UDim2.fromOffset(x, -60), TextTransparency = 1 }):Play()
+	task.delay(1, function()
+		popup:Destroy()
+	end)
+	if chip and chip:IsA("GuiObject") then
+		local scale = chip:FindFirstChildOfClass("UIScale") or UIKit.New("UIScale", { Parent = chip })
+		scale.Scale = 1.35
+		TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+end
+
 function InventoryController.OpenStorage()
 	storagePanel.Visible = true
 	local s = ClientState.Get()
@@ -445,6 +493,10 @@ function InventoryController.Start(remoteFolder: Folder)
 		local slotIndex = table.find(NUMBER_KEYS, input.KeyCode)
 		if slotIndex then
 			activateSlot(slotIndex)
+		elseif input.KeyCode == Enum.KeyCode.ButtonR1 or input.KeyCode == Enum.KeyCode.DPadRight then
+			stepSlot(1)
+		elseif input.KeyCode == Enum.KeyCode.ButtonL1 or input.KeyCode == Enum.KeyCode.DPadLeft then
+			stepSlot(-1)
 		elseif input.KeyCode == Enum.KeyCode.DPadUp then
 			useItem("Medkit")
 		elseif input.KeyCode == Enum.KeyCode.DPadDown then

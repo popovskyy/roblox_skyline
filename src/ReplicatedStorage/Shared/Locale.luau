@@ -67,9 +67,9 @@ local S: { [string]: Entry } = {
 	},
 	["item.Flashlight.name"] = { uk = "Ліхтарик", ru = "Фонарик", en = "Flashlight" },
 	["item.Flashlight.desc"] = {
-		uk = "Вмикається клавішею F. Заряджається біля генератора.",
-		ru = "Включается клавишей F. Заряжается у генератора.",
-		en = "Toggle with F. Charges next to the generator.",
+		uk = "Візьми в руку й тапни, або F / кнопка Y. Заряджається біля генератора.",
+		ru = "Возьми в руку и тапни, или F / кнопка Y. Заряжается у генератора.",
+		en = "Hold it and tap, or press F / Y. Charges next to the generator.",
 	},
 
 	["item.Club.name"] = { uk = "Дубина", ru = "Дубина", en = "Club" },
@@ -631,6 +631,34 @@ local S: { [string]: Entry } = {
 	},
 	["loot.found"] = { uk = "Знайдено: %s", ru = "Найдено: %s", en = "Found: %s" },
 	["loot.empty"] = { uk = "Ящик порожній", ru = "Ящик пуст", en = "The crate is empty" },
+	["loot.locked"] = {
+		uk = "Замкнено. Потрібен ключ або лом",
+		ru = "Заперто. Нужен ключ или лом",
+		en = "Locked. You need a key or a crowbar",
+	},
+	["loot.breakIn"] = {
+		uk = "Ти зламав замок. Шум привабив зомбі!",
+		ru = "Ты взломал замок. Шум привлёк зомби!",
+		en = "You broke the lock. The noise drew zombies!",
+	},
+	["loot.keyUsed"] = { uk = "Ключ підійшов", ru = "Ключ подошёл", en = "The key fits" },
+	["prompt.unlock"] = { uk = "Ключ або лом", ru = "Ключ или лом", en = "Key or crowbar" },
+	["loot.banner.Gold"] = {
+		uk = "%s відкрив ЗОЛОТУ скриню!",
+		ru = "%s открыл ЗОЛОТОЙ сундук!",
+		en = "%s opened a GOLD chest!",
+	},
+	["loot.banner.Diamond"] = {
+		uk = "%s відкрив ДІАМАНТОВУ скриню!",
+		ru = "%s открыл АЛМАЗНЫЙ сундук!",
+		en = "%s opened a DIAMOND chest!",
+	},
+	["item.Key.name"] = { uk = "Ключ", ru = "Ключ", en = "Key" },
+	["item.Key.desc"] = {
+		uk = "Відкриває діамантову скриню без шуму.",
+		ru = "Открывает алмазный сундук без шума.",
+		en = "Opens a diamond chest quietly.",
+	},
 
 	["downed.waitTeam"] = {
 		uk = "Чекай, поки тіммейт підніме тебе бинтом",

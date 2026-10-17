@@ -21,6 +21,12 @@ local SoundConfig = {
 		Bandage = { 9114200237 },
 		Success = { 9116394545 },
 		Click = { 15675032796 },
+		LootChime = { 9116394876, 9116394545 },
+		LootHum = { 9116328602 },
+		LootRise = { 9116420454 },
+		LootUpgrade = { 9126073001 },
+		LootBanner = { 9116395085 },
+		BreakIn = { 9116673915 },
 	} :: { [string]: { number } },
 }
 

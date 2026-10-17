@@ -6,6 +6,7 @@
 -- Rubble attributes: RubbleId, RequiresTool?, RewardItem?, RequiresUpgrade?
 
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Locale = require(ReplicatedStorage.Shared.Locale)
@@ -15,13 +16,19 @@ local SfxService = require(script.Parent.SfxService)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local StateSyncService = require(script.Parent.StateSyncService)
+local ZombieService = require(script.Parent.ZombieService)
 
 local ResourceService = {}
 
 type PlayerNodes = {
 	depleted: { [string]: boolean }, -- normal nodes, refilled on roof return
 	cleared: { [string]: boolean }, -- rubble, cleared for this session
+	opened: { [string]: boolean }, -- loot crates, opened once per match
+	seenGold: boolean, -- opened a gold or diamond crate this match (bad-luck protection)
+	holdStart: number?, -- when the player started holding a locked crate's prompt
+	holdCrate: Instance?,
 }
 
 local state: { [Player]: PlayerNodes } = {}
@@ -29,7 +36,7 @@ local state: { [Player]: PlayerNodes } = {}
 local function getState(player: Player): PlayerNodes
 	local s = state[player]
 	if not s then
-		s = { depleted = {}, cleared = {} }
+		s = { depleted = {}, cleared = {}, opened = {}, seenGold = false }
 		state[player] = s
 	end
 	return s
@@ -161,6 +168,30 @@ local function rollLoot(player: Player, tier: string): { [string]: number }
 	return loot
 end
 
+local Loot = GameConfig.Loot
+
+local function tierIndex(tier: string): number
+	return table.find(Loot.TierOrder, tier) or 1
+end
+
+-- Floor number from a node id like "F3_Crate_1".
+local function crateLevel(nodeId: string): number
+	return tonumber(string.match(nodeId, "^F(%d+)_")) or 1
+end
+
+-- The tier this player actually gets: the crate's own, bumped to gold by bad-luck protection,
+-- or one tier better by a lucky roll at the end of the hold.
+local function finalTier(s: PlayerNodes, tier: string, level: number): string
+	local index = tierIndex(tier)
+	if not s.seenGold and level >= Loot.PityFloor and index < tierIndex("Gold") then
+		return "Gold"
+	end
+	if index < #Loot.TierOrder and math.random() < Loot.UpgradeChance then
+		return Loot.TierOrder[index + 1]
+	end
+	return tier
+end
+
 function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, any)
 	local data = PlayerDataService.Get(player)
 	local nodeId = crate:GetAttribute("NodeId")
@@ -169,28 +200,71 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 		return false, nil
 	end
 	local s = getState(player)
-	if s.depleted[nodeId] then
+	if s.opened[nodeId] then
 		return false, "loot.empty"
 	end
 	local denied = ResourceService.CheckAccess(player, crate)
 	if denied then
 		return false, denied
 	end
-	local loot = rollLoot(player, tier)
+
+	-- Locked (diamond) crates: a key opens them quietly; otherwise a full crowbar break-in.
+	local useKey = false
+	local breakIn = false
+	if crate:GetAttribute("Locked") == true then
+		if InventoryService.Has(player, "Key", 1) then
+			useKey = true
+		elseif
+			InventoryService.Has(player, "Crowbar", 1)
+			and s.holdCrate == crate
+			and s.holdStart
+			and os.clock() - s.holdStart >= Loot.BreakInSeconds - 0.5
+		then
+			breakIn = true
+		else
+			return false, "loot.locked"
+		end
+	end
+
+	local level = crateLevel(nodeId)
+	local final = finalTier(s, tier, level)
+	local loot = rollLoot(player, final)
 	if InventoryService.WeightOf(loot) > InventoryService.GetCapacity(player) - InventoryService.GetWeight(player) then
 		return false, "res.full"
 	end
-	s.depleted[nodeId] = true
+	if useKey and not InventoryService.Remove(player, "Key", 1) then
+		return false, "loot.locked"
+	end
+	s.opened[nodeId] = true
+	s.holdStart = nil
+	s.holdCrate = nil
+	if tierIndex(final) >= tierIndex("Gold") then
+		s.seenGold = true
+	end
 	SfxService.Play("CrateOpen", crate.Position)
+	if breakIn then
+		SfxService.Play("BreakIn", crate.Position)
+		ZombieService.Alert(crate.Position, Loot.BreakInNoiseRadius, Loot.BreakInAlertSeconds)
+		Net.Notify(player, "loot.breakIn", "warning")
+	elseif useKey then
+		Net.Notify(player, "loot.keyUsed", "info")
+	end
 	for id, amount in loot do
 		InventoryService.ForceAdd(player, id, amount)
 	end
 	StateSyncService.Request(player)
-	Net.Notify(player, { "loot.found", Locale.Cost(loot) }, "success")
+	-- Everyone sees the burst; only the opener gets the items flying out. Gold and diamond get a banner.
+	Net.Get(RemoteNames.LootOpened):FireAllClients(crate, tier, final, player.UserId, player.DisplayName, loot)
 	return true, nil
 end
 
--- Called when the player comes back up to the roof.
+-- A fresh match on this server: every node, crate and rubble pile is back.
+function ResourceService.ResetMatch(player: Player)
+	state[player] = nil
+	StateSyncService.Request(player)
+end
+
+-- Called when the player comes back up to the roof (crates stay opened).
 function ResourceService.OnReturnedToRoof(player: Player)
 	if not GameConfig.ResetNodesOnRoofReturn then
 		return
@@ -206,12 +280,37 @@ function ResourceService.Init()
 	StateSyncService.RegisterProvider(function(player, snapshot)
 		local s = getState(player)
 		local data = PlayerDataService.Get(player)
-		snapshot.depletedNodes = table.clone(s.depleted)
+		local depleted = table.clone(s.depleted)
+		for nodeId in s.opened do
+			depleted[nodeId] = true
+		end
+		snapshot.depletedNodes = depleted
 		snapshot.clearedRubble = table.clone(s.cleared)
 		snapshot.uniqueNodesTaken = if data then table.clone(data.uniqueNodesTaken) else {}
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		state[player] = nil
+	end)
+	-- Timing the crowbar break-in on locked crates.
+	ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
+		local crate = prompt.Parent
+		if crate and crate:GetAttribute("Locked") == true then
+			local s = getState(player)
+			s.holdStart = os.clock()
+			s.holdCrate = crate
+		end
+	end)
+	ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt, player)
+		local s = getState(player)
+		if s.holdCrate == prompt.Parent then
+			-- Triggered fires before HoldEnded, so keep the timing a moment for OpenCrate.
+			task.delay(0.2, function()
+				if s.holdCrate == prompt.Parent then
+					s.holdStart = nil
+					s.holdCrate = nil
+				end
+			end)
+		end
 	end)
 end
 

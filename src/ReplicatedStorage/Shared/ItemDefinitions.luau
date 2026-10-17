@@ -26,6 +26,7 @@ export type WeaponStats = {
 local Items: { [string]: ItemDef } = {
 	Club = {
 		id = "Club",
+		iconImage = "rbxassetid://92584142342300",
 		icon = "🏏",
 		color = Color3.fromRGB(150, 110, 70),
 		displayName = "Дубина",
@@ -37,6 +38,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Pipe = {
 		id = "Pipe",
+		iconImage = "rbxassetid://112963423988838",
 		icon = "🔨",
 		color = Color3.fromRGB(140, 145, 155),
 		displayName = "Труба",
@@ -48,6 +50,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Machete = {
 		id = "Machete",
+		iconImage = "rbxassetid://112505162622574",
 		icon = "🔪",
 		color = Color3.fromRGB(200, 205, 215),
 		displayName = "Мачете",
@@ -59,6 +62,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Bandage = {
 		id = "Bandage",
+		iconImage = "rbxassetid://82682798275686",
 		icon = "🩹",
 		color = Color3.fromRGB(235, 220, 200),
 		displayName = "Бинт",
@@ -69,6 +73,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Scrap = {
 		id = "Scrap",
+		iconImage = "rbxassetid://138755986318897",
 		resource = true,
 		icon = "🔩",
 		color = Color3.fromRGB(150, 110, 80),
@@ -80,6 +85,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Electronics = {
 		id = "Electronics",
+		iconImage = "rbxassetid://124384638159297",
 		resource = true,
 		icon = "💾",
 		color = Color3.fromRGB(70, 170, 110),
@@ -91,6 +97,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Food = {
 		id = "Food",
+		iconImage = "rbxassetid://133647368478245",
 		use = "eat",
 		icon = "🥫",
 		color = Color3.fromRGB(220, 140, 50),
@@ -102,6 +109,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Medkit = {
 		id = "Medkit",
+		iconImage = "rbxassetid://77965608072785",
 		use = "heal",
 		icon = "💉",
 		color = Color3.fromRGB(220, 70, 70),
@@ -113,6 +121,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Cable = {
 		id = "Cable",
+		iconImage = "rbxassetid://120731310353109",
 		resource = true,
 		icon = "🧵",
 		color = Color3.fromRGB(90, 90, 100),
@@ -124,6 +133,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Motor = {
 		id = "Motor",
+		iconImage = "rbxassetid://78241703475664",
 		resource = true,
 		icon = "⚙️",
 		color = Color3.fromRGB(100, 130, 170),
@@ -133,8 +143,20 @@ local Items: { [string]: ItemDef } = {
 		description = "Рідкісний. Захований за завалами 4 поверху. Потрібен для мосту.",
 		storable = true,
 	},
+	Key = {
+		id = "Key",
+		iconImage = "rbxassetid://109560612866046",
+		icon = "🗝️",
+		color = Color3.fromRGB(220, 180, 80),
+		displayName = "Ключ",
+		weight = 0,
+		startAmount = 0,
+		description = "",
+		storable = true,
+	},
 	Crowbar = {
 		id = "Crowbar",
+		iconImage = "rbxassetid://75754748458147",
 		icon = "🔧",
 		color = Color3.fromRGB(180, 60, 50),
 		displayName = "Лом",
@@ -145,6 +167,7 @@ local Items: { [string]: ItemDef } = {
 	},
 	Flashlight = {
 		id = "Flashlight",
+		iconImage = "rbxassetid://84730761121931",
 		use = "light",
 		icon = "🔦",
 		color = Color3.fromRGB(230, 200, 60),
@@ -168,6 +191,7 @@ local Order = {
 	"Bandage",
 	"Cable",
 	"Motor",
+	"Key",
 	"Crowbar",
 	"Flashlight",
 }

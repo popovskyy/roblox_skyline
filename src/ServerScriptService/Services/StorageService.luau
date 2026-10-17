@@ -9,6 +9,7 @@ local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
+local DamageService = require(script.Parent.DamageService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local RateLimiter = require(script.Parent.RateLimiter)
@@ -45,6 +46,9 @@ function StorageService.Transfer(player: Player, direction: any, itemId: any, am
 	local data = PlayerDataService.Get(player)
 	if not data then
 		return false, "err.notLoaded"
+	end
+	if DamageService.IsDowned(player) then
+		return false, nil
 	end
 	if direction ~= "Deposit" and direction ~= "Withdraw" then
 		return false, "storage.invalid"

@@ -91,6 +91,7 @@ local GameConfig = {
 			{ item = "Medkit", min = 1, max = 1 },
 			{ item = "Pipe", min = 1, max = 1, chance = 0.35 },
 			{ item = "Machete", min = 1, max = 1, chance = 0.2 },
+			{ item = "Key", min = 1, max = 1, chance = 0.25 },
 		},
 		Diamond = {
 			{ item = "Electronics", min = 3, max = 4 },
@@ -100,6 +101,27 @@ local GameConfig = {
 			{ item = "Machete", min = 1, max = 1, chance = 0.6 },
 		},
 	} :: { [string]: { { item: string, min: number, max: number, chance: number? } } },
+
+	-- Loot crates. Every crate rolls its rarity per floor when the tower is built; the odds are
+	-- Common / Rare / Gold / Diamond in percent.
+	Loot = {
+		TierOrder = { "Common", "Rare", "Gold", "Diamond" },
+		TierOdds = {
+			{ 80, 18, 2, 0 },
+			{ 65, 28, 6, 1 },
+			{ 50, 32, 14, 4 },
+			{ 35, 35, 20, 10 },
+		},
+		-- Chance that a crate turns one tier better at the end of the opening hold.
+		UpgradeChance = 0.12,
+		-- Bad-luck protection: a player who has not seen a gold crate by this floor gets one next.
+		PityFloor = 3,
+		HoldSeconds = 0.8,
+		-- Diamond crates are locked: a Key opens them, or a noisy crowbar break-in.
+		BreakInSeconds = 5,
+		BreakInNoiseRadius = 45,
+		BreakInAlertSeconds = 12,
+	},
 
 	-- Workbench on the roof.
 	Recipes = {

@@ -172,7 +172,12 @@ local function refreshTool(player: Player)
 	if not character or not CharacterUtil.GetHumanoid(player) then
 		return
 	end
-	local def = equippedItem(player)
+	-- Used up the last one: it is no longer selected (picking up more does not put it back in hand).
+	if equipped[player] and not equippedItem(player) then
+		equipped[player] = nil
+		player:SetAttribute("Equipped", nil)
+	end
+	local def = if DamageService.IsDowned(player) then nil else equippedItem(player)
 	local current = character:FindFirstChild(TOOL_NAME)
 	if not def then
 		if current then
@@ -211,7 +216,8 @@ local function swing(player: Player)
 		return
 	end
 	local now = os.clock()
-	if lastSwing[player] and now - lastSwing[player] < weapon.cooldown then
+	-- A little slack so swings that arrive bunched up by lag still count.
+	if lastSwing[player] and now - lastSwing[player] < weapon.cooldown - 0.12 then
 		return
 	end
 	lastSwing[player] = now
@@ -229,7 +235,8 @@ local function swing(player: Player)
 					z.humanoid:TakeDamage(weapon.damage)
 					SfxService.Play("HitBlunt", z.root)
 					-- A little shove so hits feel solid.
-					z.root.AssemblyLinearVelocity += flat.Unit * 25 + Vector3.new(0, 8, 0)
+					local push = if flat.Magnitude > 0.1 then flat.Unit else look
+					z.root.AssemblyLinearVelocity += push * 25 + Vector3.new(0, 8, 0)
 				end
 			end
 		end

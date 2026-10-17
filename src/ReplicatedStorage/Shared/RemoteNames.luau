@@ -7,6 +7,7 @@ local RemoteNames = {
 	Notify = "Notify",
 	ShowNote = "ShowNote",
 	OpenStorage = "OpenStorage",
+	LootOpened = "LootOpened",
 
 	-- Client -> server
 	RequestState = "RequestState",

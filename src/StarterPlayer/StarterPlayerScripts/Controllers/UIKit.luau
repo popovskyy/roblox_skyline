@@ -63,6 +63,9 @@ function UIKit.Panel(props: { [string]: any }): Frame
 	return UIKit.New("Frame", merged, { UIKit.Corner(10) })
 end
 
+-- Phones scale the whole UI down (see Screen), so small labels get a floor to stay readable.
+local TOUCH_MIN_TEXT = 17
+
 function UIKit.Label(props: { [string]: any }): TextLabel
 	local merged = {
 		BackgroundTransparency = 1,
@@ -74,6 +77,9 @@ function UIKit.Label(props: { [string]: any }): TextLabel
 	}
 	for k, v in props do
 		merged[k] = v
+	end
+	if UserInputService.TouchEnabled and not merged.TextScaled and merged.TextSize < TOUCH_MIN_TEXT then
+		merged.TextSize = TOUCH_MIN_TEXT
 	end
 	return UIKit.New("TextLabel", merged)
 end

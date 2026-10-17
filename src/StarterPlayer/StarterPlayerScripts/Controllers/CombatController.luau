@@ -105,6 +105,8 @@ local function hideDefaultBackpack()
 	for _ = 1, 20 do
 		local ok = pcall(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			-- No "Reset character": it would get a downed player up for free.
+			StarterGui:SetCore("ResetButtonCallback", false)
 		end)
 		if ok then
 			return
@@ -251,11 +253,13 @@ local function buildCraft(screen: ScreenGui)
 		Name = "Workbench",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(520, 360),
+		Size = UDim2.new(0, 520, 0.86, 0),
 		BackgroundTransparency = 0.05,
 		Visible = false,
 		Parent = screen,
 	})
+	-- Never taller than 360 and never off a short phone screen.
+	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(520, 360), Parent = craftPanel })
 	UIKit.Padding(14).Parent = craftPanel
 	local title =
 		UIKit.Label({ Size = UDim2.new(1, -44, 0, 30), FontFace = Theme.Display, TextSize = 26, Parent = craftPanel })

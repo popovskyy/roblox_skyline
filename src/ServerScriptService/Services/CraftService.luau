@@ -9,6 +9,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
+local DamageService = require(script.Parent.DamageService)
 local InventoryService = require(script.Parent.InventoryService)
 local Net = require(script.Parent.Net)
 local RateLimiter = require(script.Parent.RateLimiter)
@@ -29,6 +30,9 @@ function CraftService.Open(player: Player): (boolean, any)
 end
 
 local function craft(player: Player, recipeId: any): (boolean, any)
+	if DamageService.IsDowned(player) then
+		return false, nil
+	end
 	local recipe = nil
 	for _, r in GameConfig.Recipes do
 		if r.id == recipeId then

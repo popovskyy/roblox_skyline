@@ -11,8 +11,10 @@ local UIKit = require(script.Parent.UIKit)
 local ItemSlot = {}
 
 local C = UIKit.Colors
-local EMPTY_COLOR = Color3.fromRGB(32, 34, 39)
-local FILLED_COLOR = Color3.fromRGB(46, 49, 56)
+-- Dark worn slots with a thin cream edge, to match the cream item icons.
+local EMPTY_COLOR = Color3.fromRGB(20, 21, 23)
+local FILLED_COLOR = Color3.fromRGB(27, 28, 30)
+local CREAM = Color3.fromRGB(233, 223, 198)
 
 export type Slot = {
 	frame: TextButton,
@@ -29,9 +31,11 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		LayoutOrder = layoutOrder,
 		Parent = parent,
 	}, { UIKit.Corner(8) })
+	frame.BackgroundTransparency = 0.12
 	local stroke = UIKit.New("UIStroke", {
-		Thickness = 2,
-		Color = Color3.fromRGB(60, 63, 70),
+		Thickness = 1.5,
+		Color = CREAM,
+		Transparency = 0.8,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = frame,
 	})
@@ -47,8 +51,8 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 	})
 	local image = UIKit.New("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.46),
-		Size = UDim2.fromScale(0.6, 0.6),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.82, 0.82),
 		BackgroundTransparency = 1,
 		Visible = false,
 		ScaleType = Enum.ScaleType.Fit,
@@ -70,15 +74,19 @@ function ItemSlot.New(parent: Instance, size: number, layoutOrder: number): Slot
 		local def = if itemId then ItemDefinitions.Get(itemId) else nil
 		if not def or count <= 0 then
 			frame.BackgroundColor3 = EMPTY_COLOR
-			stroke.Color = Color3.fromRGB(60, 63, 70)
+			stroke.Color = CREAM
+			stroke.Transparency = 0.85
+			stroke.Thickness = 1.5
 			emoji.Text = ""
 			image.Visible = false
 			countLabel.Text = ""
 			return
 		end
 		frame.BackgroundColor3 = FILLED_COLOR
-		stroke.Color = if selected then C.accent else def.color
-		stroke.Thickness = if selected then 3 else 2
+		-- The item in hand gets a bright amber edge; the rest a faint cream one.
+		stroke.Color = if selected then C.accent else CREAM
+		stroke.Transparency = if selected then 0 else 0.6
+		stroke.Thickness = if selected then 2.5 else 1.5
 		if def.iconImage then
 			image.Image = def.iconImage
 			image.Visible = true
