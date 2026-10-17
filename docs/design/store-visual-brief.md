@@ -1,12 +1,13 @@
 # SkylineZero — Roblox store visual brief
 
-> **Status (17.10, build b24):** Brief only; the store icon and thumbnails have not been made yet.
+> **Status (17.10, unpublished b26):** Brief only. `media/marketing/` is still missing — no icon, thumb, or
+> banner files in the repo. Required before Creator Dashboard upload: **512×512** experience icon and
+> **1920×1080** thumbnail / widescreen banner (see checklist below). Do **not** upload until owner + Art
+> sign-off.
 >
-> Imported from the Cursor team's notes. Where this doc and the code disagree, the code and `GameConfig` win.
+> Where this doc and the code disagree, the code and `GameConfig` win.
 
-
-Art / marketing execution guide. Mockups: `media/marketing/`.  
-Do **not** upload until owner + Art sign-off.
+Art / marketing execution guide. Mockups belong in `media/marketing/` once created.
 
 ---
 
@@ -68,20 +69,17 @@ Typography: condensed industrial sans (not Inter/Roboto default look if custom).
 
 ---
 
-## Mockups shipped (concepts)
+## Mockups (concepts) — not in repo yet
 
-Exact pixel sizes verified. **PNG = upload-ready canvas.** JPG = lighter preview for chat/owner review.
+Target filenames once art is ready (folder `media/marketing/` does not exist today):
 
 | File | Size | Role |
 |------|------|------|
 | `media/marketing/icon-512-concept.png` | 512×512 | Experience icon concept |
-| `media/marketing/icon-512-concept.jpg` | 512×512 | Same, preview |
 | `media/marketing/banner-1920-concept.png` | 1920×1080 | Widescreen banner + primary thumb |
-| `media/marketing/banner-1920-concept.jpg` | 1920×1080 | Same, preview |
 | `media/marketing/thumbnail-alt-concept.png` | 1920×1080 | Alt: ledge POV + squad silhouettes |
-| `media/marketing/thumbnail-alt-concept.jpg` | 1920×1080 | Same, preview |
 
-Art final: Blender/paint over or recreate with in-game lighting match. Treat these as **direction for owner**, not final live store art.
+Art final: Blender/paint over or in-game lighting match. Concepts are direction only, not live store art.
 
 ---
 

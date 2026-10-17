@@ -35,8 +35,10 @@ Questions for the owner:
 2. **Polish (still open)**: better Blender models for props and weapons (the Bat still borrows the club's
    model and icon — needs Blender + Open Cloud upload; no inventing asset ids). Low-health heartbeat
    sound needs a suitable Creator Store / HANDOFF id first (none yet; do not invent).
-3. **Launch**: store icon and thumbnails (`docs/design/store-visual-brief.md`), description
-   (`marketing-draft.md`), make the experience public.
+3. **Launch**: store copy drafted in `docs/design/marketing-draft.md` (uk/ru/en, roof→bridge fantasy).
+   Blocked on: owner b26 test pass + store art (`store-visual-brief.md`; `media/marketing/` still empty) +
+   explicit owner OK to publish. Then bump `PlacesConfig.Build`, `bash scripts/publish.sh`, Creator
+   Dashboard → Public.
 
 ## Rules that stay
 
