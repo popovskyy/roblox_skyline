@@ -16,3 +16,6 @@ roblox.yml
 
 # Built animation models (rebuilt by scripts/build_animations.py)
 assets/animations/*.rbxm
+
+# Local tool binaries (stylua/selene/rojo)
+.tools/

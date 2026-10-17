@@ -120,33 +120,46 @@ function InteractionController.Start(remotes: Folder)
 			Parent = button,
 		}, { UIKit.Corner(9) })
 		UIKit.New("UIStroke", { Color = T.Cream, Thickness = 2.5, Parent = dot })
-		local caption = UIKit.Label({
+		-- Frame plate + child Label (same as hotbar tooltip / ЦІЛЬ). TextStroke+UIPadding on a
+		-- TextLabel smears Cyrillic on phone/tablet.
+		local captionPlate = UIKit.New("Frame", {
+			Name = "InteractCaption",
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 0, -6),
-			Size = UDim2.fromOffset(0, 28),
-			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 0),
+			AutomaticSize = Enum.AutomaticSize.XY,
 			BackgroundColor3 = Color3.new(0, 0, 0),
 			BackgroundTransparency = 0,
 			BorderSizePixel = 0,
-			Text = "",
-			FontFace = Theme.Bold,
-			TextSize = 16,
-			TextScaled = false,
-			TextColor3 = T.Cream,
-			TextStrokeColor3 = Color3.new(0, 0, 0),
-			TextStrokeTransparency = 0.1,
-			TextWrapped = false,
 			ZIndex = 5,
 			Parent = holder,
 		})
-		UIKit.Corner(6).Parent = caption
-		UIKit.New("UIStroke", { Color = T.Amber, Thickness = 1.5, Transparency = 0, Parent = caption })
+		UIKit.Corner(6).Parent = captionPlate
+		UIKit.New("UIStroke", {
+			Color = T.Amber,
+			Thickness = 1.5,
+			Transparency = 0,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Parent = captionPlate,
+		})
 		UIKit.New("UIPadding", {
 			PaddingLeft = UDim.new(0, 12),
 			PaddingRight = UDim.new(0, 12),
 			PaddingTop = UDim.new(0, 5),
 			PaddingBottom = UDim.new(0, 5),
-			Parent = caption,
+			Parent = captionPlate,
+		})
+		local caption = UIKit.Label({
+			Size = UDim2.fromOffset(0, 18),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 1,
+			Text = "",
+			FontFace = Theme.Semi,
+			TextSize = 16,
+			TextScaled = false,
+			TextColor3 = T.Cream,
+			TextWrapped = false,
+			Parent = captionPlate,
 		})
 		local holdToken = 0
 		button.InputBegan:Connect(function(input)

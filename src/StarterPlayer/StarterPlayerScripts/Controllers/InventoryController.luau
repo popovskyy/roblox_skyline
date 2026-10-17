@@ -75,7 +75,11 @@ local ownedItems: { [number]: string } = {}
 local slotOf: { [string]: number } = {}
 local slots: { ItemSlot.Slot } = {}
 local slotItems: { [number]: string } = {}
-local tooltip: TextLabel
+-- Plate is a Frame; text is a child Label. Padding/UIStroke/TextStroke on a TextLabel itself
+-- smears Cyrillic (b28–b30 "sharp tooltip" never fixed the structure).
+local tooltip: Frame
+local tooltipLabel: TextLabel
+local tooltipStroke: UIStroke
 local tooltipToken = 0
 local storagePanel: Frame
 local storageList: Frame
@@ -329,34 +333,26 @@ end
 local function showTooltip(text: string, slotIndex: number?, color: Color3?)
 	tooltipToken += 1
 	local token = tooltipToken
-	tooltip.Text = text
-	tooltip.TextColor3 = color or T.AmberText
+	tooltipLabel.Text = text
+	tooltipLabel.TextColor3 = color or T.AmberText
+	tooltipLabel.TextTransparency = 0
 	local index = slotIndex or math.ceil(SLOT_COUNT / 2)
-	local x = (index - 0.5) * SLOT_SIZE + (index - 1) * SLOT_GAP
+	-- Whole pixels: fractional AbsolutePosition softens glyphs under UIScale / retina.
+	local x = math.floor((index - 0.5) * SLOT_SIZE + (index - 1) * SLOT_GAP + 0.5)
 	tooltip.Position = UDim2.fromOffset(x, if touch then -48 else -54)
-	tooltip.TextTransparency = 0
-	-- Hard stroke + fully opaque black plate: soft amber on device still looked blurry after b29.
-	tooltip.TextStrokeTransparency = 0.1
-	tooltip.BackgroundColor3 = Color3.new(0, 0, 0)
 	tooltip.BackgroundTransparency = 0
-	local stroke = tooltip:FindFirstChildOfClass("UIStroke")
-	if stroke then
-		stroke.Transparency = 0
-		stroke.Thickness = 2
-		stroke.Color = color or T.Amber
-	end
+	tooltipStroke.Transparency = 0
+	tooltipStroke.Thickness = 2
+	tooltipStroke.Color = color or T.Amber
 	tooltip.Visible = true
 	task.delay(1.5, function()
 		if tooltipToken ~= token then
 			return
 		end
 		local info = TweenInfo.new(0.4)
-		TweenService
-			:Create(tooltip, info, { TextTransparency = 1, TextStrokeTransparency = 1, BackgroundTransparency = 1 })
-			:Play()
-		if stroke then
-			TweenService:Create(stroke, info, { Transparency = 1 }):Play()
-		end
+		TweenService:Create(tooltip, info, { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(tooltipLabel, info, { TextTransparency = 1 }):Play()
+		TweenService:Create(tooltipStroke, info, { Transparency = 1 }):Play()
 	end)
 end
 
@@ -535,34 +531,45 @@ local function buildHotbar(screen: ScreenGui)
 		Parent = weightChip,
 	})
 
-	-- Name of the item just taken in hand, floating above its slot (e.g. "Їжа · З'їсти").
-	-- Pure black plate + hard stroke: soft PanelSolid still looked blurry on phone/tablet.
-	tooltip = UIKit.Label({
+	-- Same structure as the ЦІЛЬ strip: Frame plate + child Label (no padding/stroke on the text).
+	tooltip = UIKit.New("Frame", {
+		Name = "ItemTooltip",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Size = UDim2.fromOffset(0, if touch then 36 else 34),
-		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 0),
+		AutomaticSize = Enum.AutomaticSize.XY,
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		FontFace = Theme.Bold,
-		TextSize = if touch then 18 else 19,
-		TextScaled = false,
-		TextColor3 = T.AmberText,
-		TextStrokeColor3 = Color3.new(0, 0, 0),
-		TextStrokeTransparency = 0.1,
-		TextWrapped = false,
 		Visible = false,
 		ZIndex = 20,
 		Parent = holder,
 	})
 	UIKit.Corner(6).Parent = tooltip
-	UIKit.New("UIStroke", { Color = T.Amber, Thickness = 2, Transparency = 0, Parent = tooltip })
+	tooltipStroke = UIKit.New("UIStroke", {
+		Color = T.Amber,
+		Thickness = 2,
+		Transparency = 0,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = tooltip,
+	})
 	UIKit.New("UIPadding", {
 		PaddingLeft = UDim.new(0, 14),
 		PaddingRight = UDim.new(0, 14),
 		PaddingTop = UDim.new(0, 7),
 		PaddingBottom = UDim.new(0, 7),
+		Parent = tooltip,
+	})
+	tooltipLabel = UIKit.Label({
+		Size = UDim2.fromOffset(0, if touch then 20 else 22),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Center,
+		FontFace = Theme.Semi,
+		TextSize = if touch then 16 else 18,
+		TextScaled = false,
+		TextColor3 = T.AmberText,
+		TextWrapped = false,
 		Parent = tooltip,
 	})
 

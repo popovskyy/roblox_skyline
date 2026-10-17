@@ -1,17 +1,16 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build b30 · 17.10 16:40 (rubble hold, stair roof lip, tooltip, hide default Health).
+Owner: Popovskyi. Updated 17.10, build b31 · 17.10 16:50 (tooltip structure fix).
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
 
-## Now: check b30 in the game (owner)
+## Now: check b31 in the game (owner)
 
 The owner tests on PC, phone, tablet and PS5. Focus for this pass:
-- F1 soft rubble: **hold** ~3 s (not click) — pile clears, wing scrap reachable; Crowbar room gives Лом.
-- Stair descent roof → F1 → F2: no floating roof/ceiling chunk in the shaft.
-- Phone: tap Food — "Їжа · З'їсти" crisp on black plate; top-right has no yellow Health bar (only ☰).
-- Bottom weight "Вага x / 20" and centre ЦІЛЬ strip stay.
+- Tap Club / Food / Medkit — name plate above hotbar is **crisp** (not smeared), same clarity as ЦІЛЬ.
+- Touch: action caption above the round interact button also crisp.
+- Still OK from b30: soft rubble hold-clear; stair shaft no floating lip; no yellow default Health.
 
 Questions for the owner:
 - A gamepad has no button to open the Classes panel in the lobby. Add one?

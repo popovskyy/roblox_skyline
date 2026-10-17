@@ -3,6 +3,16 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## b31 · 17.10 16:50
+Hotbar item tooltip / touch action caption actually readable (structure fix, not another paint tweak).
+
+### Hotbar tooltip no longer smeared
+- Root cause: name plate was a `TextLabel` with `UIPadding` + `UIStroke` + `TextStroke` on itself —
+  Roblox smears Cyrillic that way (b28–b30 only darkened the plate). Now same as ЦІЛЬ: black
+  `Frame` plate + child `TextLabel` (Semi, no text stroke). Touch interact caption same fix.
+- Check in game: tap Club / Food / Medkit — "Дубинка · Звичайна зброя" / "Їжа · З'їсти" crisp like
+  the top ЦІЛЬ strip; touch action label above the round button sharp too.
+
 ## b30 · 17.10 16:40
 Rubble hold-to-clear, stair roof lip, sharp hotbar tooltip, hide default Health bar.
 
