@@ -25,9 +25,9 @@ local S: { [string]: Entry } = {
 	-- Items
 	["item.Scrap.name"] = { uk = "Металобрухт", ru = "Металлолом", en = "Scrap" },
 	["item.Scrap.desc"] = {
-		uk = "Основа для будь-якого поліпшення.",
-		ru = "Основа для любого улучшения.",
-		en = "The base of every upgrade.",
+		uk = "Іржаві шматки металу для будівництва на даху. Це не лом-інструмент.",
+		ru = "Ржавые куски металла для построек на крыше. Это не лом-инструмент.",
+		en = "Rusty metal for roof builds. Not the crowbar tool.",
 	},
 	["item.Electronics.name"] = { uk = "Електроніка", ru = "Электроника", en = "Electronics" },
 	["item.Electronics.desc"] = {
@@ -61,9 +61,9 @@ local S: { [string]: Entry } = {
 	},
 	["item.Crowbar.name"] = { uk = "Лом", ru = "Лом", en = "Crowbar" },
 	["item.Crowbar.desc"] = {
-		uk = "Розбирає завали з позначкою «Лом».",
-		ru = "Разбирает завалы с пометкой «Лом».",
-		en = "Clears rubble marked CROWBAR.",
+		uk = "Інструмент: розбирає тверді завали. Не плутай із металобрухтом.",
+		ru = "Инструмент: разбирает твёрдые завалы. Не путай с металлоломом.",
+		en = "Tool: clears hard rubble. Not the same as Scrap.",
 	},
 	["item.Flashlight.name"] = { uk = "Ліхтарик", ru = "Фонарик", en = "Flashlight" },
 	["item.Flashlight.desc"] = {
@@ -905,6 +905,11 @@ local S: { [string]: Entry } = {
 		uk = "R2 — удар. L1/R1 — вибрати зброю.",
 		ru = "R2 — удар. L1/R1 — выбрать оружие.",
 		en = "R2 to hit. L1/R1 to pick a weapon.",
+	},
+	["hint.scrapNotCrowbar"] = {
+		uk = "Металобрухт — для будівництва на даху. Лом — окремий інструмент для завалів.",
+		ru = "Металлолом — для построек на крыше. Лом — отдельный инструмент для завалов.",
+		en = "Scrap is for roof builds. The Crowbar is a separate tool for rubble.",
 	},
 	["results.floor"] = {
 		uk = "Найглибший поверх",

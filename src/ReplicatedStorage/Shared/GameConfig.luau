@@ -44,10 +44,16 @@ local GameConfig = {
 	InteractionCooldown = 0.35,
 	PromptActivationDistance = 10,
 
-	-- Resource nodes. Per player; normal nodes refill when the player returns to the roof.
-	-- Unique nodes (Crowbar, Flashlight, notes) never refill.
+	-- Resource nodes. Per player. Scrap/Electronics stay gone after pickup (no roof refill) so the
+	-- build chain stays scarce; unique nodes never refill either. Crates use their own opened state.
 	ResourceRespawnSeconds = 0,
-	ResetNodesOnRoofReturn = true,
+	ResetNodesOnRoofReturn = false,
+
+	-- Soft rubble = hands / any melee (no tool). Hard rubble = Crowbar. Hold times feel like work.
+	Rubble = {
+		SoftHoldSeconds = 3.0,
+		HardHoldSeconds = 5.0,
+	},
 
 	-- Death: carried items except protected ones drop as a personal backpack at the death spot.
 	DeathProtectedItems = {

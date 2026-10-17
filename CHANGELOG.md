@@ -5,6 +5,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 ## Unreleased (local) · 17.10
 
+### Scrap path, soft rubble, scarcity (Phase A2–A4)
+- Scrap nodes are larger, warmer metal with a glow; F1 has fixed scrap by the stairs (6) plus 2 behind a
+  new soft-rubble wing; F1 Crowbar room stays soft clear. Soft rubble hold 3 s, Crowbar/hard 5 s. F2 soft
+  wing gates food/scrap; open Food/Medkit spam cut. Per-floor scrap budgets trimmed; nodes no longer
+  refill on roof return. First Scrap pickup explains Scrap ≠ Crowbar (uk/ru/en).
+- Check in game: find glowing scrap on F1 without a wiki; clear soft rubble (no tool) for the wing;
+  Crowbar room still gives Лом; return to roof — scrap nodes stay empty; hard rubble still needs Crowbar.
+
 ### Barricade blocks roof horde (Phase A1)
 - Built Barricade now hard-blocks zombies server-side: thicker boards + pathfinding modifier; horde
   spawn/home stay in the stair shaft (not the roof pad); zombie AI never LoS-`MoveTo` through

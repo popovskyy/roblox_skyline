@@ -34,6 +34,8 @@ type PlayerNodes = {
 local state: { [Player]: PlayerNodes } = {}
 -- Rubble is shared: once anyone clears a pile it is gone for the whole team.
 local clearedRubble: { [string]: boolean } = {}
+-- One-shot toast: Scrap (металобрухт) ≠ Crowbar (лом).
+local scrapHinted: { [Player]: boolean } = {}
 
 local function getState(player: Player): PlayerNodes
 	local s = state[player]
@@ -115,6 +117,10 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 	SfxService.Play("Pickup", node.Position, 0.8)
 	StateSyncService.Request(player)
 	Net.Notify(player, { "res.collected", Locale.Item(id), count }, "success")
+	if id == "Scrap" and not scrapHinted[player] then
+		scrapHinted[player] = true
+		Net.Notify(player, "hint.scrapNotCrowbar", "info")
+	end
 	return true, nil
 end
 
@@ -299,6 +305,7 @@ function ResourceService.Init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		state[player] = nil
+		scrapHinted[player] = nil
 	end)
 	-- Timing the crowbar break-in on locked crates.
 	ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
