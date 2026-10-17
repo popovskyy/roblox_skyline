@@ -1,0 +1,14 @@
+---
+description: Skyline Zero project rules (Roblox, Luau, Rojo)
+alwaysApply: true
+---
+
+Read `AGENTS.md` in the repository root before any change and follow it. In short:
+
+- This repository is the only source of truth. Never extract code from a .rbxlx or the live place.
+- Luau `--!strict`. Run `stylua src && selene src` (0 warnings) and `grep -rn "end)(" src` (no output)
+  before every commit and publish.
+- Never start a Lua statement with `(`; assign to a local first.
+- All player text goes through `Locale.luau` (uk, ru, en). The server decides; clients only draw and ask.
+- Publish only with `bash scripts/publish.sh`, after bumping `PlacesConfig.Build`, and only one agent at
+  a time. Never print or commit `.roblox_api_key`.
