@@ -3,6 +3,17 @@
 Read this whole file before changing anything. It is short on purpose; every rule here was learned by
 breaking the live game once.
 
+## Where the code is (read first)
+
+As of 17.10 (build b25) the up-to-date code lives in the local folder **`C:\Roblox`** on the owner's PC
+(branch `master`). The GitHub repo `popovskyy/roblox_skyline` does **not** have it yet: its `main` is an older
+parallel version made by Cursor from an old place file (240-stud floors). Until the owner pushes:
+
+- Cursor: open the folder `C:\Roblox` locally. Do **not** use a Cursor background/cloud agent on the GitHub
+  repo, and never build on GitHub `main` or on any `.rbxlx`.
+- To publish GitHub: `git push origin master:claude/main` (needs the owner's GitHub sign-in), then make
+  `main` point at it only with the owner's explicit OK (keep the old one as `cursor/main-backup`).
+
 ## The game in one paragraph
 
 Roblox co-op survival on a skyscraper roof in a ruined, overgrown city (The Last of Us / Days Gone look).
