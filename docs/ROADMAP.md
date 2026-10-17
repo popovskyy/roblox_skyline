@@ -18,7 +18,7 @@ Focus in game (solo + 2–3 co-op):
 
 Still OK from b31: crisp hotbar tooltip / touch caption; soft rubble hold-clear; stair shaft; no yellow Health.
 
-Done (awaiting publish): lobby gamepad **Select / View** opens Classes (Unreleased). Owner question closed.
+Done (awaiting publish): lobby gamepad **L1 / LB** opens Classes (Unreleased). Owner question closed.
 
 ## Next (in this order)
 
