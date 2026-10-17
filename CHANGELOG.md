@@ -23,8 +23,11 @@ Epic final-pass branch (no publish until owner merge). Phase A A1–A10 already 
   Part LOOKS fallback until a real `upload_model.sh` id. Interior props scaffolded for crates/nodes/rubble.
   **No invented PropLibrary ids.**
 
-### Branch hygiene
-- ROADMAP rewritten for the epic pass; Phase A leftovers audited as already shipped.
+### Launch prep (docs only)
+- `marketing-draft.md` status + fantasy aligned to live roof→down→back→bridge; Creator Hub still owner gate.
+- Store art checklist points at `assets/store/icon-512.png` + `thumbnail-1920x1080.png` (Art approve first).
+- Heartbeat SFX: blocker noted in `HANDOFF.md` + `SoundConfig` comment — **no fake SoundId**.
+- ROADMAP: Blocks 0–1 done / verified; B2 upload pending owner PC; Launch = owner Public.
 
 ## b33 · 17.10 19:05
 ### Lobby: gamepad opens Classes

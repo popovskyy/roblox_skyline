@@ -1,36 +1,32 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10 · live **b33** · epic branch `cursor/roadmap-final-pass` (no publish until
-owner says merge). One list for every agent; work top to bottom unless the owner says otherwise. When an
-item ships, move it to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put
-ideas in `docs/design/brainstorm-hooks.md` instead.
+Owner: Popovskyi. Updated 17.10 · live **b33** · epic branch `cursor/roadmap-final-pass` (no publish
+until owner says merge). One list for every agent. When an item ships, move it to `CHANGELOG.md` and
+delete it here. Ideas go in `docs/design/brainstorm-hooks.md`, not here.
 
-## Now: final roadmap pass (epic branch)
+## Now: owner merge gate (epic branch ready for review)
 
-Owner waived mid-pass Phase C wait for this haul. Plan: Project `docs/roadmap-final-pass.md`.
+Branch `cursor/roadmap-final-pass` · draft PR — **do not merge/publish mid-pass** until owner OK.
 
-**Already live (skip on this branch):** Phase A A1–A10 + LOCAL #1–#6 + lobby L1 Classes (b28–b33). Audit
-confirmed §8 numbers and barricade/rubble/loot knobs match design.
+| Block | State on branch |
+|-------|-----------------|
+| **0 HUD declutter (P0)** | **Done** — soft spam killed; blackout one warning; 1 soft + 1 danger toast cap; intro silence |
+| **1 Phase A leftovers** | **Verified** — A1–A8 + holds already live on master (b28–b32); no §8 retune |
+| **2 Phase D Blender** | **Scaffolded** — Bat/Crowbar + interior props in scripts; CombatService fallback. **Upload blocked** on Cloud VM (no Blender / API key). Owner-PC `upload_model.sh` → paste real ids only |
+| **3 Launch prep** | **Docs done** — marketing fantasy aligned; `assets/store/` checklist ready for Art; heartbeat SFX documented as blocker |
 
-**In progress on `cursor/roadmap-final-pass`:**
+**Owner after merge:** publish build tag · optional Creator Hub Public (copy + art) · optional Blender re-upload.
 
-1. **HUD declutter (P0)** — **landed on branch** (kill soft spam, blackout merge, 1+1 toast cap, intro
-   silence). No new toast system.
-2. **Phase D Blender polish** — Bat/Crowbar + interior scaffolds on branch; upload blocked on Cloud VM
-   (no Blender CLI / API key). Owner-PC `upload_model.sh` → real ids only.
-3. **Launch prep (docs only)** — align `marketing-draft.md` + banner checklist; heartbeat SFX stays blocked
-   until a Creator Store / HANDOFF id exists. **Do not** upload Creator Hub art.
+## Later (not this pass)
 
-**Do not** merge or publish mid-pass. Owner merge + optional Public after Blocks 1–3 are ready.
-
-## Later (after owner merge)
-
-- Creator Dashboard → Public when owner + Art approve store art.
-- Heartbeat SFX once a real sound id is in HANDOFF.
-- Brainstorm hooks stay in `docs/design/brainstorm-hooks.md` until owner pulls them forward.
+- Heartbeat low-HP SFX — only after a real Creator Store / HANDOFF id (see `HANDOFF.md` blockers)
+- Phase D mesh ids in `PropLibrary` after owner upload
+- Brainstorm hooks (`docs/design/brainstorm-hooks.md`) until owner pulls them forward
+- 240-stud floors / Pickaxe item / Robux token cheats — out of scope
 
 ## Rules that stay
 
 - Robux never skips the game and never buys tokens directly (`economy-robux.md`).
 - Every match starts from zero; only tokens, stats and the leaderboard persist.
 - Ukrainian first, then Russian and English, for every string.
+- Never invent mesh / sound / icon asset ids.

@@ -29,6 +29,8 @@ local SoundConfig = {
 		BreakIn = { 9116673915 },
 		-- No dedicated siren asset in HANDOFF / Creator Store list; reuse the noisy break-in cue.
 		HordeSiren = { 9116673915 },
+		-- Heartbeat (low HP): BLOCKED — need a Creator Store / HANDOFF id. Do not invent; do not ship stub.
+		-- Heartbeat = { <real id from upload / Creator Store> },
 	} :: { [string]: { number } },
 }
 
