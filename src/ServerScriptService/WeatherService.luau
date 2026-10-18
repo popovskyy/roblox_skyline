@@ -18,8 +18,16 @@ local function tween(instance: Instance, seconds: number, goal: { [string]: any 
 	TweenService:Create(instance, TweenInfo.new(seconds, Enum.EasingStyle.Sine), goal):Play()
 end
 
+local function hordeThreat(): boolean
+	return workspace:GetAttribute("HordeThreat") == true
+end
+
 local function setRain(on: boolean)
 	workspace:SetAttribute("Raining", on)
+	-- Horde sky owns Lighting while active; do not fight the orange dusk.
+	if hordeThreat() then
+		return
+	end
 	local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds")
 	if clouds then
 		tween(clouds, 20, { Cover = if on then 0.9 else 0.6, Density = if on then 0.85 else 0.5 })
@@ -36,7 +44,9 @@ function WeatherService.Start()
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			Lighting.ClockTime = (Lighting.ClockTime + perSecond) % 24
+			if not hordeThreat() then
+				Lighting.ClockTime = (Lighting.ClockTime + perSecond) % 24
+			end
 		end
 	end)
 	task.spawn(function()

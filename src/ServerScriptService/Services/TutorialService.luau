@@ -48,7 +48,7 @@ local Steps: { Step } = {
 	{
 		text = "tutorial.2",
 		sticky = false,
-		-- Chest costs 10 Scrap: one careful F1 (path 8 + soft wing 2).
+		-- Chest costs 10 Scrap: shared F1 path (3×4) + soft wing (3) = 15.
 		complete = function(player)
 			return StorageService.Total(player, "Scrap") >= 10
 		end,

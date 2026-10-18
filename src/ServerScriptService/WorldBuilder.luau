@@ -593,6 +593,7 @@ local CRATE_PROPS: { [string]: string } = {
 }
 
 -- Optional Blender mesh as non-colliding dress; interaction attrs stay on `host`.
+-- Only hides the host when Place returns a readable model — never leave a prompt on air.
 local function dressWithProp(host: BasePart, propName: string, base: Vector3, fit: Vector3, yaw: number?): boolean
 	if not PropLibrary.Has(propName) then
 		return false
@@ -638,8 +639,8 @@ local function rollTier(level: number): string
 end
 
 -- Loot crate; the higher the tier, the brighter the trim ("Roll" picks the tier from the floor's odds).
--- Opened per player, refilled on roof return. Glow, sparkles and sounds are added by each client
--- (LootFxController) so they can switch off for players who already emptied the crate.
+-- Shared for the whole party: one open empties it for everyone (ResourceService.openedCrates).
+-- Glow, sparkles and sounds are added by each client (LootFxController).
 -- Diamond crates are locked: a Key or a long crowbar break-in.
 local function lootCrate(
 	parent: Instance,
@@ -739,6 +740,7 @@ local function resourceNode(
 		end
 	end
 	-- Scrap gets a warm point light so it reads as loot next to slate rubble.
+	-- dressWithProp only hides the host when the Blender mesh is readable; otherwise grey-box stays.
 	if itemId == "Scrap" then
 		pointLight(part, Color3.fromRGB(255, 160, 70), 10, 0.55, true)
 		dressWithProp(part, "ScrapNode", Vector3.new(x, levelY(level), z), size, nil)
@@ -1191,15 +1193,16 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	furnish(floor, level)
 	local at = makePlacer(level, floor, { "roomPP", "roomNN" })
 	ruinDecor(floor, level, at, 2)
-	-- Guaranteed scrap near the stair mouth / open path (not random camouflage). Path 8 + 2 behind soft = Chest.
-	resourceNode(interactables, level, "F1_Scrap_Path1", "Scrap", 2, Vector2.new(-22, -28))
-	resourceNode(interactables, level, "F1_Scrap_Path2", "Scrap", 2, Vector2.new(22, -28))
-	resourceNode(interactables, level, "F1_Scrap_Path3", "Scrap", 2, Vector2.new(-28, 8))
-	resourceNode(interactables, level, "F1_Scrap_Path4", "Scrap", 2, Vector2.new(26, -8))
-	resourceNode(interactables, level, "F1_Scrap_Wing1", "Scrap", 2, at("roomNN"), { requiresRubble = "F1_SoftWing" })
-	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 1, at("open"))
+	-- Guaranteed scrap near the stair mouth / open path (not random camouflage).
+	-- Shared piles: path 12 + soft wing 3 = 15 — funds Chest (10) for a duo; solo is slightly flush.
+	resourceNode(interactables, level, "F1_Scrap_Path1", "Scrap", 3, Vector2.new(-22, -28))
+	resourceNode(interactables, level, "F1_Scrap_Path2", "Scrap", 3, Vector2.new(22, -28))
+	resourceNode(interactables, level, "F1_Scrap_Path3", "Scrap", 3, Vector2.new(-28, 8))
+	resourceNode(interactables, level, "F1_Scrap_Path4", "Scrap", 3, Vector2.new(26, -8))
+	resourceNode(interactables, level, "F1_Scrap_Wing1", "Scrap", 3, at("roomNN"), { requiresRubble = "F1_SoftWing" })
+	resourceNode(interactables, level, "F1_Elec_1", "Electronics", 2, at("open"))
 	resourceNode(interactables, level, "F1_Elec_2", "Electronics", 2, at("roomPP"), { requiresRubble = "F1_Rubble" })
-	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 1, at("roomPP"), { requiresRubble = "F1_Rubble" })
+	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 2, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	lootCrate(interactables, level, "F1_Crate_1", "Roll", at("open"))
 	resourceNode(interactables, level, "F1_Food_1", "Food", 1, at("open"))
 end
@@ -1225,9 +1228,9 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	ruinDecor(floor, level, at, 3)
 	resourceNode(interactables, level, "F2_Food_1", "Food", 1, at("open"))
 	resourceNode(interactables, level, "F2_Food_Wing", "Food", 1, at("roomNP"), { requiresRubble = "F2_SoftWing" })
-	resourceNode(interactables, level, "F2_Scrap_1", "Scrap", 2, at("open"))
-	resourceNode(interactables, level, "F2_Scrap_2", "Scrap", 1, at("open"))
-	resourceNode(interactables, level, "F2_Scrap_Wing", "Scrap", 1, at("roomNP"), { requiresRubble = "F2_SoftWing" })
+	resourceNode(interactables, level, "F2_Scrap_1", "Scrap", 3, at("open"))
+	resourceNode(interactables, level, "F2_Scrap_2", "Scrap", 2, at("open"))
+	resourceNode(interactables, level, "F2_Scrap_Wing", "Scrap", 2, at("roomNP"), { requiresRubble = "F2_SoftWing" })
 	resourceNode(interactables, level, "F2_Flashlight", "Flashlight", 1, at("open"), { unique = true })
 	lootCrate(interactables, level, "F2_Crate_1", "Roll", at("open"))
 end
@@ -1305,9 +1308,9 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F3_Elec_3", "Electronics", 2, at("toxic"))
 	resourceNode(interactables, level, "F3_Elec_4", "Electronics", 1, at("safe"))
 	resourceNode(interactables, level, "F3_Elec_5", "Electronics", 1, at("safe"))
-	-- Scrap budget 2–3 on the safe half only (toxic prize is electronics).
-	resourceNode(interactables, level, "F3_Scrap_1", "Scrap", 2, at("safe"))
-	resourceNode(interactables, level, "F3_Scrap_2", "Scrap", 1, at("safe"))
+	-- Shared scrap budget ~5 on the safe half (toxic prize is electronics).
+	resourceNode(interactables, level, "F3_Scrap_1", "Scrap", 3, at("safe"))
+	resourceNode(interactables, level, "F3_Scrap_2", "Scrap", 2, at("safe"))
 	lootCrate(interactables, level, "F3_Crate_1", "Roll", at("safe"))
 	lootCrate(interactables, level, "F3_Crate_2", "Roll", at("toxic"))
 	resourceNode(interactables, level, "F3_Key", "Key", 1, at("toxic"), { unique = true })
@@ -1406,12 +1409,12 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 		at("roomPP"),
 		{ requiresUpgrade = "Generator", requiresRubble = "F4_Rubble_B" }
 	)
-	-- Scrap budget 4–5 after Generator; Cable/Motor stay the prize.
-	resourceNode(interactables, level, "F4_Scrap_1", "Scrap", 2, at("open"), gen)
-	resourceNode(interactables, level, "F4_Scrap_2", "Scrap", 2, at("open"), gen)
-	resourceNode(interactables, level, "F4_Scrap_3", "Scrap", 1, at("open"), gen)
+	-- Shared scrap budget ~8 after Generator; Cable/Motor stay the prize.
+	resourceNode(interactables, level, "F4_Scrap_1", "Scrap", 3, at("open"), gen)
+	resourceNode(interactables, level, "F4_Scrap_2", "Scrap", 3, at("open"), gen)
+	resourceNode(interactables, level, "F4_Scrap_3", "Scrap", 2, at("open"), gen)
 	resourceNode(interactables, level, "F4_Elec_1", "Electronics", 2, at("open"), gen)
-	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 1, at("open"), gen)
+	resourceNode(interactables, level, "F4_Elec_2", "Electronics", 2, at("open"), gen)
 	lootCrate(interactables, level, "F4_Crate_1", "Roll", at("open"), gen)
 	resourceNode(interactables, level, "F4_Key", "Key", 1, at("open"), { unique = true })
 	resourceNode(interactables, level, "F4_Food_1", "Food", 1, at("open"), gen)

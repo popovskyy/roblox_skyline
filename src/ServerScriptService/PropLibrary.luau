@@ -87,8 +87,33 @@ local function partsOf(propName: string): { BasePart }
 	return parts
 end
 
+-- True when the model has at least one opaque part with a readable size (not a vanished mesh).
+local function isReadable(model: Model): boolean
+	local _, boxSize = model:GetBoundingBox()
+	if boxSize.X < 0.15 or boxSize.Y < 0.15 or boxSize.Z < 0.15 then
+		return false
+	end
+	local opaque = 0
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 0.85 then
+			opaque += 1
+		end
+	end
+	return opaque > 0
+end
+
 function PropLibrary.Has(propName: string): boolean
-	return #partsOf(propName) > 0
+	local sources = partsOf(propName)
+	if #sources == 0 then
+		return false
+	end
+	-- Reject empty / fully transparent Blender leftovers so WorldBuilder keeps grey-box Parts.
+	for _, source in sources do
+		if source.Transparency < 0.85 and source.Size.Magnitude > 0.05 then
+			return true
+		end
+	end
+	return false
 end
 
 -- An unscaled, coloured copy of a prop's meshes (anchored, colliding unless told otherwise).
@@ -106,6 +131,9 @@ function PropLibrary.Raw(propName: string, collide: boolean?): Model?
 				child:Destroy()
 			end
 		end
+		-- FBX / InsertService clones sometimes arrive fully transparent; force readable dress.
+		part.Transparency = 0
+		part.LocalTransparencyModifier = 0
 		part.Anchored = true
 		part.CanCollide = collide ~= false
 		part.CastShadow = true
@@ -116,15 +144,22 @@ function PropLibrary.Raw(propName: string, collide: boolean?): Model?
 			part.Material = paint.material
 			if paintName == "Glow" then
 				part.CanCollide = false
+			elseif paintName == "Glass" then
+				-- Glass paint is scenery-only; keep a faint shell so dress never vanishes.
+				part.Transparency = 0.35
 			end
 		end
 		part.Parent = model
+	end
+	if not isReadable(model) then
+		model:Destroy()
+		return nil
 	end
 	return model
 end
 
 -- Builds a coloured copy of a prop, scaled to fit inside `fit` (studs), standing with its bottom centre
--- at `base` and turned by `yaw` degrees. Returns nil when the prop is not available.
+-- at `base` and turned by `yaw` degrees. Returns nil when the prop is not available or not visible.
 function PropLibrary.Place(
 	parent: Instance,
 	propName: string,
@@ -144,6 +179,10 @@ function PropLibrary.Place(
 		model:ScaleTo(scale)
 	end
 	local _, fitted = model:GetBoundingBox()
+	if fitted.X < 0.15 or fitted.Y < 0.15 or fitted.Z < 0.15 then
+		model:Destroy()
+		return nil
+	end
 	model:PivotTo(CFrame.new(base + Vector3.new(0, fitted.Y / 2, 0)) * CFrame.Angles(0, math.rad(yaw or 0), 0))
 	model.Parent = parent
 	return model

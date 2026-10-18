@@ -1,7 +1,7 @@
 --!strict
--- Resource nodes and rubble. Node state is kept per player for floor scrap/food nodes.
--- Loot crates and rubble are shared: once opened/cleared, the whole party sees them empty.
--- Resources are handed out only after every server check passes.
+-- Resource nodes, loot crates and rubble. Floor loot is party-shared: one pickup / crate open /
+-- rubble clear empties that node for everyone on the server. Unique tools still go only to the
+-- picker, but the pile disappears for the whole party.
 --
 -- Node attributes:  NodeId, ItemId, Amount, Unique?, RequiresUpgrade?, RequiresRubble?
 -- Rubble attributes: RubbleId, RequiresTool?, RewardItem?, RequiresUpgrade?
@@ -25,24 +25,23 @@ local ZombieService = require(script.Parent.ZombieService)
 local ResourceService = {}
 
 type PlayerNodes = {
-	depleted: { [string]: boolean }, -- normal nodes (no roof refill in Phase A)
 	seenGold: boolean, -- opened a gold or diamond crate this match (bad-luck protection)
 	holdStart: number?, -- when the player started holding a locked crate's prompt
 	holdCrate: Instance?,
 }
 
 local state: { [Player]: PlayerNodes } = {}
--- Rubble is shared: once anyone clears a pile it is gone for the whole team.
+-- Shared match state: one clear / pickup / open for the whole party.
 local clearedRubble: { [string]: boolean } = {}
--- Loot crates are shared: one open empties the crate for every teammate.
 local openedCrates: { [string]: boolean } = {}
+local depletedNodes: { [string]: boolean } = {}
 -- One-shot toast: Scrap (металобрухт) ≠ Crowbar (лом).
 local scrapHinted: { [Player]: boolean } = {}
 
 local function getState(player: Player): PlayerNodes
 	local s = state[player]
 	if not s then
-		s = { depleted = {}, seenGold = false }
+		s = { seenGold = false }
 		state[player] = s
 	end
 	return s
@@ -76,11 +75,15 @@ function ResourceService.IsTaken(player: Player, node: Instance): boolean
 	if type(nodeId) ~= "string" then
 		return true
 	end
+	-- Crates and resource piles share one emptied map for the whole party.
+	if depletedNodes[nodeId] or openedCrates[nodeId] then
+		return true
+	end
 	if node:GetAttribute("Unique") == true then
 		local data = PlayerDataService.Get(player)
 		return data ~= nil and data.uniqueNodesTaken[nodeId] == true
 	end
-	return getState(player).depleted[nodeId] == true
+	return false
 end
 
 function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
@@ -115,16 +118,15 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 		return false, "res.full"
 	end
 
+	-- Party-shared: first picker empties the pile for everyone.
+	depletedNodes[nodeId] = true
 	if unique then
 		data.uniqueNodesTaken[nodeId] = true
 		PlayerDataService.MarkDirty(player)
-	else
-		getState(player).depleted[nodeId] = true
 	end
 	InventoryService.Add(player, id, count)
 	SfxService.Play("Pickup", node.Position, 0.8)
-	StateSyncService.Request(player)
-	-- No res.collected toast: pouch / objective strip are enough (HUD declutter).
+	syncEveryone()
 	if id == "Scrap" and not scrapHinted[player] then
 		scrapHinted[player] = true
 		Net.Notify(player, "hint.scrapNotCrowbar", "info")
@@ -182,13 +184,12 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 		InventoryService.ForceAdd(player, reward :: string, 1)
 		Net.Notify(player, { "rubble.found", Locale.Item(reward :: string) }, "success")
 	end
-	-- No rubble.cleared toast: the pile vanishing is the feedback.
 	-- Everyone's world updates: the pile disappears for all players.
 	syncEveryone()
 	return true, nil
 end
 
--- Loot crates: rolled when opened, refilled on roof return like resource nodes.
+-- Loot crates: rolled when opened. Shared: one open empties the crate for every teammate.
 -- Attributes: NodeId, Tier (Common/Rare/Gold/Diamond), RequiresUpgrade?, RequiresRubble?
 local function rollLoot(player: Player, tier: string): { [string]: number }
 	local loot: { [string]: number } = {}
@@ -243,7 +244,7 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 		return false, nil
 	end
 	local s = getState(player)
-	if openedCrates[nodeId] then
+	if openedCrates[nodeId] or depletedNodes[nodeId] then
 		return false, "loot.empty"
 	end
 	local denied = ResourceService.CheckAccess(player, crate)
@@ -279,6 +280,7 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 		return false, "loot.locked"
 	end
 	openedCrates[nodeId] = true
+	depletedNodes[nodeId] = true
 	s.holdStart = nil
 	s.holdCrate = nil
 	if tierIndex(final) >= tierIndex("Gold") then
@@ -291,7 +293,6 @@ function ResourceService.OpenCrate(player: Player, crate: BasePart): (boolean, a
 		ZombieService.Alert(crate.Position, Loot.BreakInNoiseRadius, Loot.BreakInAlertSeconds)
 		Net.Notify(player, "loot.breakIn", "warning")
 	end
-	-- No loot.keyUsed toast: crate open juice / inventory is enough.
 	for id, amount in loot do
 		InventoryService.ForceAdd(player, id, amount)
 	end
@@ -306,26 +307,22 @@ function ResourceService.ResetMatch(player: Player)
 	state[player] = nil
 	table.clear(clearedRubble)
 	table.clear(openedCrates)
+	table.clear(depletedNodes)
 	StateSyncService.Request(player)
 end
 
--- Called when the player comes back up to the roof (crates stay opened).
-function ResourceService.OnReturnedToRoof(player: Player)
+-- Called when the player comes back up to the roof (shared piles stay emptied — no roof refill).
+function ResourceService.OnReturnedToRoof(_player: Player)
 	if not GameConfig.ResetNodesOnRoofReturn then
 		return
 	end
-	local s = getState(player)
-	if next(s.depleted) then
-		table.clear(s.depleted)
-		StateSyncService.Request(player)
-	end
+	-- Shared scarcity: even with the flag on, do not refill party-emptied piles mid-match.
 end
 
 function ResourceService.Init()
 	StateSyncService.RegisterProvider(function(player, snapshot)
-		local s = getState(player)
 		local data = PlayerDataService.Get(player)
-		local depleted = table.clone(s.depleted)
+		local depleted = table.clone(depletedNodes)
 		for nodeId in openedCrates do
 			depleted[nodeId] = true
 		end

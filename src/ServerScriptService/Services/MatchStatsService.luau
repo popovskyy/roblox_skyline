@@ -65,19 +65,35 @@ function MatchStatsService.Revived(player: Player)
 end
 
 -- Everything the results screen shows, plus the tokens earned.
+-- Tokens come only from deepest floor (and win ×2). Stats rows with 0 token rates are omitted.
 local function summary(s: Stats, won: boolean): { [string]: any }
-	local chestCount, chestTokens = 0, 0
-	for tier, count in s.chests do
+	local chestCount = 0
+	for _, count in s.chests do
 		chestCount += count
-		chestTokens += count * (T.Chest[tier] or 0)
 	end
 	local rows = {
 		{ key = "results.floor", value = s.floor, tokens = s.floor * T.PerFloor },
-		{ key = "results.chests", value = chestCount, tokens = chestTokens },
-		{ key = "results.zombies", value = s.zombies, tokens = s.zombies * T.Zombie },
-		{ key = "results.builds", value = s.builds, tokens = s.builds * T.Build },
-		{ key = "results.revives", value = s.revives, tokens = s.revives * T.Revive },
 	}
+	-- Keep non-paying rows only when the player actually did something (display / pride, 0 tokens).
+	if
+		chestCount > 0
+		and (T.Chest.Common or 0) + (T.Chest.Rare or 0) + (T.Chest.Gold or 0) + (T.Chest.Diamond or 0) > 0
+	then
+		local chestTokens = 0
+		for tier, count in s.chests do
+			chestTokens += count * (T.Chest[tier] or 0)
+		end
+		table.insert(rows, { key = "results.chests", value = chestCount, tokens = chestTokens })
+	end
+	if s.zombies > 0 and T.Zombie > 0 then
+		table.insert(rows, { key = "results.zombies", value = s.zombies, tokens = s.zombies * T.Zombie })
+	end
+	if s.builds > 0 and T.Build > 0 then
+		table.insert(rows, { key = "results.builds", value = s.builds, tokens = s.builds * T.Build })
+	end
+	if s.revives > 0 and T.Revive > 0 then
+		table.insert(rows, { key = "results.revives", value = s.revives, tokens = s.revives * T.Revive })
+	end
 	local total = 0
 	for _, row in rows do
 		total += row.tokens

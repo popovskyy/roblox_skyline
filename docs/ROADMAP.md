@@ -1,18 +1,19 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 18.10, build **b37 · 18.10 06:17** (zombie free-catalog outfits).
+Owner: Popovskyi. Updated 18.10, build **b38 · 18.10 06:25** (shared loot, horde sky, floor tokens).
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
 
-## Now: live b37
+## Now: live b38
 
-Shipped with b37:
+Shipped with b38:
 
-- Zombie looks: free Roblox catalog shirt/pants outfits + Man Face + ashen/gaunt scales (`ZombieService`).
+- Party-shared floor piles + crates; readable PropLibrary dress / grey-box fallback.
+- Horde: scary music bed + orange/dark sky with siren.
+- Tokens only from deepest floor; scrap budgets retuned for shared loot.
 
-Prior b36: tablet Hit + procedural swing; F1 SoftWing / server rubble open.
-
+Prior b37: zombie free-catalog outfits. Prior b36: tablet Hit + SoftWing / rubble open.
 
 ## Next (owner only — see `docs/design/owner-gates.md`)
 

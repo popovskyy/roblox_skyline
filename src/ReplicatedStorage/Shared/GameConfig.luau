@@ -44,8 +44,9 @@ local GameConfig = {
 	InteractionCooldown = 0.35,
 	PromptActivationDistance = 10,
 
-	-- Resource nodes. Per player. Scrap/Electronics stay gone after pickup (no roof refill) so the
-	-- build chain stays scarce; unique nodes never refill either. Crates use their own opened state.
+	-- Resource nodes are party-shared (one pickup empties the pile for the whole server). Amounts are
+	-- tuned for shared scarcity: enough for Chest→Gen→Barricade→Bridge without flooding a solo run.
+	-- Scrap/Electronics stay gone after pickup (no roof refill). Crates share the same emptied map.
 	ResourceRespawnSeconds = 0,
 	ResetNodesOnRoofReturn = false,
 
@@ -96,6 +97,8 @@ local GameConfig = {
 		CountMax = 10,
 		SpawnStaggerSeconds = 0.7,
 		SirenVolume = 1.35,
+		-- Scary music bed + orange/dark sky while the wave is active (HordeSiren still plays once).
+		ThreatSeconds = 45,
 	},
 
 	-- One mid-floor blackout per match (floor 2 or 3). Fires after MinDelay once someone is on a mid
@@ -121,18 +124,20 @@ local GameConfig = {
 	-- Rarity identity (slow-survival-loop): Common = crumbs; Rare = mats+Bat; Gold = Elec+heals+Pipe;
 	-- Diamond = Cable-adjacent + Machete chance.
 	LootTables = {
+		-- Shared crates: slightly richer scrap crumbs so a party still funds builds after one open.
 		Common = {
-			{ item = "Scrap", min = 1, max = 2 },
+			{ item = "Scrap", min = 2, max = 3 },
 			{ item = "Food", min = 1, max = 1, chance = 0.35 },
 			{ item = "Bandage", min = 1, max = 1, chance = 0.15 },
 		},
 		Rare = {
-			{ item = "Scrap", min = 1, max = 3 },
-			{ item = "Electronics", min = 1, max = 1 },
+			{ item = "Scrap", min = 2, max = 4 },
+			{ item = "Electronics", min = 1, max = 2 },
 			{ item = "Bandage", min = 1, max = 1, chance = 0.45 },
 			{ item = "Bat", min = 1, max = 1, chance = 0.28 },
 		},
 		Gold = {
+			{ item = "Scrap", min = 1, max = 2 },
 			{ item = "Electronics", min = 2, max = 3 },
 			{ item = "Bandage", min = 1, max = 1, chance = 0.6 },
 			{ item = "Medkit", min = 1, max = 1, chance = 0.4 },
@@ -181,14 +186,14 @@ local GameConfig = {
 		Machete = { damage = 34, cooldown = 0.6, range = 7, rank = 4 },
 	} :: { [string]: { damage: number, cooldown: number, range: number, rank: number } },
 
-	-- Tokens earned in a match (kept even when the match is lost; doubled for a win).
+	-- Tokens (lobby "diamonds"/жетони): earned mainly by deepest floor reached — not kills/pickups/builds.
+	-- F1=12 · F2=24 · F3=36 · F4=48; win ×2. Junk grants (chest/zombie/build/revive) stay at 0.
 	Tokens = {
-		-- About 25-35 for a typical lost match, double for a win: enough to feel earned, not to flood.
-		PerFloor = 2, -- for the deepest floor reached (floor 3 = 6)
-		Chest = { Common = 1, Rare = 2, Gold = 4, Diamond = 8 } :: { [string]: number },
-		Zombie = 1,
-		Build = 3,
-		Revive = 2,
+		PerFloor = 12,
+		Chest = { Common = 0, Rare = 0, Gold = 0, Diamond = 0 } :: { [string]: number },
+		Zombie = 0,
+		Build = 0,
+		Revive = 0,
 		WinMultiplier = 2,
 	},
 

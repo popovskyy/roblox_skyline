@@ -1,5 +1,6 @@
 --!strict
--- Local background music: a calm playlist on the roof, tense drones below. Crossfades when the zone changes.
+-- Local background music: calm playlist on the roof, tense drones below, scary bed during roof horde.
+-- Crossfades when the zone or HordeThreat attribute changes. All ids come from MusicConfig (Creator Store).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +17,9 @@ local current: Sound? = nil
 local indices: { [string]: number } = {}
 
 local function playlistFor(zone: any): string
+	if workspace:GetAttribute("HordeThreat") == true then
+		return "Horde"
+	end
 	if zone == "Roof" or zone == "NeighborRoof" or zone == nil then
 		return "Roof"
 	end
@@ -63,8 +67,9 @@ playNext = function(setName: string)
 		end
 	end)
 	sound:Play()
+	local volume = if setName == "Horde" then (MusicConfig.HordeVolume or MusicConfig.Volume) else MusicConfig.Volume
 	TweenService:Create(sound, TweenInfo.new(MusicConfig.FadeSeconds), {
-		Volume = MusicConfig.Volume,
+		Volume = volume,
 	}):Play()
 end
 
@@ -83,6 +88,7 @@ end
 
 function MusicController.Start()
 	player:GetAttributeChangedSignal("Zone"):Connect(onZoneChanged)
+	workspace:GetAttributeChangedSignal("HordeThreat"):Connect(applyZone)
 	applyZone()
 end
 

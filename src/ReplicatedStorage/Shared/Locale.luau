@@ -677,9 +677,9 @@ local S: { [string]: Entry } = {
 		en = "The bridge is the way off the roof. Cross it and you win.",
 	},
 	["lobby.howTokens"] = {
-		uk = "Кожен матч дає жетони, навіть програний; перемога — удвічі більше. За жетони відкриваються класи (кнопка «Класи»).",
-		ru = "Каждый матч даёт жетоны, даже проигранный; победа — вдвое больше. За жетоны открываются классы (кнопка «Классы»).",
-		en = "Every match earns tokens, even a lost one; a win doubles them. Tokens unlock classes (the Classes button).",
+		uk = "Жетони дають за найглибший поверх забігу (не за кожен підбір чи вбивство); перемога — удвічі більше. За жетони відкриваються класи.",
+		ru = "Жетоны дают за самый глубокий этаж забега (не за каждый подбор или убийство); победа — вдвое больше. За жетоны открываются классы.",
+		en = "Tokens come from the deepest floor you reach (not every pickup or kill); a win doubles them. Tokens unlock classes.",
 	},
 	["menu.title"] = { uk = "МЕНЮ", ru = "МЕНЮ", en = "MENU" },
 	["menu.resume"] = { uk = "Продовжити", ru = "Продолжить", en = "Resume" },
@@ -918,9 +918,9 @@ local S: { [string]: Entry } = {
 		en = "New weapon replaced your weaker one.",
 	},
 	["results.floor"] = {
-		uk = "Найглибший поверх",
-		ru = "Самый глубокий этаж",
-		en = "Deepest floor",
+		uk = "Найглибший поверх (жетони)",
+		ru = "Самый глубокий этаж (жетоны)",
+		en = "Deepest floor (tokens)",
 	},
 	["results.chests"] = {
 		uk = "Відкрито скринь",

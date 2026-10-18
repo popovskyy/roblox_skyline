@@ -1,11 +1,12 @@
 --!strict
--- Timed roof horde: siren + toast, then new zombies climb the stair mouth onto the roof.
--- Does not respawn floor zombies. Barricade upgrade blocks the stair exit (server collision).
+-- Timed roof horde: siren + toast + scary music bed + orange/dark sky, then new zombies climb the
+-- stair mouth onto the roof. Does not respawn floor zombies. Barricade upgrade blocks the stair exit.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+local Atmosphere = require(script.Parent.Parent.Atmosphere)
 local BaseUpgradeService = require(script.Parent.BaseUpgradeService)
 local Net = require(script.Parent.Net)
 local SfxService = require(script.Parent.SfxService)
@@ -23,6 +24,7 @@ local LANE_CENTER = (HOLE_X + 0.5) / 2
 
 local running = false
 local generation = 0
+local threatGeneration = 0
 local barricadeParts: { BasePart } = {}
 local sirenAt = Vector3.new(LANE_CENTER, World.RoofY + 3, HOLE_MIN_Z)
 
@@ -76,10 +78,24 @@ local function collectBarricadeParts(root: Folder)
 	applyBarricadeCollision(teamHasBarricade())
 end
 
+local function clearThreat(gen: number)
+	if gen ~= threatGeneration then
+		return
+	end
+	Atmosphere.SetHordeThreat(false, 3)
+end
+
 local function warnEveryone()
 	SfxService.Play("HordeSiren", sirenAt, H.SirenVolume)
 	task.delay(0.9, function()
 		SfxService.Play("HordeSiren", sirenAt, H.SirenVolume * 0.85)
+	end)
+	-- Scary music bed (MusicController) + orange/dark sky for the wave.
+	threatGeneration += 1
+	local threatGen = threatGeneration
+	Atmosphere.SetHordeThreat(true, 2)
+	task.delay(H.ThreatSeconds, function()
+		clearThreat(threatGen)
 	end)
 	for _, player in Players:GetPlayers() do
 		Net.Notify(player, "horde.warning", "warning")
@@ -142,6 +158,8 @@ end
 
 function HordeService.Reset()
 	generation += 1
+	threatGeneration += 1
+	Atmosphere.SetHordeThreat(false, 1)
 	applyBarricadeCollision(teamHasBarricade())
 	if running and H.Enabled then
 		scheduleLoop(generation)
@@ -153,6 +171,7 @@ function HordeService.Start(root: Folder)
 		return
 	end
 	running = true
+	workspace:SetAttribute("HordeThreat", false)
 	-- Barricade boards still harden on purchase even when waves are off (QA kill-switch).
 	collectBarricadeParts(root)
 	BaseUpgradeService.OnPurchased(function(_player: Player, upgradeId: string)

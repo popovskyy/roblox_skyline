@@ -3,6 +3,36 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## b38 · 18.10 06:25
+
+Shared floor loot, readable props, horde sky/music, floor-only tokens, scrap rebalance (after b37).
+
+### Invisible loot
+- Root cause: Blender dress hid the host (`Transparency = 1`) even when the mesh was fully transparent
+  or collapsed after scale — prompt worked on empty air.
+- Fix: `PropLibrary` rejects unreadable props; force opaque dress; keep grey-box Parts when Place fails.
+
+### Party-shared piles
+- Resource nodes were still per-player; crates were already shared. Now one Collect / Open empties the
+  pile for the whole party (`depletedNodes` + sync).
+
+### Horde music + orange sky
+- On wave start: existing `HordeSiren`, plus `MusicConfig.Horde` (reuse Creator Store drones) and a dark
+  orange Lighting threat for ~45s (`Atmosphere.SetHordeThreat`).
+
+### Tokens (жетони)
+- Only deepest floor pays (`PerFloor = 12`); chest/zombie/build/revive token rates cut to 0. Win ×2 kept.
+
+### Shared-loot scrap balance
+- Floor scrap nodes bumped (~35 total vs ~22) so a duo can still fund Chest→Gen→Bridge; crate Common/Rare
+  scrap slightly richer. Build costs unchanged.
+
+### Check in game
+- Co-op: teammate cannot re-loot your scrap pile or crate.
+- Loot always visible (mesh or solid grey-box).
+- Horde: siren + scary bed + orange sky.
+- Results: tokens only from deepest floor (+ win).
+
 ## b37 · 18.10 06:17
 
 Zombie looks: free Roblox catalog outfits on R15 HumanoidDescription (floor + horde).
