@@ -7,6 +7,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b43 · 18.10
+- Workbench: every ingredient shows "have/need" in green or red (e.g. "Bandage 1/2 · Food 1/1"), with a
+  line saying what counts (your backpack + chest + teammates on the roof, the same pool the craft uses).
+  The Craft button does nothing while something is missing. A recipe could look ready because the
+  ingredient was in the chest or with a teammate; now that is visible.
+- Check in game: medkit with 1 bandage → "Bandage 1/2" red, button grey; put a bandage in the chest →
+  turns green and crafts.
 ## b42 · 18.10
 - Picked-up one-off items (flashlight, key, …) now disappear for every teammate, not only for the picker
   (others saw the object and got "empty"). The client hides a node when anyone took it.

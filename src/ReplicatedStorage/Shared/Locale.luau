@@ -873,6 +873,11 @@ local S: { [string]: Entry } = {
 	["revive.youRevived"] = { uk = "Ти підняв: %s", ru = "Ты поднял: %s", en = "You revived %s" },
 	["craft.title"] = { uk = "Верстак", ru = "Верстак", en = "Workbench" },
 	["craft.button"] = { uk = "Зробити", ru = "Сделать", en = "Craft" },
+	["craft.pool"] = {
+		uk = "Рахується: твій рюкзак + скриня + рюкзаки тіммейтів на даху",
+		ru = "Считается: твой рюкзак + сундук + рюкзаки тиммейтов на крыше",
+		en = "Counts: your backpack + chest + teammates' backpacks on the roof",
+	},
 	["craft.done"] = { uk = "Зроблено: %s", ru = "Сделано: %s", en = "Crafted: %s" },
 	["craft.tooFar"] = {
 		uk = "Підійди до верстака",

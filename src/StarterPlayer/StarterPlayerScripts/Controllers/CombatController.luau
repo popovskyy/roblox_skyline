@@ -12,7 +12,6 @@ local StarterGui = game:GetService("StarterGui")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
-local Locale = require(ReplicatedStorage.Shared.Locale)
 local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local Theme = require(ReplicatedStorage.Shared.Theme)
 local ClientState = require(script.Parent.ClientState)
@@ -536,11 +535,27 @@ local function renderCraft()
 		local def = ItemDefinitions.Items[recipe.id]
 		-- How many the team can pay for right now (weapons: one).
 		local canMake = 10
-		for itemId, amount in recipe.cost do
-			local have = (s.inventory and s.inventory[itemId] or 0)
-				+ (s.storage and s.storage[itemId] or 0)
-				+ (s.teamPool and s.teamPool[itemId] or 0)
-			canMake = math.min(canMake, math.floor(have / amount))
+		-- Each ingredient as "have/need", green when there is enough (backpack + chest + teammates on
+		-- the roof, the same pool the server spends from), red when not.
+		local parts = {}
+		for _, itemId in ItemDefinitions.Order do
+			local amount = recipe.cost[itemId]
+			if amount then
+				local have = (s.inventory and s.inventory[itemId] or 0)
+					+ (s.storage and s.storage[itemId] or 0)
+					+ (s.teamPool and s.teamPool[itemId] or 0)
+				canMake = math.min(canMake, math.floor(have / amount))
+				local color = if have >= amount then "#9FD18B" else "#FF9C8F"
+				table.insert(
+					parts,
+					('<font color="%s">%s %d/%d</font>'):format(
+						color,
+						Lang.T("item." .. itemId .. ".name"),
+						math.min(have, amount),
+						amount
+					)
+				)
+			end
 		end
 		if def.weapon then
 			canMake = math.min(canMake, 1)
@@ -582,10 +597,19 @@ local function renderCraft()
 		})
 		UIKit.Label({
 			Position = UDim2.fromOffset(66, 28),
-			Size = UDim2.new(1, -200, 0, 26),
-			Text = Lang.T("prompt.needs", Locale.Cost(recipe.cost)),
+			Size = UDim2.new(1, -200, 0, 20),
+			Text = table.concat(parts, "  ·  "),
+			RichText = true,
 			TextSize = 15,
-			TextColor3 = if affordable then C.text else C.bad,
+			TextColor3 = C.text,
+			Parent = row,
+		})
+		UIKit.Label({
+			Position = UDim2.fromOffset(66, 48),
+			Size = UDim2.new(1, -200, 0, 16),
+			Text = Lang.T("craft.pool"),
+			TextSize = 13,
+			TextColor3 = C.muted,
 			Parent = row,
 		})
 		local button = UIKit.Button({
@@ -595,9 +619,13 @@ local function renderCraft()
 			Text = Lang.T("craft.button"),
 			BackgroundColor3 = if affordable then Color3.fromRGB(60, 110, 60) else C.panel,
 			TextColor3 = if affordable then C.text else C.muted,
+			AutoButtonColor = affordable,
 			Parent = row,
 		})
 		button.Activated:Connect(function()
+			if not affordable then
+				return
+			end
 			if canMake > 1 then
 				QuantityPicker.Open(
 					Lang.T("qty.craft", Lang.T("item." .. recipe.id .. ".name")),
