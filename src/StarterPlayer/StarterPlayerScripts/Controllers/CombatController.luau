@@ -250,12 +250,12 @@ local function proceduralSwing(kind: "weapon" | "punch")
 end
 
 local function playSwing(name: "WeaponSwing" | "Punch")
-	-- Touch: procedural only (asset clips fight Transform and often never load on tablet).
+	-- The server plays the swing clip on our character for everyone (CombatService.playSwing), so the
+	-- client does not play its own copy. Touch devices also get the procedural arm swing locally, which
+	-- shows at once even if the clip is slow to load there.
 	if UserInputService.TouchEnabled then
 		proceduralSwing(if name == "Punch" then "punch" else "weapon")
-		return
 	end
-	play(name, 0.05)
 end
 
 local lastSwing = 0
@@ -530,7 +530,9 @@ local function renderCraft()
 		local def = ItemDefinitions.Items[recipe.id]
 		local affordable = true
 		for itemId, amount in recipe.cost do
-			local have = (s.inventory and s.inventory[itemId] or 0) + (s.storage and s.storage[itemId] or 0)
+			local have = (s.inventory and s.inventory[itemId] or 0)
+				+ (s.storage and s.storage[itemId] or 0)
+				+ (s.teamPool and s.teamPool[itemId] or 0)
 			if have < amount then
 				affordable = false
 			end

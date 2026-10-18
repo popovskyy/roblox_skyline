@@ -308,7 +308,7 @@ function ResourceService.ResetMatch(player: Player)
 	table.clear(clearedRubble)
 	table.clear(openedCrates)
 	table.clear(depletedNodes)
-	StateSyncService.Request(player)
+	syncEveryone()
 end
 
 -- Called when the player comes back up to the roof (shared piles stay emptied — no roof refill).

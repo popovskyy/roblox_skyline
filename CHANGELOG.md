@@ -3,6 +3,17 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+
+## b39 · 18.10
+- Team pooling: builds and crafts on the roof pay from your backpack, then the team chest, then the
+  backpacks of teammates who are on the roof (they get "you chipped in"). The workbench shows the team
+  total. Goal counters ("x/10 scrap") count the whole team.
+- Swings are played on the server, so everyone sees them (tablet players' swings were invisible to
+  teammates); a pale trail follows the weapon during a swing. Touch keeps the instant local arm swing.
+- No melee through walls: zombies only hit with a clear line to you (they walk around walls), and
+  players cannot hit zombies through walls.
+- Check in game: 5+5 scrap chest build with two players on the roof; tablet swing seen from a PC; a
+  zombie on the other side of a wall does not damage you.
 ## b38 · 18.10 06:25
 
 Shared floor loot, readable props, horde sky/music, floor-only tokens, scrap rebalance (after b37).

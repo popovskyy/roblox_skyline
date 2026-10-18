@@ -49,11 +49,11 @@ local Steps: { Step } = {
 		text = "tutorial.2",
 		sticky = false,
 		-- Chest costs 10 Scrap: shared F1 path (3×4) + soft wing (3) = 15.
-		complete = function(player)
-			return StorageService.Total(player, "Scrap") >= 10
+		complete = function()
+			return StorageService.TeamCollected("Scrap") >= 10
 		end,
-		progress = function(player)
-			return math.min(StorageService.Total(player, "Scrap"), 10), 10
+		progress = function()
+			return math.min(StorageService.TeamCollected("Scrap"), 10), 10
 		end,
 	},
 	{
@@ -73,11 +73,11 @@ local Steps: { Step } = {
 	{
 		text = "tutorial.5",
 		sticky = false,
-		complete = function(player)
-			return StorageService.Total(player, "Electronics") >= 5
+		complete = function()
+			return StorageService.TeamCollected("Electronics") >= 5
 		end,
-		progress = function(player)
-			return math.min(StorageService.Total(player, "Electronics"), 5), 5
+		progress = function()
+			return math.min(StorageService.TeamCollected("Electronics"), 5), 5
 		end,
 	},
 	{
@@ -93,9 +93,9 @@ local Steps: { Step } = {
 		complete = function(_, data)
 			return data.towerCompleted
 		end,
-		progress = function(player)
-			local have = math.min(StorageService.Total(player, "Cable"), 4)
-				+ math.min(StorageService.Total(player, "Motor"), 2)
+		progress = function()
+			local have = math.min(StorageService.TeamCollected("Cable"), 4)
+				+ math.min(StorageService.TeamCollected("Motor"), 2)
 			return have, 6
 		end,
 	},

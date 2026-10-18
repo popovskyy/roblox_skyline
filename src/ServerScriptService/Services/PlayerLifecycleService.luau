@@ -21,6 +21,7 @@ local PlayerDataService = require(script.Parent.PlayerDataService)
 local RateLimiter = require(script.Parent.RateLimiter)
 local ResourceService = require(script.Parent.ResourceService)
 local StateSyncService = require(script.Parent.StateSyncService)
+local StorageService = require(script.Parent.StorageService)
 
 local PlayerLifecycleService = {}
 
@@ -268,6 +269,8 @@ function PlayerLifecycleService.Init()
 			costs[id] = Classes.Cost(UpgradeDefinitions.GetCost(def), player)
 		end
 		snapshot.costs = costs
+		-- What teammates on the roof carry: it counts toward builds and crafts on the roof.
+		snapshot.teamPool = StorageService.TeamPool(player)
 		local backpack = backpacks[player]
 		snapshot.backpack = backpack and backpack.part.Position
 	end)

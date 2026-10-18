@@ -186,7 +186,81 @@ local function makeTool(character: Model, def: ItemDefinitions.ItemDef): Tool
 			else ITEM_IN_HAND
 		tool.Grip = gripFor(character, inHand)
 	end
+	-- A pale arc behind the weapon while it swings, so a hit reads even when the arm is hard to see
+	-- (phone camera close in, first person, far teammates). Enabled by `swing` below.
+	if def.weapon then
+		local length = (MESHES[weaponId] and MESHES[weaponId].length) or look.size.Z
+		local near = Instance.new("Attachment")
+		near.Name = "TrailNear"
+		near.Position = Vector3.new(0, 0, -0.8)
+		near.Parent = handle
+		local far = Instance.new("Attachment")
+		far.Name = "TrailFar"
+		far.Position = Vector3.new(0, 0, -math.max(length - 0.3, 1.2))
+		far.Parent = handle
+		local trail = Instance.new("Trail")
+		trail.Name = "SwingTrail"
+		trail.Attachment0 = near
+		trail.Attachment1 = far
+		trail.Lifetime = 0.18
+		trail.Color = ColorSequence.new(Color3.fromRGB(238, 230, 208))
+		trail.Transparency = NumberSequence.new(0.35, 1)
+		trail.LightEmission = 0.3
+		trail.FaceCamera = true
+		trail.Enabled = false
+		trail.Parent = handle
+	end
 	return tool
+end
+
+-- Swing animations played on the server, so every player sees them (a client-played clip on a
+-- phone or tablet did not always show). Loaded once per character.
+local SWING_ANIMATIONS = {
+	Weapon = "rbxassetid://106693888316440",
+	Punch = "rbxassetid://129369444994134",
+}
+local swingTracks: { [Model]: { [string]: AnimationTrack } } = {}
+
+local function playSwing(player: Player, kind: string)
+	local character = player.Character
+	local humanoid = CharacterUtil.GetHumanoid(player)
+	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+	if not character or not animator then
+		return
+	end
+	local tracks = swingTracks[character]
+	if not tracks then
+		tracks = {}
+		swingTracks[character] = tracks
+		character.Destroying:Once(function()
+			swingTracks[character] = nil
+		end)
+	end
+	local track = tracks[kind]
+	if not track then
+		local animation = Instance.new("Animation")
+		animation.AnimationId = SWING_ANIMATIONS[kind]
+		local ok, loaded = pcall(function()
+			return animator:LoadAnimation(animation)
+		end)
+		if not ok or not loaded then
+			return
+		end
+		track = loaded
+		track.Priority = Enum.AnimationPriority.Action4
+		track.Looped = false
+		tracks[kind] = track
+	end
+	track:Play(0.05, 1, 1)
+	local tool = character:FindFirstChild(TOOL_NAME)
+	local handle = tool and tool:FindFirstChild("Handle")
+	local trail = handle and handle:FindFirstChild("SwingTrail")
+	if trail and trail:IsA("Trail") then
+		trail.Enabled = true
+		task.delay(0.4, function()
+			trail.Enabled = false
+		end)
+	end
 end
 
 -- Puts the selected item in the player's hands. Cheap to call often.
@@ -248,7 +322,7 @@ local function swing(player: Player)
 		return
 	end
 	lastSwing[player] = now
-	-- The swing animation is played by the swinging player's client (it replicates to everyone).
+	playSwing(player, if def then "Weapon" else "Punch")
 
 	SfxService.Play("Swing", root, 0.8)
 	local look = root.CFrame.LookVector
@@ -258,7 +332,11 @@ local function swing(player: Player)
 			local flat = Vector3.new(offset.X, 0, offset.Z)
 			if flat.Magnitude <= weapon.range and math.abs(offset.Y) < 5 then
 				local facing = if flat.Magnitude > 0.1 then look:Dot(flat.Unit) else 1
-				if facing > 0.2 then
+				local ignore: { Instance } = { z.model }
+				if player.Character then
+					table.insert(ignore, player.Character)
+				end
+				if facing > 0.2 and not ZombieService.WallBetween(root.Position, z.root.Position, ignore) then
 					local wasAlive = z.humanoid.Health > 0
 					local class = Classes.Of(player)
 					z.humanoid:TakeDamage(weapon.damage * (if class and class.damage then class.damage else 1))

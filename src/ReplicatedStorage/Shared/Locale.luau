@@ -170,9 +170,14 @@ local S: { [string]: Entry } = {
 		en = "Build this first: %s",
 	},
 	["upgrade.notEnough"] = {
-		uk = "Недостатньо ресурсів. Потрібно: %s",
-		ru = "Не хватает ресурсов. Нужно: %s",
-		en = "Not enough resources. Needed: %s",
+		uk = "Недостатньо ресурсів. Потрібно: %s. Рахуються рюкзаки всіх на даху і скриня",
+		ru = "Не хватает ресурсов. Нужно: %s. Считаются рюкзаки всех на крыше и сундук",
+		en = "Not enough resources. Needed: %s. Backpacks of everyone on the roof and the chest count",
+	},
+	["team.chippedIn"] = {
+		uk = "Ти вклав у будівництво: %s ×%d",
+		ru = "Ты вложил в постройку: %s ×%d",
+		en = "You chipped in: %s ×%d",
 	},
 	["upgrade.built"] = { uk = "Збудовано: %s", ru = "Построено: %s", en = "Built: %s" },
 

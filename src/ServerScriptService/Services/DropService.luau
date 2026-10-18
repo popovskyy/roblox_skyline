@@ -102,7 +102,7 @@ local function drop(player: Player, itemId: any, amount: any)
 	local position = if hit then hit.Position + Vector3.new(0, 0.5, 0) else root.Position - Vector3.new(0, 2.5, 0)
 	makeBundle(itemId, count, position).Parent = folder
 	SfxService.Play("Pickup", position, 0.6)
-	StateSyncService.Request(player)
+	StateSyncService.RequestAll()
 	-- No drop.done toast: world bundle + pouch tick are enough.
 end
 
@@ -122,7 +122,7 @@ function DropService.PickUp(player: Player, bundle: BasePart): (boolean, any)
 	bundle:Destroy()
 	InventoryService.Add(player, id, count)
 	SfxService.Play("Pickup", position, 0.8)
-	StateSyncService.Request(player)
+	StateSyncService.RequestAll()
 	-- No res.collected toast (HUD declutter).
 	return true, nil
 end

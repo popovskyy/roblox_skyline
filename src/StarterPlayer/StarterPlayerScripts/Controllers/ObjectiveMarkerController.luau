@@ -92,7 +92,9 @@ local function targetFor(s: { [string]: any }): BasePart?
 		return find({ "Interactables", "Generator_Pad" })
 	elseif step == 7 then
 		local have = function(id: string): number
-			return (s.inventory and s.inventory[id] or 0) + (s.storage and s.storage[id] or 0)
+			return (s.inventory and s.inventory[id] or 0)
+				+ (s.storage and s.storage[id] or 0)
+				+ (s.teamPool and s.teamPool[id] or 0)
 		end
 		if have("Cable") >= 4 and have("Motor") >= 2 then
 			return find({ "Interactables", "Bridge_Pad" })

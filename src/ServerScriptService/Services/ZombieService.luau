@@ -261,6 +261,20 @@ local function rayHitsBarricade(from: Vector3, to: Vector3, ignore: { Instance }
 	return nil
 end
 
+-- A solid wall (anything that collides) between two points: no melee through it, either way.
+-- Decoration that does not collide (vines, rubble chunks, glass bits) never blocks.
+function ZombieService.WallBetween(from: Vector3, to: Vector3, ignore: { Instance }): boolean
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local list = table.clone(ignore)
+	if folder then
+		table.insert(list, folder)
+	end
+	params.FilterDescendantsInstances = list
+	params.RespectCanCollide = true
+	return workspace:Raycast(from, to - from, params) ~= nil
+end
+
 local function hasLineOfSight(z: Zombie, target: BasePart): boolean
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -342,7 +356,9 @@ local function think(z: Zombie, now: number)
 			table.insert(ignore, character)
 		end
 		local blocked = rayHitsBarricade(z.root.Position, targetRoot.Position, ignore)
-		if distance <= Z.AttackRange and not blocked then
+		-- A plain wall in the way: no hit; the zombie walks around (pathfinding) instead of idling.
+		local walled = not blocked and ZombieService.WallBetween(z.root.Position, targetRoot.Position, ignore)
+		if distance <= Z.AttackRange and not blocked and not walled then
 			z.humanoid:MoveTo(z.root.Position)
 			if now - z.lastAttack >= Z.AttackCooldown then
 				z.lastAttack = now
@@ -352,7 +368,7 @@ local function think(z: Zombie, now: number)
 		elseif blocked then
 			-- Goal is behind boards: idle / press against the wall; never LoS-MoveTo through it.
 			stopInPlace(z)
-		elseif hasLineOfSight(z, targetRoot) then
+		elseif not walled and hasLineOfSight(z, targetRoot) then
 			z.humanoid:MoveTo(targetRoot.Position)
 		else
 			moveAlongPath(z, targetRoot.Position, now)
