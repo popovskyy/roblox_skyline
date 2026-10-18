@@ -12,6 +12,19 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b48 · 18.10
+Polish spec (`ui/POLISH_SPEC.md`) step 1: one window style.
+- New `UIKit.Window`: dim backdrop (tap to close), dark panel with a thin cream edge, amber seal, amber
+  kicker + capital title, drawn ✕ (44 px), scrolling body, optional footer, short pop-in; Esc / B close
+  the top window. Button kinds `UIKit.KindButton` (primary / secondary / accent / danger / hold) and
+  `UIKit.SetDisabled`.
+- Old `UIKit.Colors` now map onto the HUD tokens, so every panel and button shares the HUD palette.
+- Moved onto the window: chest ("SHARED WITH THE TEAM", 880), workbench ("PAYS FROM: BACKPACK → CHEST →
+  TEAM", 880), ☰ menu (360) and the leave confirmation, lobby Records and How to play (`sheet()`), lobby
+  Classes (880). Story card restyled to match. Results screen comes with step 4.
+- New Locale keys from the spec (section 7), tips 1–3.
+- Check in game: open each window on phone and PC — same frame, ✕ and backdrop close it, Esc/B too.
 ## b47 · 18.10
 - Food is easy to find: a floating can icon and a warm glow over every food pile (seen from ~45 studs);
   every fridge and counter in the floor 2 flats has food (2) next to it; one more pile on floors 1, 3

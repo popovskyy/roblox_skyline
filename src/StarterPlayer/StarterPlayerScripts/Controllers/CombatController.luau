@@ -696,42 +696,20 @@ local function renderCraft()
 	end
 end
 
-local function buildCraft(screen: ScreenGui)
-	craftPanel = UIKit.Panel({
-		Name = "Workbench",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(0, 520, 0.86, 0),
-		BackgroundTransparency = 0.05,
-		Visible = false,
-		Parent = screen,
+local function buildCraft(_screen: ScreenGui)
+	local root, body, _footer, refs = UIKit.Window({
+		name = "Workbench",
+		kicker = Lang.T("craft.kicker"),
+		title = Lang.T("craft.title"),
+		width = 880,
+		noFooter = true,
 	})
-	-- Never taller than 360 and never off a short phone screen.
-	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(520, 360), Parent = craftPanel })
-	UIKit.Padding(14).Parent = craftPanel
-	local title =
-		UIKit.Label({ Size = UDim2.new(1, -44, 0, 30), FontFace = Theme.Display, TextSize = 26, Parent = craftPanel })
-	Lang.Bind(title, "craft.title")
-	local close = UIKit.Button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(36, 36),
-		Text = "X",
-		Parent = craftPanel,
-	})
-	close.Activated:Connect(function()
-		craftPanel.Visible = false
+	Lang.Changed:Connect(function()
+		refs.kicker.Text = Lang.T("craft.kicker")
+		refs.title.Text = string.upper(Lang.T("craft.title"))
 	end)
-	craftList = UIKit.New("ScrollingFrame", {
-		Position = UDim2.fromOffset(0, 44),
-		Size = UDim2.new(1, 0, 1, -44),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 6,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-		Parent = craftPanel,
-	})
+	craftPanel = root
+	craftList = body
 	UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = craftList })
 end
 

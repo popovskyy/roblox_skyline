@@ -100,55 +100,21 @@ local function clearRows(list: Frame)
 	end
 end
 
-local function makeWindow(
-	name: string,
-	title: string,
-	size: UDim2,
-	position: UDim2,
-	anchor: Vector2
-): (Frame, Frame, TextLabel)
-	local screen = UIKit.Screen()
-	local panel = UIKit.Panel({
-		Name = name,
-		AnchorPoint = anchor,
-		Position = position,
-		Size = size,
-		Visible = false,
-		BackgroundTransparency = 0.05,
-		Parent = screen,
+-- The shared window style (UIKit.Window). Returns the window, its list body and the kicker line
+-- (the small amber text above the title, used for the weight summary).
+local function makeWindow(name: string, title: string, width: number): (Frame, Frame, TextLabel)
+	local root, body, _footer, refs = UIKit.Window({
+		name = name,
+		title = Lang.T(title),
+		kicker = "",
+		width = width,
+		noFooter = true,
 	})
-	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(size.X.Offset, 640), Parent = panel })
-	UIKit.Padding(12).Parent = panel
-	local header = UIKit.Label({
-		Size = UDim2.new(1, -40, 0, 26),
-		Text = "",
-		FontFace = Theme.Bold,
-		TextSize = 18,
-		Parent = panel,
-	})
-	Lang.Bind(header, title)
-	local close = UIKit.Button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(32, 32),
-		Text = "X",
-		Parent = panel,
-	})
-	close.Activated:Connect(function()
-		panel.Visible = false
+	Lang.Changed:Connect(function()
+		refs.title.Text = string.upper(Lang.T(title))
 	end)
-	local list = UIKit.New("ScrollingFrame", {
-		Position = UDim2.fromOffset(0, 40),
-		Size = UDim2.new(1, 0, 1, -40),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 6,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-		Parent = panel,
-	})
-	UIKit.New("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
-	return panel, list, header
+	UIKit.New("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = body })
+	return root, body, refs.kicker
 end
 
 -- Holding a slot or a pouch counter for half a second drops it on the ground for teammates.
@@ -673,8 +639,11 @@ local function storageSection(
 end
 
 local function renderStorage(s: { [string]: any })
-	storageHeader.Text =
-		Lang.T("ui.storageHeader", s.storageWeight or 0, s.storageCapacity or 0, s.weight or 0, s.maxWeight or 0)
+	storageHeader.Text = Lang.T("chest.kicker")
+		.. "  ·  "
+		.. string.upper(
+			Lang.T("ui.storageHeader", s.storageWeight or 0, s.storageCapacity or 0, s.weight or 0, s.maxWeight or 0)
+		)
 	clearRows(storageList)
 	UIKit.New(
 		"Frame",
@@ -758,8 +727,7 @@ function InventoryController.Start(remoteFolder: Folder)
 	local screen = UIKit.Screen()
 
 	buildHotbar(screen)
-	storagePanel, storageList, storageHeader =
-		makeWindow("Storage", "ui.storage", UDim2.new(0, 560, 0.8, 0), UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
+	storagePanel, storageList, storageHeader = makeWindow("Storage", "ui.storage", 880)
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then

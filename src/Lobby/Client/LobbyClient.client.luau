@@ -225,32 +225,6 @@ local function topButton(name: string, width: number, order: number, padKey: Enu
 end
 
 -- Close button: a cross drawn with two Frames (the ✕ glyph is missing from the game fonts).
-local function closeButton(parent: Instance): TextButton
-	local button = UIKit.Button({
-		Name = "Close",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(44, 44),
-		BackgroundColor3 = T.Panel,
-		BackgroundTransparency = 0.2,
-		Text = "",
-		ZIndex = 11,
-		Parent = parent,
-	})
-	for _, angle in { 45, -45 } do
-		UIKit.New("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromOffset(20, 3),
-			Rotation = angle,
-			BackgroundColor3 = T.Cream,
-			BorderSizePixel = 0,
-			ZIndex = 12,
-			Parent = button,
-		}, { UIKit.Corner(2) })
-	end
-	return button
-end
 
 -- One panel at a time, over a dim backdrop; tapping the backdrop or B on a gamepad closes it.
 local panels: { GuiObject } = {}
@@ -292,52 +266,30 @@ local function togglePanel(panel: GuiObject): boolean
 	end
 	closePanels()
 	panel.Visible = true
-	dim.Visible = true
 	if usingGamepad() then
-		GuiService.SelectedObject = panel:FindFirstChild("Close") :: GuiObject?
+		GuiService.SelectedObject = panel:FindFirstChild("Close", true) :: GuiObject?
 	end
 	return true
 end
 
 -- A centred card with a title, a close button and a scrolling body.
-local function sheet(name: string, titleKey: string): (Frame, ScrollingFrame)
-	local panel = UIKit.New("Frame", {
-		Name = name,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(if touch then 0.96 else 0.9, if touch then 0.94 else 0.9),
-		BackgroundColor3 = T.PanelSolid,
-		BorderSizePixel = 0,
-		Visible = false,
-		ZIndex = 10,
-		Parent = topScreen,
-	}, { UIKit.Corner(12) })
-	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(560, 470), Parent = panel })
-	UIKit.Padding(14).Parent = panel
-	local title = UIKit.Label({
-		Size = UDim2.new(1, -54, 0, 44),
-		FontFace = Theme.Display,
-		TextSize = 24,
-		TextColor3 = T.Cream,
-		ZIndex = 11,
-		Parent = panel,
+local function sheet(name: string, titleKey: string, width: number?): (Frame, ScrollingFrame)
+	-- The same window as in the tower (UIKit.Window): dim, seal, kicker + title, close, scrolling body.
+	local root, body, _footer, refs = UIKit.Window({
+		name = name,
+		kicker = Lang.T("lobby.kicker"),
+		title = Lang.T(titleKey),
+		width = width or 560,
+		noFooter = true,
+		parent = topScreen,
 	})
-	Lang.Bind(title, titleKey)
-	closeButton(panel).Activated:Connect(closePanels)
-	local body = UIKit.New("ScrollingFrame", {
-		Position = UDim2.fromOffset(0, 52),
-		Size = UDim2.new(1, 0, 1, -52),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 6,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-		ZIndex = 11,
-		Parent = panel,
-	})
+	Lang.Changed:Connect(function()
+		refs.kicker.Text = Lang.T("lobby.kicker")
+		refs.title.Text = string.upper(Lang.T(titleKey))
+	end)
 	UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = body })
-	table.insert(panels, panel)
-	return panel, body
+	table.insert(panels, root)
+	return root, body
 end
 
 -- Classes ----------------------------------------------------------------------------------------------------
@@ -345,41 +297,16 @@ local Classes = require(Shared:WaitForChild("Classes"))
 -- L1 / LB on a gamepad (X and Y already open Records and How to play; A/B/Select left alone).
 local classesButton = topButton("ClassesButton", 120, 3, Enum.KeyCode.ButtonL1)
 
-local classPanel = UIKit.New("Frame", {
-	Name = "Classes",
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.5),
-	-- Same as Records / How sheets: scale to the phone, cap on PC (fixed 560 overflowed small viewports).
-	Size = UDim2.fromScale(if touch then 0.96 else 0.9, if touch then 0.94 else 0.9),
-	BackgroundColor3 = T.PanelSolid,
-	BorderSizePixel = 0,
-	Visible = false,
-	ZIndex = 10,
-	Parent = topScreen,
-}, { UIKit.Corner(12) })
-UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(560, 470), Parent = classPanel })
-UIKit.Padding(14).Parent = classPanel
-local classTitle = UIKit.Label({
-	Size = UDim2.new(1, -54, 0, 44),
-	FontFace = Theme.Display,
-	TextSize = 24,
-	TextColor3 = T.Cream,
-	ZIndex = 11,
-	Parent = classPanel,
+local classPanel, classList, _classFooter, classRefs = UIKit.Window({
+	name = "Classes",
+	kicker = Lang.T("class.kicker"),
+	title = Lang.T("lobby.classes"),
+	width = 880,
+	noFooter = true,
+	parent = topScreen,
 })
-closeButton(classPanel).Activated:Connect(closePanels)
 table.insert(panels, classPanel)
-local classList = UIKit.New("ScrollingFrame", {
-	Position = UDim2.fromOffset(0, 52),
-	Size = UDim2.new(1, 0, 1, -52),
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	ScrollBarThickness = 6,
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	CanvasSize = UDim2.new(),
-	ZIndex = 11,
-	Parent = classPanel,
-})
+local classTitle = classRefs.title
 UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = classList })
 
 local function fire(name: string, ...: any)
@@ -390,7 +317,8 @@ local function fire(name: string, ...: any)
 end
 
 local function renderClasses()
-	classTitle.Text = Lang.T("lobby.classes")
+	classTitle.Text = string.upper(Lang.T("lobby.classes"))
+	classRefs.kicker.Text = Lang.T("class.kicker")
 	classesButton.Text = Lang.T("lobby.classes")
 	for _, child in classList:GetChildren() do
 		if child:IsA("Frame") then

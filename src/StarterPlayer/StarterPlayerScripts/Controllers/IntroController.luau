@@ -55,8 +55,8 @@ local function build(screen: ScreenGui)
 	overlay = UIKit.New("Frame", {
 		Name = "Intro",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(10, 10, 8),
-		BackgroundTransparency = 0.25,
+		BackgroundColor3 = Color3.fromHex("0A0908"),
+		BackgroundTransparency = 0.45,
 		ZIndex = 20,
 		Parent = screen,
 	})
@@ -65,13 +65,15 @@ local function build(screen: ScreenGui)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(620, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = Color3.fromRGB(26, 26, 22),
-		BackgroundTransparency = 0.02,
+		BackgroundColor3 = Theme.Colors.PanelSolid,
+		BackgroundTransparency = 0,
 		ZIndex = 21,
 		Parent = overlay,
 	})
 	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(620, 900), Parent = card })
-	UIKit.New("UIStroke", { Color = C.accent, Thickness = 2, Transparency = 0.4, Parent = card })
+	-- Same frame as every window (UIKit.Window): thin cream edge on the dark panel.
+	UIKit.New("UIStroke", { Color = Theme.Colors.Cream, Thickness = 1, Transparency = 0.72, Parent = card })
+
 	UIKit.Padding(size(22, 12)).Parent = card
 	UIKit.New("UIListLayout", {
 		Padding = UDim.new(0, size(10, 5)),

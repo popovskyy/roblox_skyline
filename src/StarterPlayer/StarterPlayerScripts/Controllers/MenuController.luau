@@ -21,9 +21,10 @@ local HOLD_SECONDS = 1.5
 local touch = UIKit.IsTouch()
 
 local remotes: Folder
-local menuPanel: Frame
-local dialog: Frame
-local dim: TextButton
+local menuPanel: Frame -- the menu window's body (buttons)
+local menuRoot: Frame
+local dialog: Frame -- the leave confirmation's body
+local dialogRoot: Frame
 
 -- Set by ClientMain: shows the story / how-to card again.
 MenuController.ShowHowTo = function() end
@@ -38,24 +39,22 @@ local function bindText(label: TextLabel | TextButton, key: string)
 end
 
 local function closeAll()
-	menuPanel.Visible = false
-	dialog.Visible = false
-	dim.Visible = false
+	menuRoot.Visible = false
+	dialogRoot.Visible = false
 	GuiService.SelectedObject = nil
 end
 
 local function openMenu()
 	MenuController.OnOpen()
-	dim.Visible = true
-	menuPanel.Visible = true
-	dialog.Visible = false
+	menuRoot.Visible = true
+	dialogRoot.Visible = false
 	if UserInputService.GamepadEnabled then
 		GuiService.SelectedObject = menuPanel:FindFirstChild("Resume") :: GuiObject?
 	end
 end
 
 local function toggleMenu()
-	if menuPanel.Visible or dialog.Visible then
+	if menuRoot.Visible or dialogRoot.Visible then
 		closeAll()
 	else
 		openMenu()
@@ -110,42 +109,20 @@ local function buildMenu()
 	end
 	open.Activated:Connect(toggleMenu)
 
-	dim = UIKit.New("TextButton", {
-		Name = "MenuDim",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
-		Text = "",
-		AutoButtonColor = false,
-		Visible = false,
-		ZIndex = 30,
-		Parent = UIKit.FullScreen(),
+	local root, body, _footer, refs = UIKit.Window({
+		name = "Menu",
+		kicker = Lang.T("menu.kicker"),
+		title = Lang.T("menu.title"),
+		width = 360,
+		noFooter = true,
 	})
-	dim.Activated:Connect(closeAll)
-
-	menuPanel = UIKit.New("Frame", {
-		Name = "Menu",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, if touch then 16 else 32, 0.5, 0),
-		Size = UDim2.fromOffset(250, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = T.PanelSolid,
-		BorderSizePixel = 0,
-		Visible = false,
-		ZIndex = 31,
-		Parent = UIKit.FullScreen(),
-	}, { UIKit.Corner(12) })
-	UIKit.Padding(14).Parent = menuPanel
+	Lang.Changed:Connect(function()
+		refs.kicker.Text = Lang.T("menu.kicker")
+		refs.title.Text = string.upper(Lang.T("menu.title"))
+	end)
+	menuRoot = root
+	menuPanel = body
 	UIKit.New("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = menuPanel })
-	local title = UIKit.Label({
-		Size = UDim2.new(1, 0, 0, 30),
-		FontFace = Theme.Display,
-		TextSize = 24,
-		TextColor3 = T.Cream,
-		LayoutOrder = 0,
-		Parent = menuPanel,
-	})
-	bindText(title, "menu.title")
 	menuButton(menuPanel, "Resume", "menu.resume", 1).Activated:Connect(closeAll)
 	menuButton(menuPanel, "HowTo", "menu.howTo", 2).Activated:Connect(function()
 		closeAll()
@@ -160,8 +137,8 @@ local function buildMenu()
 		Parent = menuPanel,
 	})
 	menuButton(menuPanel, "Leave", "menu.leave", 4, true).Activated:Connect(function()
-		menuPanel.Visible = false
-		dialog.Visible = true
+		menuRoot.Visible = false
+		dialogRoot.Visible = true
 		if UserInputService.GamepadEnabled then
 			GuiService.SelectedObject = dialog:FindFirstChild("Stay", true) :: GuiObject?
 		end
@@ -169,30 +146,17 @@ local function buildMenu()
 end
 
 local function buildDialog()
-	dialog = UIKit.New("Frame", {
-		Name = "LeaveDialog",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(420, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = T.PanelSolid,
-		BorderSizePixel = 0,
-		Visible = false,
-		ZIndex = 31,
-		Parent = UIKit.FullScreen(),
-	}, { UIKit.Corner(12) })
-	UIKit.New("UISizeConstraint", { MaxSize = Vector2.new(420, 400), Parent = dialog })
-	UIKit.Padding(20).Parent = dialog
-	UIKit.New("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder, Parent = dialog })
-	local title = UIKit.Label({
-		Size = UDim2.new(1, 0, 0, 32),
-		FontFace = Theme.Display,
-		TextSize = 26,
-		TextColor3 = T.Cream,
-		LayoutOrder = 1,
-		Parent = dialog,
+	local root, dialogBody = UIKit.Window({
+		name = "LeaveDialog",
+		kicker = Lang.T("menu.kicker"),
+		title = Lang.T("leave.title"),
+		width = 440,
+		noFooter = true,
+		modal = true,
 	})
-	bindText(title, "leave.title")
+	dialogRoot = root
+	dialog = dialogBody
+	UIKit.New("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder, Parent = dialog })
 	local body = UIKit.Label({
 		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
