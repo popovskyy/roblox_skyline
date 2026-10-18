@@ -14,6 +14,16 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+## b51 · 18.10
+Tablet melee swing visible (fourth try — b50 still idle in live).
+- Root cause of b50 miss: `Clone()` kept `WeldConstraint`s to the **server** Handle, so visible club
+  meshes stayed glued to the idle server tool while only the invisible handleClone moved (owner
+  screenshot: upright club, arms down). Transform-at-Last was a secondary risk; Hit was easy to miss.
+- Fix (touch): strip clone joints and re-weld to our handle; drive arm lean via `Motor6D.C0`; tween
+  anchored client weapon through a huge world-space arc; neon smear; brighter Hit on `TopScreen`.
+  No new asset ids. PC unchanged.
+- Check in game: tablet third-person, equip club/bat, tap Hit — club arcs with a bright smear.
+
 ## b50 · 18.10
 Tablet melee swing visible again (third try).
 - Root cause: b36 Motor6D Transform was stomped by idle/walk Animator; b46 RightGrip C1 is
@@ -22,6 +32,7 @@ Tablet melee swing visible again (third try).
   `LocalSwingGrip` Motor6D, drive arm joints + grip with `BindToRenderStep` at Last priority (after
   Animator), large wind-up / cross-chop / recover, longer trail. Hit button unchanged. PC unchanged.
 - Check in game: tablet, equip bat/club, tap Hit — arm and bat clearly wind up and chop; no freeze.
+  (Superseded: owner confirmed still invisible on tablet after publish.)
 
 ## b49 · 18.10
 Polish spec steps 2–3: hit feel and brighter light.

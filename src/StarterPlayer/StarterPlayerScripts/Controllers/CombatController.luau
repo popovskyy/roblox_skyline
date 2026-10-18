@@ -143,13 +143,27 @@ local function stop(name: string)
 end
 
 -- Touch devices often never download custom AnimationTracks (or Play is ignored while Length==0).
--- Server-owned RightGrip / Motor6D writes also fail locally: idle/walk Animator stomps Transform, and
--- replication resets Weld.C1 every network frame (b36 Motor6D + b46 RightGrip both looked like no-ops
--- on the owner's tablet). Fix: client-owned weapon clone + Transform applied AFTER the Animator.
+-- History of invisible local swings on tablet:
+--   b36/b41 — Motor6D.Transform (Animator stomps it)
+--   b46 — server RightGrip.C1 (replication resets it)
+--   b50 — client LocalSwingWeapon + Transform at Last: still idle in live. Root miss: Clone() kept
+--         WeldConstraints to the *server* Handle, so visible mesh parts stayed glued to the static
+--         tool while only the invisible handleClone moved (screenshot: upright club, arms down).
+-- Fix now: strip clone welds and re-weld to our handle; drive arm lean via Motor6D.C0 (Animator
+-- writes Transform, not C0); tween anchored handle + neon smear through a huge world-space arc.
+-- No invented asset ids.
 local SWING_STEP = "SkylineTouchSwing"
 local swingToken = 0
 local localSwingModel: Model? = nil
+local smearPart: BasePart? = nil
 local hiddenParts: { { part: BasePart, modifier: number } } = {}
+local savedC0: { [Motor6D]: CFrame } = {}
+
+local function needsLocalSwing(): boolean
+	-- Any device with a touch screen (phones + tablets). PreferredInput alone is too narrow:
+	-- docked keyboards flip it to Keyboard while the player still taps.
+	return UserInputService.TouchEnabled
+end
 
 local function findMotor(motorName: string): Motor6D?
 	local character = player.Character
@@ -172,22 +186,40 @@ local function restoreHoldPose()
 	end
 end
 
+local function restoreMotorC0()
+	for motor, c0 in savedC0 do
+		if motor.Parent then
+			motor.C0 = c0
+		end
+	end
+	table.clear(savedC0)
+end
+
+local function applyMotorOffset(motor: Motor6D?, offset: CFrame)
+	if not motor then
+		return
+	end
+	if savedC0[motor] == nil then
+		savedC0[motor] = motor.C0
+	end
+	motor.C0 = savedC0[motor] * offset
+end
+
 local function clearLocalSwingVisual()
+	restoreMotorC0()
 	for _, entry in hiddenParts do
 		if entry.part.Parent then
 			entry.part.LocalTransparencyModifier = entry.modifier
 		end
 	end
 	table.clear(hiddenParts)
+	if smearPart then
+		smearPart:Destroy()
+		smearPart = nil
+	end
 	if localSwingModel then
 		localSwingModel:Destroy()
 		localSwingModel = nil
-	end
-	local character = player.Character
-	local hand = character and character:FindFirstChild("RightHand")
-	local motor = hand and hand:FindFirstChild("LocalSwingGrip")
-	if motor then
-		motor:Destroy()
 	end
 end
 
@@ -195,9 +227,9 @@ local function lerpCf(a: CFrame, b: CFrame, alpha: number): CFrame
 	return a:Lerp(b, alpha)
 end
 
--- Build a client-only copy of the held weapon, welded with a Motor6D we own (replication cannot stomp it).
--- Hide the server tool locally so the player only sees the swinging clone.
-local function buildLocalWeaponVisual(tool: Tool, hand: BasePart): Motor6D?
+-- Client-only weapon copy. Anchored PrimaryPart driven in world space (no Motor6D / no Transform).
+-- Hide the server tool locally so only the swinging clone is visible.
+local function buildLocalWeaponVisual(tool: Tool): BasePart?
 	clearLocalSwingVisual()
 	local model = Instance.new("Model")
 	model.Name = "LocalSwingWeapon"
@@ -207,11 +239,19 @@ local function buildLocalWeaponVisual(tool: Tool, hand: BasePart): Motor6D?
 			table.insert(hiddenParts, { part = child, modifier = child.LocalTransparencyModifier })
 			child.LocalTransparencyModifier = 1
 			local clone = child:Clone()
+			-- b50 miss: Clone keeps WeldConstraints aimed at the server Handle, so mesh visuals
+			-- stay stuck on the idle server tool. Strip joints before we re-weld to our handle.
+			for _, joint in clone:GetChildren() do
+				if joint:IsA("WeldConstraint") or joint:IsA("Weld") or joint:IsA("Motor6D") then
+					joint:Destroy()
+				end
+			end
 			clone.Anchored = false
 			clone.CanCollide = false
 			clone.CanQuery = false
 			clone.CanTouch = false
 			clone.Massless = true
+			clone.CastShadow = false
 			clone.LocalTransparencyModifier = 0
 			clone.Parent = model
 			if child.Name == "Handle" then
@@ -222,7 +262,7 @@ local function buildLocalWeaponVisual(tool: Tool, hand: BasePart): Motor6D?
 	if not handleClone then
 		local bat = Instance.new("Part")
 		bat.Name = "Handle"
-		bat.Size = Vector3.new(0.45, 0.45, 3.6)
+		bat.Size = Vector3.new(0.5, 0.5, 3.8)
 		bat.Color = Color3.fromRGB(210, 185, 130)
 		bat.Material = Enum.Material.Wood
 		bat.Anchored = false
@@ -230,6 +270,7 @@ local function buildLocalWeaponVisual(tool: Tool, hand: BasePart): Motor6D?
 		bat.CanQuery = false
 		bat.CanTouch = false
 		bat.Massless = true
+		bat.CastShadow = false
 		bat.Parent = model
 		handleClone = bat
 	elseif handleClone.Transparency >= 1 then
@@ -243,13 +284,19 @@ local function buildLocalWeaponVisual(tool: Tool, hand: BasePart): Motor6D?
 		end
 		if not anyVisible then
 			handleClone.Transparency = 0
-			handleClone.Size = Vector3.new(0.45, 0.45, 3.6)
+			handleClone.Size = Vector3.new(0.5, 0.5, 3.8)
 			handleClone.Color = Color3.fromRGB(210, 185, 130)
 			handleClone.Material = Enum.Material.Wood
 		end
 	end
+	-- Capture mesh offsets while parts still sit at their cloned world poses, then pin to handle.
+	local handleCf = handleClone.CFrame
+	handleClone.Anchored = true
 	for _, part in model:GetChildren() do
 		if part:IsA("BasePart") and part ~= handleClone then
+			local offset = handleCf:ToObjectSpace(part.CFrame)
+			part.Anchored = false
+			part.CFrame = handleClone.CFrame * offset
 			local weld = Instance.new("WeldConstraint")
 			weld.Part0 = handleClone
 			weld.Part1 = part
@@ -259,19 +306,36 @@ local function buildLocalWeaponVisual(tool: Tool, hand: BasePart): Motor6D?
 	local trail = handleClone:FindFirstChild("SwingTrail")
 	if trail and trail:IsA("Trail") then
 		trail.Enabled = true
-		trail.Lifetime = 0.22
+		trail.Lifetime = 0.28
 	end
 	model.PrimaryPart = handleClone
 	model.Parent = tool.Parent
 	localSwingModel = model
-	local motor = Instance.new("Motor6D")
-	motor.Name = "LocalSwingGrip"
-	motor.Part0 = hand
-	motor.Part1 = handleClone
-	motor.C0 = CFrame.new()
-	motor.C1 = tool.Grip
-	motor.Parent = hand
-	return motor
+	return handleClone
+end
+
+-- Bright wedge that rides the same arc — obvious even if the mesh is hard to read from behind.
+local function buildSmear(parent: Instance): BasePart
+	local smear = Instance.new("Part")
+	smear.Name = "SwingSmear"
+	smear.Size = Vector3.new(0.4, 3.2, 0.15)
+	smear.Color = Color3.fromRGB(255, 196, 72)
+	smear.Material = Enum.Material.Neon
+	smear.Anchored = true
+	smear.CanCollide = false
+	smear.CanQuery = false
+	smear.CanTouch = false
+	smear.CastShadow = false
+	smear.Transparency = 0.2
+	smear.Parent = parent
+	smearPart = smear
+	return smear
+end
+
+-- World pose: shoulder of the body → huge wind-up / cross-chop relative to HumanoidRootPart.
+local function weaponWorldCf(root: BasePart, pose: CFrame): CFrame
+	local shoulder = root.CFrame * CFrame.new(1.15, 1.4, 0.1)
+	return shoulder * pose * CFrame.new(0, 0, -1.85)
 end
 
 local function touchSwing(kind: "weapon" | "punch")
@@ -279,9 +343,9 @@ local function touchSwing(kind: "weapon" | "punch")
 	local shoulder = findMotor("RightShoulder")
 	local elbow = findMotor("RightElbow")
 	local waist = findMotor("Waist")
-	local hand = character and character:FindFirstChild("RightHand")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local tool = character and character:FindFirstChild("Held")
-	if not shoulder then
+	if not shoulder or not root or not root:IsA("BasePart") then
 		return
 	end
 	stop("WeaponHold")
@@ -292,42 +356,36 @@ local function touchSwing(kind: "weapon" | "punch")
 	clearLocalSwingVisual()
 	swingToken += 1
 	local token = swingToken
-	local duration = if kind == "punch" then 0.32 else 0.48
+	local duration = if kind == "punch" then 0.36 else 0.55
 	local started = os.clock()
-	local gripMotor: Motor6D? = nil
-	local restGrip = CFrame.new()
-	if kind == "weapon" and tool and tool:IsA("Tool") and hand and hand:IsA("BasePart") then
-		restGrip = tool.Grip
-		gripMotor = buildLocalWeaponVisual(tool, hand)
+	local handle: BasePart? = nil
+	local smear: BasePart? = nil
+	if kind == "weapon" and tool and tool:IsA("Tool") then
+		handle = buildLocalWeaponVisual(tool)
+		smear = buildSmear(character)
 	end
-	-- Bigger than a subtle twitch: wind up high/back, chop across the camera, recover.
+	-- C0 offsets: Animator keeps writing Transform; C0 still moves the limb.
 	local windupS = if kind == "punch"
-		then CFrame.Angles(math.rad(70), math.rad(15), math.rad(35))
-		else CFrame.Angles(math.rad(110), math.rad(45), math.rad(55))
+		then CFrame.Angles(math.rad(-55), math.rad(25), math.rad(40))
+		else CFrame.Angles(math.rad(-80), math.rad(55), math.rad(65))
 	local strikeS = if kind == "punch"
-		then CFrame.Angles(math.rad(95), math.rad(-10), math.rad(-20))
-		else CFrame.Angles(math.rad(40), math.rad(-55), math.rad(-40))
-	local windupE = CFrame.Angles(math.rad(85), 0, 0)
-	local strikeE = CFrame.Angles(math.rad(5), 0, math.rad(-15))
-	local windupW = CFrame.Angles(0, math.rad(-35), 0)
-	local strikeW = CFrame.Angles(math.rad(-12), math.rad(45), 0)
-	local windupG = restGrip * CFrame.Angles(math.rad(-55), math.rad(70), math.rad(-25))
-	local strikeG = restGrip * CFrame.Angles(math.rad(95), math.rad(-50), math.rad(35))
+		then CFrame.Angles(math.rad(-30), math.rad(-35), math.rad(-25))
+		else CFrame.Angles(math.rad(15), math.rad(-70), math.rad(-55))
+	local windupE = CFrame.Angles(math.rad(-70), 0, math.rad(10))
+	local strikeE = CFrame.Angles(math.rad(-10), 0, math.rad(-20))
+	local windupW = CFrame.Angles(0, math.rad(-40), 0)
+	local strikeW = CFrame.Angles(math.rad(-15), math.rad(50), 0)
+	-- World-space club poses (radians large on purpose — readable from tablet third-person).
+	local restPose = CFrame.Angles(math.rad(-25), math.rad(10), math.rad(5))
+	local windupPose = CFrame.Angles(math.rad(-130), math.rad(85), math.rad(55))
+	local strikePose = CFrame.Angles(math.rad(35), math.rad(-100), math.rad(-45))
 
-	-- Last render priority: after Humanoid/Animator so our Transforms are what get drawn.
 	RunService:BindToRenderStep(SWING_STEP, Enum.RenderPriority.Last.Value, function()
 		if token ~= swingToken then
 			return
 		end
 		local t = (os.clock() - started) / duration
-		if t >= 1 or not shoulder.Parent then
-			shoulder.Transform = CFrame.new()
-			if elbow then
-				elbow.Transform = CFrame.new()
-			end
-			if waist then
-				waist.Transform = CFrame.new()
-			end
+		if t >= 1 or not shoulder.Parent or not root.Parent then
 			pcall(function()
 				RunService:UnbindFromRenderStep(SWING_STEP)
 			end)
@@ -338,43 +396,46 @@ local function touchSwing(kind: "weapon" | "punch")
 		local shoulderCf: CFrame
 		local elbowCf: CFrame
 		local waistCf: CFrame
-		local gripCf = restGrip
-		if t < 0.32 then
-			local a = t / 0.32
+		local pose = restPose
+		if t < 0.3 then
+			local a = t / 0.3
 			shoulderCf = lerpCf(CFrame.new(), windupS, a)
 			elbowCf = lerpCf(CFrame.new(), windupE, a)
 			waistCf = lerpCf(CFrame.new(), windupW, a)
-			gripCf = lerpCf(restGrip, windupG, a)
-		elseif t < 0.52 then
-			local a = (t - 0.32) / 0.2
+			pose = lerpCf(restPose, windupPose, a)
+		elseif t < 0.55 then
+			local a = (t - 0.3) / 0.25
 			shoulderCf = lerpCf(windupS, strikeS, a)
 			elbowCf = lerpCf(windupE, strikeE, a)
 			waistCf = lerpCf(windupW, strikeW, a)
-			gripCf = lerpCf(windupG, strikeG, a)
+			pose = lerpCf(windupPose, strikePose, a)
 		else
-			local a = (t - 0.52) / 0.48
+			local a = (t - 0.55) / 0.45
 			shoulderCf = lerpCf(strikeS, CFrame.new(), a)
 			elbowCf = lerpCf(strikeE, CFrame.new(), a)
 			waistCf = lerpCf(strikeW, CFrame.new(), a)
-			gripCf = lerpCf(strikeG, restGrip, a)
+			pose = lerpCf(strikePose, restPose, a)
 		end
-		shoulder.Transform = shoulderCf
-		if elbow then
-			elbow.Transform = elbowCf
+		applyMotorOffset(shoulder, shoulderCf)
+		applyMotorOffset(elbow, elbowCf)
+		applyMotorOffset(waist, waistCf)
+		local world = weaponWorldCf(root, pose)
+		if handle and handle.Parent then
+			handle.CFrame = world
 		end
-		if waist then
-			waist.Transform = waistCf
-		end
-		if gripMotor and gripMotor.Parent then
-			gripMotor.C1 = gripCf
+		if smear and smear.Parent then
+			smear.CFrame = world * CFrame.new(0, 0, -0.4) * CFrame.Angles(0, 0, math.rad(90))
+			-- Brightest mid-chop so the smear reads as a slash, not a stuck glow.
+			local mid = 1 - math.abs(t - 0.42) / 0.42
+			smear.Transparency = 0.15 + 0.55 * (1 - math.clamp(mid, 0, 1))
 		end
 	end)
 end
 
 local function playSwing(name: "WeaponSwing" | "Punch")
 	-- Server still plays the clip for teammates (CombatService.playSwing). Touch devices need a local
-	-- owned visual: AnimationTracks often never load, and server welds/joints cannot be driven here.
-	if UserInputService.TouchEnabled then
+	-- owned visual: AnimationTracks often never load, and Transform/server-weld paths already failed.
+	if needsLocalSwing() then
 		touchSwing(if name == "Punch" then "punch" else "weapon")
 	end
 end
@@ -817,47 +878,52 @@ local function touchOnGuiButton(screenPos: Vector3): boolean
 	return false
 end
 
-local function buildAttackButton(screen: ScreenGui)
+local function buildAttackButton(_screen: ScreenGui)
 	-- Dedicated Hit control: world-tap heuristics kept failing on tablets (processed Touch, camera drag).
-	if not UserInputService.TouchEnabled then
+	-- Owner tablet screenshot on b50 showed no obvious Hit control — put it on TopScreen (higher
+	-- DisplayOrder) with a brighter fill so it cannot hide behind CoreGui jump / safe-area wash.
+	if not needsLocalSwing() then
 		return
 	end
 	local T = Theme.Colors
+	local layer = UIKit.TopScreen()
+	layer.DisplayOrder = math.max(layer.DisplayOrder, 8)
 	local holder = UIKit.New("Frame", {
 		Name = "AttackButton",
 		AnchorPoint = Vector2.new(1, 1),
 		-- Left of the interact button (InteractionController at -111); clear of the jump pad.
-		Position = UDim2.new(1, -190, 1, -42),
-		Size = UDim2.fromOffset(72, 72),
+		Position = UDim2.new(1, -200, 1, -48),
+		Size = UDim2.fromOffset(84, 84),
 		BackgroundTransparency = 1,
-		ZIndex = 4,
-		Parent = screen,
+		ZIndex = 20,
+		Parent = layer,
 	})
 	local button = UIKit.New("TextButton", {
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = T.Panel,
-		BackgroundTransparency = 0.15,
+		BackgroundColor3 = T.Danger,
+		BackgroundTransparency = 0.05,
 		Text = "",
 		AutoButtonColor = false,
 		Active = true,
+		ZIndex = 20,
 		Parent = holder,
-	}, { UIKit.Corner(36) })
+	}, { UIKit.Corner(42) })
 	UIKit.New("UIStroke", {
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Color = T.Danger,
+		Color = T.Cream,
 		Thickness = 3,
 		Parent = button,
 	})
 	local label = UIKit.Label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.85, 0.45),
+		Size = UDim2.fromScale(0.9, 0.5),
 		BackgroundTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,
-		TextSize = 18,
+		TextSize = 22,
 		TextColor3 = T.Cream,
-		ZIndex = 5,
+		ZIndex = 21,
 		Parent = button,
 	})
 	Lang.Bind(label, "ui.attack")
