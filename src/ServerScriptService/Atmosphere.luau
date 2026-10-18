@@ -8,21 +8,22 @@ local TweenService = game:GetService("TweenService")
 
 local Atmosphere = {}
 
+-- Brighter than before (owner: "too dark"); values from the polish spec, section 5.
 local BASE = {
-	ClockTime = 16.4,
-	Brightness = 2.4,
+	ClockTime = 15.5,
+	Brightness = 2.6,
 	ExposureCompensation = 0.15,
-	Ambient = Color3.fromRGB(62, 59, 54),
-	OutdoorAmbient = Color3.fromRGB(150, 144, 128),
+	Ambient = Color3.fromRGB(78, 74, 66),
+	OutdoorAmbient = Color3.fromRGB(160, 152, 134),
 	ColorShift_Top = Color3.fromRGB(255, 226, 180),
 	ColorShift_Bottom = Color3.fromRGB(60, 70, 50),
-	Density = 0.28,
-	Haze = 1.6,
+	Density = 0.3,
+	Haze = 2,
 	Glare = 0.35,
-	AtmoColor = Color3.fromRGB(176, 170, 156),
+	AtmoColor = Color3.fromRGB(199, 190, 170),
 	Decay = Color3.fromRGB(92, 94, 86),
-	Tint = Color3.fromRGB(244, 240, 232),
-	Saturation = -0.12,
+	Tint = Color3.fromRGB(255, 246, 230),
+	Saturation = -0.05,
 	Contrast = 0.1,
 	GradeBrightness = 0.03,
 }

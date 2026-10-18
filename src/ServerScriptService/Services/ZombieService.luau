@@ -45,6 +45,7 @@ type Zombie = {
 	alertUntil: number,
 	stuckAt: Vector3?, -- where the zombie was when it last made progress
 	stuckSince: number,
+	staggerUntil: number,
 	-- Studs of Y drift allowed before snap-back. Floor zombies stay ~14; horde may climb the last flight.
 	maxDrift: number,
 }
@@ -189,18 +190,49 @@ local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxD
 		alertUntil = 0,
 		maxDrift = maxDrift,
 		stuckSince = 0,
+		staggerUntil = 0,
 		routeIndex = 1,
 		searchUntil = 0,
 	}
 	table.insert(zombies, z)
 	playAnimations(z)
 
+	humanoid.BreakJointsOnDeath = false
 	humanoid.Died:Once(function()
 		local index = table.find(zombies, z)
 		if index then
 			table.remove(zombies, index)
 		end
+		-- Ragdoll: joints become loose ball sockets, the body drops; it fades out after 3 s.
+		for _, joint in model:GetDescendants() do
+			if joint:IsA("Motor6D") and joint.Part0 and joint.Part1 then
+				local a0 = Instance.new("Attachment")
+				a0.CFrame = joint.C0
+				a0.Parent = joint.Part0
+				local a1 = Instance.new("Attachment")
+				a1.CFrame = joint.C1
+				a1.Parent = joint.Part1
+				local socket = Instance.new("BallSocketConstraint")
+				socket.Attachment0 = a0
+				socket.Attachment1 = a1
+				socket.LimitsEnabled = true
+				socket.UpperAngle = 60
+				socket.Parent = joint.Part0
+				joint.Enabled = false
+			end
+		end
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CanCollide = part.Name ~= "HumanoidRootPart"
+			end
+		end
 		task.delay(3, function()
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") or part:IsA("Decal") then
+					TweenService:Create(part, TweenInfo.new(0.5), { Transparency = 1 }):Play()
+				end
+			end
+			task.wait(0.55)
 			model:Destroy()
 		end)
 		-- No respawn: a cleared floor stays cleared for the rest of the match.
@@ -418,6 +450,10 @@ local function think(z: Zombie, now: number)
 	if z.humanoid.Health <= 0 then
 		return
 	end
+	-- Just got hit: reel back for a moment, no attacking.
+	if now < z.staggerUntil then
+		return
+	end
 	unstick(z, now)
 	-- Keep floor zombies on their floor; horde (level 0) may climb the last flight onto the roof.
 	if math.abs(z.root.Position.Y - (floorY(z.level) + 3)) > z.maxDrift then
@@ -446,7 +482,7 @@ local function think(z: Zombie, now: number)
 			if now - z.lastAttack >= Z.AttackCooldown then
 				z.lastAttack = now
 				SfxService.Play("ZombieAttack", z.root, 0.9)
-				DamageService.Damage(target, Z.Damage)
+				DamageService.Damage(target, Z.Damage, z.root.Position)
 			end
 		elseif blocked then
 			-- Goal is behind boards: never walk through them. Close to the boards: claw at them.
@@ -553,6 +589,18 @@ function ZombieService.Alert(position: Vector3, radius: number, seconds: number)
 		if math.abs(offset.Y) < 9 and offset.Magnitude <= radius then
 			z.alertPos = position
 			z.alertUntil = now + seconds
+		end
+	end
+end
+
+-- A hit lands: the zombie staggers (no attack, no step) for a moment.
+function ZombieService.Stagger(humanoid: Humanoid, seconds: number)
+	for _, z in zombies do
+		if z.humanoid == humanoid then
+			z.staggerUntil = os.clock() + seconds
+			z.humanoid:MoveTo(z.root.Position)
+			-- It cannot hit back straight away either.
+			z.lastAttack = math.max(z.lastAttack, os.clock() + seconds - Z.AttackCooldown + 0.4)
 		end
 	end
 end

@@ -8,6 +8,8 @@ local RemoteNames = {
 	ShowNote = "ShowNote",
 	OpenStorage = "OpenStorage",
 	LootOpened = "LootOpened",
+	HitFeedback = "HitFeedback", -- to the attacker: (zombie model, killed, hit position)
+	Hurt = "Hurt", -- to the victim: (where the hit came from)
 	ShowResults = "ShowResults",
 	ShowRecords = "ShowRecords", -- lobby only
 

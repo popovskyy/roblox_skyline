@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Locale = require(ReplicatedStorage.Shared.Locale)
+local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local SfxService = require(script.Parent.SfxService)
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local InventoryService = require(script.Parent.InventoryService)
@@ -132,9 +133,13 @@ function DamageService.Revive(player: Player): boolean
 end
 
 -- Damage a player. Never kills outright: a lethal hit leaves them downed.
-function DamageService.Damage(player: Player, amount: number)
+-- `from`: where the hit came from (a zombie), so the victim's screen can show the side.
+function DamageService.Damage(player: Player, amount: number, from: Vector3?)
 	if amount <= 0 or downed[player] then
 		return
+	end
+	if from then
+		Net.Get(RemoteNames.Hurt):FireClient(player, from)
 	end
 	local humanoid = CharacterUtil.GetHumanoid(player)
 	if not humanoid then

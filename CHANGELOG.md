@@ -13,6 +13,18 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b49 · 18.10
+Polish spec steps 2–3: hit feel and brighter light.
+- Hitting a zombie: white flash on it, a few sparks at the hit, a hit marker in the centre (amber and
+  bigger on a kill), a small camera kick. The zombie staggers 0.25 s and cannot hit back right away.
+  Kills ragdoll (loose joints) for 3 s, then fade out. Weapon trail 0.12 s.
+- Getting hit: the screen edge on the side of the zombie flashes red with a wedge arrow pointing at it,
+  plus a camera jolt. Camera shake is off when Roblox "reduced motion" is on.
+- Lighting brighter (spec section 5): afternoon 15.5, brightness 2.6, ambient 78/74/66, outdoor ambient
+  160/152/134, warmer and less desaturated grade, haze 2. Stair lamps brighter (always on).
+- Check in game: hit / kill feedback on phone and PC; getting hit from the side; lobby, roof and floor 1
+  noticeably lighter.
 ## b48 · 18.10
 Polish spec (`ui/POLISH_SPEC.md`) step 1: one window style.
 - New `UIKit.Window`: dim backdrop (tap to close), dark panel with a thin cream edge, amber seal, amber

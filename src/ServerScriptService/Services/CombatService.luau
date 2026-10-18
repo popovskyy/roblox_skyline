@@ -202,7 +202,7 @@ local function makeTool(character: Model, def: ItemDefinitions.ItemDef): Tool
 		trail.Name = "SwingTrail"
 		trail.Attachment0 = near
 		trail.Attachment1 = far
-		trail.Lifetime = 0.18
+		trail.Lifetime = 0.12
 		trail.Color = ColorSequence.new(Color3.fromRGB(238, 230, 208))
 		trail.Transparency = NumberSequence.new(0.35, 1)
 		trail.LightEmission = 0.3
@@ -340,9 +340,14 @@ local function swing(player: Player)
 					local wasAlive = z.humanoid.Health > 0
 					local class = Classes.Of(player)
 					z.humanoid:TakeDamage(weapon.damage * (if class and class.damage then class.damage else 1))
-					if wasAlive and z.humanoid.Health <= 0 then
+					local killed = wasAlive and z.humanoid.Health <= 0
+					if killed then
 						MatchStatsService.KilledZombie(player)
+					else
+						ZombieService.Stagger(z.humanoid, 0.25)
 					end
+					-- The attacker's screen: flash, sparks, hit marker, a small camera kick.
+					Net.Get(RemoteNames.HitFeedback):FireClient(player, z.model, killed, z.root.Position)
 					SfxService.Play("HitBlunt", z.root)
 					-- A little shove so hits feel solid.
 					local push = if flat.Magnitude > 0.1 then flat.Unit else look
