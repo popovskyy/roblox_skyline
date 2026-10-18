@@ -92,9 +92,10 @@ local function applyResource(part: BasePart, s: { [string]: any })
 	if type(nodeId) ~= "string" then
 		return
 	end
-	local taken = if part:GetAttribute("Unique") == true
-		then s.uniqueNodesTaken and s.uniqueNodesTaken[nodeId]
-		else s.depletedNodes and s.depletedNodes[nodeId]
+	-- Gone for everyone once anyone took it (shared floor loot); one-off items also stay gone for the
+	-- player who already owns one.
+	local taken = (s.depletedNodes ~= nil and s.depletedNodes[nodeId] == true)
+		or (part:GetAttribute("Unique") == true and s.uniqueNodesTaken ~= nil and s.uniqueNodesTaken[nodeId] == true)
 	local requiredRubble = part:GetAttribute("RequiresRubble")
 	local rubbleOk = type(requiredRubble) ~= "string"
 		or (s.clearedRubble ~= nil and s.clearedRubble[requiredRubble] == true)

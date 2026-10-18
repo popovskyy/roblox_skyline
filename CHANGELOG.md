@@ -6,6 +6,11 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b42 · 18.10
+- Picked-up one-off items (flashlight, key, …) now disappear for every teammate, not only for the picker
+  (others saw the object and got "empty"). The client hides a node when anyone took it.
+- Check in game: two players; one picks up the flashlight / key on a floor — it vanishes for the other.
 ## b41 · 18.10
 - Split stacks: a "how many?" window (−/+, hold to repeat, 1 / ½ / All) when dropping (hold a slot or a
   pouch counter, G / B), moving items to or from the chest, and crafting several at once.
