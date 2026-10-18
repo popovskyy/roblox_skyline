@@ -10,6 +10,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b46 · 18.10
+- Tablets/phones: the weapon itself now swings in the hand (wind-up back, fast chop forward, back to
+  rest) by animating the hand–weapon weld (RightGrip C1) locally. It does not depend on animation clips
+  or joint timing, which kept failing on the owner's tablet. Other players still see the server-played
+  arm swing. Punch keeps the arm swing.
+- Not verified on a real tablet (no device/Studio test possible from here); owner check needed.
+- Check in game: tablet, bat in hand, tap Hit — the bat visibly swings back and chops forward.
 ## b45 · 18.10
 - Horde night lasts 80 s (was 45 s) and ends cleanly: at dawn the remaining horde zombies fade out
   instead of hanging around below.

@@ -5,7 +5,7 @@
 
 local PlacesConfig = {
 	-- Shown in the lobby and printed on start, so it is easy to see which build is published.
-	Build = "b45 · 18.10 09:40",
+	Build = "b46 · 18.10 10:05",
 
 	LobbyPlaceId = 128619231370772,
 	TowerPlaceId = 104145307601846,

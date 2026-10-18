@@ -254,12 +254,66 @@ local function proceduralSwing(kind: "weapon" | "punch")
 	end)
 end
 
+-- Touch devices: swing the weapon itself in the hand by animating the Tool's Grip (the weld between
+-- hand and weapon). This does not depend on animation clips or joint timing at all, so the player always
+-- sees the bat move: back, a fast chop forward, and back to rest. Other players see the server clip.
+local gripSwingToken = 0
+local function gripSwing()
+	local character = player.Character
+	local tool = character and character:FindFirstChild("Held")
+	if not tool or not tool:IsA("Tool") then
+		return
+	end
+	-- The weld Roblox makes between hand and weapon ("RightGrip"); its C1 is the Tool.Grip.
+	local hand = character and character:FindFirstChild("RightHand")
+	local weld = hand and hand:FindFirstChild("RightGrip")
+	if not weld or not weld:IsA("Weld") then
+		return
+	end
+	gripSwingToken += 1
+	local token = gripSwingToken
+	local rest = tool.Grip
+	local keys = {
+		{ t = 0, angle = 0 },
+		{ t = 0.12, angle = -70 }, -- wind up: bat back over the shoulder
+		{ t = 0.24, angle = 85 }, -- strike: fast chop forward and down
+		{ t = 0.42, angle = 0 },
+	}
+	local started = os.clock()
+	local conn: RBXScriptConnection
+	conn = RunService.Heartbeat:Connect(function()
+		if token ~= gripSwingToken or not tool.Parent or not weld.Parent then
+			conn:Disconnect()
+			return
+		end
+		local t = os.clock() - started
+		local angle = 0
+		for i = 1, #keys - 1 do
+			local a, b = keys[i], keys[i + 1]
+			if t >= a.t and t <= b.t then
+				local alpha = (t - a.t) / (b.t - a.t)
+				angle = a.angle + (b.angle - a.angle) * alpha
+			end
+		end
+		if t >= keys[#keys].t then
+			weld.C1 = rest
+			conn:Disconnect()
+			return
+		end
+		weld.C1 = rest * CFrame.Angles(math.rad(angle), 0, 0)
+	end)
+end
+
 local function playSwing(name: "WeaponSwing" | "Punch")
 	-- The server plays the swing clip on our character for everyone (CombatService.playSwing), so the
 	-- client does not play its own copy. Touch devices also get the procedural arm swing locally, which
 	-- shows at once even if the clip is slow to load there.
 	if UserInputService.TouchEnabled then
-		proceduralSwing(if name == "Punch" then "punch" else "weapon")
+		if name == "WeaponSwing" then
+			gripSwing()
+		else
+			proceduralSwing("punch")
+		end
 	end
 end
 
