@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(ReplicatedStorage.Shared.Theme)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+local ItemDefinitions = require(ReplicatedStorage.Shared.ItemDefinitions)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local Atmosphere = require(script.Parent.Atmosphere)
 local PropLibrary = require(script.Parent.PropLibrary)
@@ -748,6 +749,29 @@ local function resourceNode(
 		dressWithProp(part, "ElectronicsNode", Vector3.new(x, levelY(level), z), size, nil)
 	end
 	addPrompt(part, "prompt.collect", "prompt.itemAmount", 0.3, "@item." .. itemId .. ".name", amount)
+	-- Food is the thing people look for most: a floating can icon over every food pile, seen from afar.
+	if itemId == "Food" then
+		local def = ItemDefinitions.Get("Food")
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "FoodIcon"
+		billboard.Size = UDim2.fromScale(1.8, 1.8)
+		billboard.StudsOffset = Vector3.new(0, 2.4, 0)
+		billboard.LightInfluence = 0
+		billboard.MaxDistance = 45
+		billboard.Parent = part
+		local icon = Instance.new("ImageLabel")
+		icon.Size = UDim2.fromScale(1, 1)
+		icon.BackgroundTransparency = 1
+		icon.Image = if def and def.iconImage then def.iconImage else ""
+		icon.ImageColor3 = Color3.fromRGB(180, 194, 122)
+		icon.Parent = billboard
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(255, 214, 150)
+		glow.Range = 7
+		glow.Brightness = 0.6
+		glow.Shadows = false
+		glow.Parent = part
+	end
 	return part
 end
 
@@ -1205,6 +1229,7 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	resourceNode(interactables, level, "F1_Elec_3", "Electronics", 2, at("roomPP"), { requiresRubble = "F1_Rubble" })
 	lootCrate(interactables, level, "F1_Crate_1", "Roll", at("open"))
 	resourceNode(interactables, level, "F1_Food_1", "Food", 1, at("open"))
+	resourceNode(interactables, level, "F1_Food_2", "Food", 1, at("open"))
 end
 
 local function buildFloor2(parent: Folder, interactables: Folder)
@@ -1227,6 +1252,20 @@ local function buildFloor2(parent: Folder, interactables: Folder)
 	local at = makePlacer(level, floor, { "roomNP" })
 	ruinDecor(floor, level, at, 3)
 	resourceNode(interactables, level, "F2_Food_1", "Food", 1, at("open"))
+	-- Kitchens: every fridge and counter on the residential floor has food next to it.
+	local kitchen = 0
+	for _, item in FURNISHING[2] do
+		if
+			(item.prop == "Fridge" or item.prop == "Counter")
+			and not nearHole(CEILING_HOLES[2], item.x, item.z, 3)
+			and not nearHole(CEILING_HOLES[1], item.x, item.z, 3)
+		then
+			kitchen += 1
+			-- A step out from the wall, towards the middle of the floor.
+			local pos = Vector2.new(item.x - math.sign(item.x) * 3, item.z - math.sign(item.z) * 1.5)
+			resourceNode(interactables, level, "F2_Kitchen_" .. kitchen, "Food", 2, pos)
+		end
+	end
 	resourceNode(interactables, level, "F2_Food_Wing", "Food", 1, at("roomNP"), { requiresRubble = "F2_SoftWing" })
 	resourceNode(interactables, level, "F2_Scrap_1", "Scrap", 3, at("open"))
 	resourceNode(interactables, level, "F2_Scrap_2", "Scrap", 2, at("open"))
@@ -1315,6 +1354,7 @@ local function buildFloor3(parent: Folder, interactables: Folder)
 	lootCrate(interactables, level, "F3_Crate_2", "Roll", at("toxic"))
 	resourceNode(interactables, level, "F3_Key", "Key", 1, at("toxic"), { unique = true })
 	resourceNode(interactables, level, "F3_Food_1", "Food", 1, at("safe"))
+	resourceNode(interactables, level, "F3_Food_2", "Food", 2, at("safe"))
 end
 
 local function buildFloor4(parent: Folder, interactables: Folder)
@@ -1418,6 +1458,7 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 	lootCrate(interactables, level, "F4_Crate_1", "Roll", at("open"), gen)
 	resourceNode(interactables, level, "F4_Key", "Key", 1, at("open"), { unique = true })
 	resourceNode(interactables, level, "F4_Food_1", "Food", 1, at("open"), gen)
+	resourceNode(interactables, level, "F4_Food_2", "Food", 2, at("open"), gen)
 	lootCrate(
 		interactables,
 		level,

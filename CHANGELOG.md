@@ -11,6 +11,12 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b47 · 18.10
+- Food is easy to find: a floating can icon and a warm glow over every food pile (seen from ~45 studs);
+  every fridge and counter in the floor 2 flats has food (2) next to it; one more pile on floors 1, 3
+  and 4. The low-hunger hint says where to look (kitchens on floor 2, cans with an icon, crates).
+- Check in game: floor 2 kitchens have food by the fridges/counters; icons visible across a room.
 ## b46 · 18.10
 - Tablets/phones: the weapon itself now swings in the hand (wind-up back, fast chop forward, back to
   rest) by animating the hand–weapon weld (RightGrip C1) locally. It does not depend on animation clips

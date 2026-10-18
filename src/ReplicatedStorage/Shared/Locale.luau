@@ -633,7 +633,11 @@ local S: { [string]: Entry } = {
 		ru = "Мало здоровья: возьми аптечку в руку и тапни. Новые есть на 2 этаже, в сундуках и на верстаке",
 		en = "Low health: hold a medkit and tap. More on floor 2, in crates and at the workbench",
 	},
-	["hud.eatHint"] = { uk = "Поїж щось", ru = "Поешь что-нибудь", en = "Eat something" },
+	["hud.eatHint"] = {
+		uk = "Поїж щось. Їжа: кухні й холодильники на 2 поверсі, банки з іконкою на всіх поверхах, ящики",
+		ru = "Поешь что-нибудь. Еда: кухни и холодильники на 2 этаже, банки с иконкой на всех этажах, ящики",
+		en = "Eat something. Food: kitchens and fridges on floor 2, cans with an icon on every floor, crates",
+	},
 	["hud.bag"] = { uk = "Ще", ru = "Ещё", en = "More" },
 	["downed.sub"] = {
 		uk = "Напарник може підняти тебе бинтом",
