@@ -8,7 +8,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Atmosphere = require(script.Parent.Parent.Atmosphere)
 local BaseUpgradeService = require(script.Parent.BaseUpgradeService)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(script.Parent.Net)
+local StorageService = require(script.Parent.StorageService)
 local SfxService = require(script.Parent.SfxService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -39,9 +41,11 @@ local function partySize(): number
 	return math.max(1, #Players:GetPlayers())
 end
 
+local waveNumber = 0
+
+-- Wave n brings n zombies, plus one per extra player.
 local function hordeCount(): number
-	local size = partySize()
-	return math.clamp(H.CountMin + (size - 1), H.CountMin, H.CountMax)
+	return math.clamp(waveNumber + (partySize() - 1), H.CountMin, H.CountMax)
 end
 
 local function teamHasBarricade(): boolean
@@ -52,6 +56,16 @@ local function teamHasBarricade(): boolean
 		end
 	end
 	return false
+end
+
+-- Barricade health lives in workspace attributes (BarricadeHp / BarricadeMax) so every client can draw it.
+local B = GameConfig.Barricade
+local barricadeHp = 0
+
+local function setBarricadeHp(hp: number)
+	barricadeHp = math.clamp(hp, 0, B.MaxHp)
+	workspace:SetAttribute("BarricadeHp", barricadeHp)
+	workspace:SetAttribute("BarricadeMax", B.MaxHp)
 end
 
 local function applyBarricadeCollision(built: boolean)
@@ -97,30 +111,22 @@ local function warnEveryone()
 	task.delay(H.ThreatSeconds, function()
 		clearThreat(threatGen)
 	end)
-	for _, player in Players:GetPlayers() do
-		Net.Notify(player, "horde.warning", "warning")
-	end
+	-- The "WAVE n" message (releaseWave) is the warning; no second toast here.
 end
 
--- Spawn just inside the stair shaft (behind a built barricade) or pouring onto the roof.
--- When barricaded, home stays in the shaft too — never on the roof pad (that made MoveTo walk through boards).
-local function spawnPositions(behindBarricade: boolean): (Vector3, Vector3)
-	if behindBarricade then
-		local spawnAt = Vector3.new(
-			LANE_CENTER + (math.random() - 0.5) * 5,
-			World.RoofY - 4 + math.random() * 2,
-			HOLE_MIN_Z + 4 + math.random() * 3
-		)
-		local home =
-			Vector3.new(LANE_CENTER + (math.random() - 0.5) * 4, World.RoofY - 3, HOLE_MIN_Z + 6 + math.random() * 2)
-		return spawnAt, home
-	end
-	local home = Vector3.new(LANE_CENTER + (math.random() - 0.5) * 4, World.RoofY + 3, HOLE_MIN_Z - 6)
+-- The horde comes up from below: zombies appear on the stair landing under the roof (out of sight)
+-- and climb the last flight. Behind a built barricade they stop at the boards and start breaking them.
+local LANDING_Z = 9
+local HOLE_MAX_Z = 15
+local function spawnPositions(_behindBarricade: boolean): (Vector3, Vector3)
+	local landingY = World.RoofY - World.FloorSpacing / 2 + 3
 	local spawnAt = Vector3.new(
-		LANE_CENTER + (math.random() - 0.5) * 6,
-		World.RoofY + 3,
-		HOLE_MIN_Z - 2 + (math.random() - 0.5) * 2
+		(math.random() - 0.5) * (HOLE_X * 2 - 4),
+		landingY,
+		LANDING_Z + 1 + math.random() * (HOLE_MAX_Z - LANDING_Z - 2)
 	)
+	-- Head for the roof just outside the stair mouth.
+	local home = Vector3.new(LANE_CENTER * -1 + (math.random() - 0.5) * 4, World.RoofY + 3, HOLE_MIN_Z - 6)
 	return spawnAt, home
 end
 
@@ -130,8 +136,13 @@ local function releaseWave()
 		return
 	end
 	warnEveryone()
+	waveNumber += 1
+	workspace:SetAttribute("HordeWave", waveNumber)
+	for _, player in Players:GetPlayers() do
+		Net.Notify(player, { "horde.wave", waveNumber }, "warning")
+	end
 	local count = hordeCount()
-	local blocked = teamHasBarricade()
+	local blocked = teamHasBarricade() and barricadeHp > 0
 	applyBarricadeCollision(blocked)
 	for i = 1, count do
 		task.delay((i - 1) * H.SpawnStaggerSeconds, function()
@@ -156,8 +167,44 @@ local function scheduleLoop(gen: number)
 	end)
 end
 
+-- A zombie hitting the boards. When they break, the stair mouth opens until someone repairs them.
+local function hitBarricade(amount: number)
+	if barricadeHp <= 0 or not teamHasBarricade() then
+		return
+	end
+	setBarricadeHp(barricadeHp - amount)
+	SfxService.Play("HitBlunt", sirenAt, 0.7)
+	if barricadeHp <= 0 then
+		applyBarricadeCollision(false)
+		SfxService.Play("Rubble", sirenAt, 1)
+		for _, player in Players:GetPlayers() do
+			Net.Notify(player, "barricade.broken", "error")
+		end
+	end
+end
+
+-- Repair from the barricade's prompt: costs scrap (team pool), restores health, closes the stairs again.
+function HordeService.Repair(player: Player): (boolean, any)
+	if not teamHasBarricade() then
+		return false, "barricade.notBuilt"
+	end
+	if barricadeHp >= B.MaxHp then
+		return false, "barricade.full"
+	end
+	if not StorageService.TrySpend(player, B.RepairCost) then
+		return false, { "upgrade.notEnough", Locale.Cost(B.RepairCost) }
+	end
+	setBarricadeHp(barricadeHp + B.RepairAmount)
+	applyBarricadeCollision(true)
+	SfxService.Play("Build", sirenAt, 0.8)
+	return true, nil
+end
+
 function HordeService.Reset()
 	generation += 1
+	waveNumber = 0
+	workspace:SetAttribute("HordeWave", 0)
+	setBarricadeHp(0)
 	threatGeneration += 1
 	Atmosphere.SetHordeThreat(false, 1)
 	applyBarricadeCollision(teamHasBarricade())
@@ -174,8 +221,13 @@ function HordeService.Start(root: Folder)
 	workspace:SetAttribute("HordeThreat", false)
 	-- Barricade boards still harden on purchase even when waves are off (QA kill-switch).
 	collectBarricadeParts(root)
+	setBarricadeHp(0)
+	ZombieService.OnBarricadeHit = function()
+		hitBarricade(B.ZombieHit)
+	end
 	BaseUpgradeService.OnPurchased(function(_player: Player, upgradeId: string)
 		if upgradeId == "Barricade" then
+			setBarricadeHp(B.MaxHp)
 			applyBarricadeCollision(true)
 		end
 	end)

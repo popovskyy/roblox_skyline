@@ -4,6 +4,7 @@
 -- DamageService. A killed zombie does not come back this match.
 
 local PathfindingService = game:GetService("PathfindingService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -36,6 +37,8 @@ type Zombie = {
 	idleTrack: AnimationTrack?,
 	alertPos: Vector3?, -- a noise to investigate until alertUntil
 	alertUntil: number,
+	stuckAt: Vector3?, -- where the zombie was when it last made progress
+	stuckSince: number,
 	-- Studs of Y drift allowed before snap-back. Floor zombies stay ~14; horde may climb the last flight.
 	maxDrift: number,
 }
@@ -161,6 +164,8 @@ local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxD
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d:SetNetworkOwner(nil)
+			-- Zombies walk through loot piles and crates instead of snagging on them.
+			d.CollisionGroup = "Zombies"
 		end
 	end
 
@@ -177,6 +182,7 @@ local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxD
 		wanderAt = 0,
 		alertUntil = 0,
 		maxDrift = maxDrift,
+		stuckSince = 0,
 	}
 	table.insert(zombies, z)
 	playAnimations(z)
@@ -261,6 +267,9 @@ local function rayHitsBarricade(from: Vector3, to: Vector3, ignore: { Instance }
 	return nil
 end
 
+-- Set by HordeService: a zombie hit the barricade boards.
+ZombieService.OnBarricadeHit = function() end
+
 -- A solid wall (anything that collides) between two points: no melee through it, either way.
 -- Decoration that does not collide (vines, rubble chunks, glass bits) never blocks.
 function ZombieService.WallBetween(from: Vector3, to: Vector3, ignore: { Instance }): boolean
@@ -334,10 +343,33 @@ local function moveAlongPath(z: Zombie, goal: Vector3, now: number)
 	end
 end
 
+-- Stuck on something (a prop, a corner) while trying to walk: look for a new path, then step aside,
+-- and as a last resort nudge forward a little.
+local function unstick(z: Zombie, now: number)
+	local pos = z.root.Position
+	local moving = z.humanoid.MoveDirection.Magnitude > 0.1
+	if not moving or not z.stuckAt or (pos - (z.stuckAt :: Vector3)).Magnitude > 1.5 then
+		z.stuckAt = pos
+		z.stuckSince = now
+		return
+	end
+	local stuckFor = now - z.stuckSince
+	if stuckFor > 4 then
+		local ahead = z.root.CFrame.LookVector * 2.5
+		z.model:PivotTo(z.root.CFrame + Vector3.new(ahead.X, 0.5, ahead.Z))
+		z.stuckAt = nil
+	elseif stuckFor > 1.5 then
+		z.lastPath = 0 -- recompute the path on the next move
+		local side = z.root.CFrame.RightVector * (if math.random() < 0.5 then -4 else 4)
+		z.humanoid:MoveTo(pos + side)
+	end
+end
+
 local function think(z: Zombie, now: number)
 	if z.humanoid.Health <= 0 then
 		return
 	end
+	unstick(z, now)
 	-- Keep floor zombies on their floor; horde (level 0) may climb the last flight onto the roof.
 	if math.abs(z.root.Position.Y - (floorY(z.level) + 3)) > z.maxDrift then
 		z.model:PivotTo(CFrame.new(z.home))
@@ -366,8 +398,16 @@ local function think(z: Zombie, now: number)
 				DamageService.Damage(target, Z.Damage)
 			end
 		elseif blocked then
-			-- Goal is behind boards: idle / press against the wall; never LoS-MoveTo through it.
+			-- Goal is behind boards: never walk through them. Close to the boards: claw at them.
 			stopInPlace(z)
+			if
+				(blocked.Position - z.root.Position).Magnitude <= Z.AttackRange + 4
+				and now - z.lastAttack >= Z.AttackCooldown
+			then
+				z.lastAttack = now
+				SfxService.Play("ZombieAttack", z.root, 0.7)
+				ZombieService.OnBarricadeHit()
+			end
 		elseif not walled and hasLineOfSight(z, targetRoot) then
 			z.humanoid:MoveTo(targetRoot.Position)
 		else
@@ -379,6 +419,26 @@ local function think(z: Zombie, now: number)
 	if z.alertPos and now < z.alertUntil then
 		if (z.alertPos - z.root.Position).Magnitude > 4 then
 			moveAlongPath(z, z.alertPos, now)
+		end
+		return
+	end
+	-- Horde climbing up: head for the roof; boards in the way get clawed at.
+	if z.level == 0 and (z.home - z.root.Position).Magnitude > 10 then
+		local boards = rayHitsBarricade(z.root.Position, z.home, { z.model })
+		if boards then
+			stopInPlace(z)
+			if
+				(boards.Position - z.root.Position).Magnitude <= Z.AttackRange + 4
+				and now - z.lastAttack >= Z.AttackCooldown
+			then
+				z.lastAttack = now
+				SfxService.Play("ZombieAttack", z.root, 0.7)
+				ZombieService.OnBarricadeHit()
+			else
+				z.humanoid:MoveTo(boards.Position)
+			end
+		else
+			moveAlongPath(z, z.home, now)
 		end
 		return
 	end
@@ -429,6 +489,38 @@ function ZombieService.Start(root: Folder)
 	zombieFolder.Name = "Zombies"
 	zombieFolder.Parent = root
 	folder = zombieFolder
+	-- Collision groups: zombies pass through loot (resource piles, crates, drops); players do not.
+	pcall(function()
+		PhysicsService:RegisterCollisionGroup("Zombies")
+		PhysicsService:RegisterCollisionGroup("Loot")
+	end)
+	PhysicsService:CollisionGroupSetCollidable("Zombies", "Loot", false)
+	local function markLoot(d: Instance)
+		local kind = d:GetAttribute("InteractType")
+		if d:IsA("BasePart") and (kind == "Resource" or kind == "LootChest" or kind == "Drop") then
+			for _, p in d:GetDescendants() do
+				if p:IsA("BasePart") then
+					p.CollisionGroup = "Loot"
+				end
+			end
+			d.CollisionGroup = "Loot"
+			-- Pathfinding may route straight through it.
+			if not d:FindFirstChildOfClass("PathfindingModifier") then
+				local modifier = Instance.new("PathfindingModifier")
+				modifier.PassThrough = true
+				modifier.Parent = d
+			end
+		end
+	end
+	local interactables = root:FindFirstChild("Interactables")
+	if interactables then
+		for _, d in interactables:GetDescendants() do
+			markLoot(d)
+		end
+		interactables.DescendantAdded:Connect(function(d)
+			task.defer(markLoot, d)
+		end)
+	end
 	for level, points in SPAWNS do
 		local list = {}
 		for _, p in points do

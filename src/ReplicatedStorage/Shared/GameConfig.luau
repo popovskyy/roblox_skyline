@@ -93,12 +93,21 @@ local GameConfig = {
 		FirstDelayMax = 600, -- 10 min
 		IntervalMin = 480,
 		IntervalMax = 600,
-		CountMin = 6,
+		-- Waves grow: wave 1 = 1 zombie, wave 2 = 2, ... plus one per extra player, never above CountMax.
+		CountMin = 1,
 		CountMax = 10,
 		SpawnStaggerSeconds = 0.7,
 		SirenVolume = 1.35,
 		-- Scary music bed + orange/dark sky while the wave is active (HordeSiren still plays once).
 		ThreatSeconds = 45,
+	},
+
+	-- Barricade across the roof stair mouth: holds the horde until zombies break it; anyone repairs it.
+	Barricade = {
+		MaxHp = 100,
+		ZombieHit = 6, -- per zombie attack on the boards
+		RepairAmount = 50,
+		RepairCost = { Scrap = 2 } :: { [string]: number },
 	},
 
 	-- One mid-floor blackout per match (floor 2 or 3). Fires after MinDelay once someone is on a mid

@@ -5,6 +5,21 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b41 · 18.10
+- Split stacks: a "how many?" window (−/+, hold to repeat, 1 / ½ / All) when dropping (hold a slot or a
+  pouch counter, G / B), moving items to or from the chest, and crafting several at once.
+- Horde waves grow: wave 1 = 1 zombie, wave 2 = 2, … (+1 per extra player, max 10), with a "WAVE N"
+  message. The horde appears on the stair landing below the roof and climbs up, never out of thin air.
+- Barricade reworked: build spot right at the roof stair mouth with a sign saying what it does; health
+  bar over the boards (100); horde zombies claw it down (6 per hit); broken = horde gets onto the roof
+  (everyone is warned); repair at the boards (+50 for 2 scrap, team pool). First wave without one: hint.
+- Zombies pass through loot piles and crates (collision group) and unstick themselves (new path, side
+  step, small nudge) instead of freezing on props.
+- Tablet: own swing visible — the local arm swing now runs after the animation step (it was being
+  overwritten every frame).
+- Check in game: drop 3 of 10 food; move 5 scrap to the chest; craft 3 bandages; waves 1/2/3; barricade
+  bar drops under attack, breaks, repair; tablet player sees own swing.
 ## b40 · 18.10
 - Backpack carries 30 instead of 20 (`GameConfig.MaxInventoryWeight`).
 - Check in game: the weight chip above the hotbar reads "x / 30".

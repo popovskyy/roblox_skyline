@@ -18,6 +18,7 @@ local Theme = require(ReplicatedStorage.Shared.Theme)
 local ClientState = require(script.Parent.ClientState)
 local IntroController = require(script.Parent.IntroController)
 local Lang = require(script.Parent.Lang)
+local QuantityPicker = require(script.Parent.QuantityPicker)
 local UIKit = require(script.Parent.UIKit)
 
 local CombatController = {}
@@ -145,7 +146,7 @@ end
 -- Touch devices often never download custom AnimationTracks (or Play is ignored while Length==0).
 -- Drive the arm with Motor6D.Transform so a swing is always visible locally; keep asset clips on PC.
 local swingToken = 0
-local SWING_STEP = "SkylineSwing"
+local swingConn: RBXScriptConnection? = nil
 
 local function findMotor(motorName: string): Motor6D?
 	local character = player.Character
@@ -178,9 +179,10 @@ local function proceduralSwing(kind: "weapon" | "punch")
 	-- Hold clips overwrite Transform every frame; pause them for the one-shot.
 	stop("WeaponHold")
 	stop("ItemHold")
-	pcall(function()
-		RunService:UnbindFromRenderStep(SWING_STEP)
-	end)
+	if swingConn then
+		swingConn:Disconnect()
+		swingConn = nil
+	end
 	swingToken += 1
 	local token = swingToken
 	local duration = if kind == "punch" then 0.28 else 0.38
@@ -201,7 +203,10 @@ local function proceduralSwing(kind: "weapon" | "punch")
 		return a:Lerp(b, alpha)
 	end
 
-	RunService:BindToRenderStep(SWING_STEP, Enum.RenderPriority.Last.Value, function()
+	-- Stepped runs after the Animator has posed the joints for this frame, so these Transforms are the
+	-- ones that get drawn. (Writing them in RenderStepped was overwritten by the idle/walk clips, which
+	-- is why tablet players never saw their own swing.)
+	swingConn = RunService.Stepped:Connect(function()
 		if token ~= swingToken then
 			return
 		end
@@ -214,9 +219,10 @@ local function proceduralSwing(kind: "weapon" | "punch")
 			if waist then
 				waist.Transform = CFrame.new()
 			end
-			pcall(function()
-				RunService:UnbindFromRenderStep(SWING_STEP)
-			end)
+			if swingConn then
+				swingConn:Disconnect()
+				swingConn = nil
+			end
 			restoreHoldPose()
 			return
 		end
@@ -528,15 +534,18 @@ local function renderCraft()
 	local s = ClientState.Get() or {}
 	for order, recipe in GameConfig.Recipes do
 		local def = ItemDefinitions.Items[recipe.id]
-		local affordable = true
+		-- How many the team can pay for right now (weapons: one).
+		local canMake = 10
 		for itemId, amount in recipe.cost do
 			local have = (s.inventory and s.inventory[itemId] or 0)
 				+ (s.storage and s.storage[itemId] or 0)
 				+ (s.teamPool and s.teamPool[itemId] or 0)
-			if have < amount then
-				affordable = false
-			end
+			canMake = math.min(canMake, math.floor(have / amount))
 		end
+		if def.weapon then
+			canMake = math.min(canMake, 1)
+		end
+		local affordable = canMake > 0
 		local row = UIKit.New("Frame", {
 			Size = UDim2.new(1, -8, 0, 72),
 			BackgroundColor3 = C.panelLight,
@@ -589,7 +598,18 @@ local function renderCraft()
 			Parent = row,
 		})
 		button.Activated:Connect(function()
-			remote(RemoteNames.Craft):FireServer(recipe.id)
+			if canMake > 1 then
+				QuantityPicker.Open(
+					Lang.T("qty.craft", Lang.T("item." .. recipe.id .. ".name")),
+					def.iconImage,
+					canMake,
+					function(n)
+						remote(RemoteNames.Craft):FireServer(recipe.id, n)
+					end
+				)
+			else
+				remote(RemoteNames.Craft):FireServer(recipe.id, 1)
+			end
 		end)
 	end
 end

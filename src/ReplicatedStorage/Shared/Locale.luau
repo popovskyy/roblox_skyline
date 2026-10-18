@@ -123,6 +123,48 @@ local S: { [string]: Entry } = {
 	["upgrade.Bridge.name"] = { uk = "Міст", ru = "Мост", en = "Bridge" },
 	["upgrade.Barricade.name"] = { uk = "Барикада", ru = "Баррикада", en = "Barricade" },
 
+	["horde.wave"] = {
+		uk = "ХВИЛЯ %d: орда йде знизу сходами!",
+		ru = "ВОЛНА %d: орда идёт снизу по лестнице!",
+		en = "WAVE %d: the horde is coming up the stairs!",
+	},
+	["sign.barricade"] = {
+		uk = "БАРИКАДА: тримає орду на сходах",
+		ru = "БАРРИКАДА: держит орду на лестнице",
+		en = "BARRICADE: holds the horde on the stairs",
+	},
+	["barricade.hp"] = { uk = "БАРИКАДА %d / %d", ru = "БАРРИКАДА %d / %d", en = "BARRICADE %d / %d" },
+	["barricade.brokenLabel"] = {
+		uk = "БАРИКАДА ЗЛАМАНА: полагодь!",
+		ru = "БАРРИКАДА СЛОМАНА: почини!",
+		en = "BARRICADE BROKEN: repair it!",
+	},
+	["barricade.broken"] = {
+		uk = "Барикаду зламали! Орда виходить на дах. Полагодь її брухтом",
+		ru = "Баррикаду сломали! Орда выходит на крышу. Почини её металлоломом",
+		en = "The barricade is down! The horde is on the roof. Repair it with scrap",
+	},
+	["barricade.repair"] = { uk = "Полагодити", ru = "Починить", en = "Repair" },
+	["barricade.repairCost"] = {
+		uk = "Барикада +50 · 2 брухту",
+		ru = "Баррикада +50 · 2 металлолома",
+		en = "Barricade +50 · 2 scrap",
+	},
+	["barricade.full"] = {
+		uk = "Барикада ціла",
+		ru = "Баррикада цела",
+		en = "The barricade is intact",
+	},
+	["barricade.notBuilt"] = {
+		uk = "Спочатку збудуй барикаду біля сходів",
+		ru = "Сначала построй баррикаду у лестницы",
+		en = "Build the barricade by the stairs first",
+	},
+	["hint.barricade"] = {
+		uk = "Збудуй барикаду біля сходів на даху: вона тримає орду, поки її не зламають",
+		ru = "Построй баррикаду у лестницы на крыше: она держит орду, пока её не сломают",
+		en = "Build the barricade by the roof stairs: it holds the horde until they break it",
+	},
 	["horde.warning"] = {
 		uk = "Сирена! Орда піднімається сходами!",
 		ru = "Сирена! Орда поднимается по лестнице!",
@@ -174,6 +216,13 @@ local S: { [string]: Entry } = {
 		ru = "Не хватает ресурсов. Нужно: %s. Считаются рюкзаки всех на крыше и сундук",
 		en = "Not enough resources. Needed: %s. Backpacks of everyone on the roof and the chest count",
 	},
+	["qty.all"] = { uk = "Усе", ru = "Всё", en = "All" },
+	["qty.ok"] = { uk = "Готово", ru = "Готово", en = "OK" },
+	["qty.cancel"] = { uk = "Скасувати", ru = "Отмена", en = "Cancel" },
+	["qty.drop"] = { uk = "Викинути: %s", ru = "Выбросить: %s", en = "Drop: %s" },
+	["qty.deposit"] = { uk = "У скриню: %s", ru = "В сундук: %s", en = "To the chest: %s" },
+	["qty.withdraw"] = { uk = "Зі скрині: %s", ru = "Из сундука: %s", en = "From the chest: %s" },
+	["qty.craft"] = { uk = "Скрафтити: %s", ru = "Скрафтить: %s", en = "Craft: %s" },
 	["team.chippedIn"] = {
 		uk = "Ти вклав у будівництво: %s ×%d",
 		ru = "Ты вложил в постройку: %s ×%d",

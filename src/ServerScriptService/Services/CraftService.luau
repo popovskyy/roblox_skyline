@@ -63,13 +63,20 @@ local function craft(player: Player, recipeId: any): (boolean, any)
 end
 
 function CraftService.Start()
-	Net.Get(RemoteNames.Craft).OnServerEvent:Connect(function(player, recipeId)
+	-- `count`: craft several in one go (1..10); stops at the first one that cannot be paid for.
+	Net.Get(RemoteNames.Craft).OnServerEvent:Connect(function(player, recipeId, count)
 		if not RateLimiter.Allow(player, "Craft", 0.4) then
 			return
 		end
-		local ok, reason = craft(player, recipeId)
-		if not ok and reason then
-			Net.Notify(player, reason, "warning")
+		local times = if type(count) == "number" and count == count then math.clamp(math.floor(count), 1, 10) else 1
+		for i = 1, times do
+			local ok, reason = craft(player, recipeId)
+			if not ok then
+				if reason and i == 1 then
+					Net.Notify(player, reason, "warning")
+				end
+				break
+			end
 		end
 	end)
 end

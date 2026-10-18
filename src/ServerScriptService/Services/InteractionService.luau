@@ -12,6 +12,7 @@ local CharacterUtil = require(script.Parent.CharacterUtil)
 local CraftService = require(script.Parent.CraftService)
 local DamageService = require(script.Parent.DamageService)
 local DropService = require(script.Parent.DropService)
+local HordeService = require(script.Parent.HordeService)
 local Net = require(script.Parent.Net)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlayerLifecycleService = require(script.Parent.PlayerLifecycleService)
@@ -63,6 +64,9 @@ local handlers: { [string]: Handler } = {
 	end,
 	LootChest = function(player, target)
 		return ResourceService.OpenCrate(player, target)
+	end,
+	BarricadeRepair = function(player)
+		return HordeService.Repair(player)
 	end,
 	Drop = function(player, target)
 		return DropService.PickUp(player, target)

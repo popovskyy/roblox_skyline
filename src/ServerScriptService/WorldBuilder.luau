@@ -1725,12 +1725,12 @@ local function buildRoof(parent: Folder, interactables: Folder)
 		Vector3.new(3, 3, 3),
 		Color3.fromRGB(150, 150, 160)
 	)
-	-- Barricade pad beside the stair hut; the blocking boards sit across the roof stair mouth.
+	-- Barricade pad right at the stair mouth it closes; the boards hologram stands across the mouth.
 	upgradePad(
 		interactables,
 		visuals,
 		"Barricade",
-		Vector3.new(16, roofY, -22),
+		Vector3.new(HOLE_X + 5, roofY, HOLE_MIN_Z - 4),
 		Vector3.new(5, 3, 2),
 		Color3.fromRGB(120, 90, 55)
 	)
@@ -1781,6 +1781,22 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	barricadeTop:SetAttribute("UpgradeVisual", "Barricade")
 	barricadeTop:SetAttribute("VisualMode", "Show")
 	barricadeTop:SetAttribute("BarricadeBlock", true)
+	-- What it is, right above it.
+	sign(visuals, "sign.barricade", CFrame.new(LANE_CENTER, roofY + 8.6, HOLE_MIN_Z - 0.2), Vector2.new(7, 1.4))
+	-- Repair spot on the roof side of the boards (the prompt shows only while it is built and damaged).
+	local repair = block(
+		interactables,
+		"BarricadeRepair",
+		Vector3.new(HOLE_X * 2, 4, 1),
+		CFrame.new(0, roofY + 2, HOLE_MIN_Z - 2.8),
+		Color3.fromRGB(110, 78, 48),
+		Enum.Material.WoodPlanks
+	)
+	repair.Transparency = 1
+	repair.CanCollide = false
+	repair.CanQuery = false
+	repair:SetAttribute("InteractType", "BarricadeRepair")
+	addPrompt(repair, "barricade.repair", "barricade.repairCost", 1.5)
 	-- Optional Phase D boards mesh (visual only). BarricadeBlock collision parts stay authoritative.
 	if PropLibrary.Has("BarricadeBoards") then
 		local boards = PropLibrary.Place(

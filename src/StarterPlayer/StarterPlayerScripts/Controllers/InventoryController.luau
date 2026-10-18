@@ -17,6 +17,7 @@ local RemoteNames = require(ReplicatedStorage.Shared.RemoteNames)
 local ClientState = require(script.Parent.ClientState)
 local ItemSlot = require(script.Parent.ItemSlot)
 local Lang = require(script.Parent.Lang)
+local QuantityPicker = require(script.Parent.QuantityPicker)
 local UIKit = require(script.Parent.UIKit)
 
 local InventoryController = {}
@@ -161,7 +162,29 @@ local function dropItem(itemId: string, amount: number | string)
 	end
 end
 
-local function holdToDrop(target: GuiObject, itemFor: () -> string?, amount: number | string)
+-- How many of the item the player carries now.
+local function carried(itemId: string): number
+	local s = ClientState.Get()
+	return s and s.inventory and s.inventory[itemId] or 0
+end
+
+-- Drop with a "how many?" choice when there is more than one.
+local function dropChoose(itemId: string)
+	local count = carried(itemId)
+	local def = ItemDefinitions.Get(itemId)
+	if count <= 0 or not def then
+		return
+	end
+	if count == 1 then
+		dropItem(itemId, 1)
+		return
+	end
+	QuantityPicker.Open(Lang.T("qty.drop", Lang.T("item." .. itemId .. ".name")), def.iconImage, count, function(n)
+		dropItem(itemId, n)
+	end)
+end
+
+local function holdToDrop(target: GuiObject, itemFor: () -> string?, _amount: number | string?)
 	local token = 0
 	target.InputBegan:Connect(function(input)
 		local kind = input.UserInputType
@@ -174,7 +197,7 @@ local function holdToDrop(target: GuiObject, itemFor: () -> string?, amount: num
 			local itemId = itemFor()
 			if token == mine and itemId then
 				suppressActivate = true
-				dropItem(itemId, amount)
+				dropChoose(itemId)
 			end
 		end)
 	end)
@@ -588,7 +611,7 @@ end
 
 local CHEST_SLOT = 76
 
--- One labelled grid of item slots. Tapping a slot moves the whole stack to the other side.
+-- One labelled grid of item slots. Tapping a slot moves it to the other side (asks how many).
 local function storageSection(
 	order: number,
 	titleKey: string,
@@ -665,11 +688,23 @@ local function renderStorage(s: { [string]: any })
 			}),
 		}
 	)
+	-- Tap a stack: choose how many to move (one item moves straight away).
+	local function move(direction: string, itemId: string, count: number)
+		local def = ItemDefinitions.Get(itemId)
+		if count <= 1 or not def then
+			transfer(direction, itemId, count)
+			return
+		end
+		local key = if direction == "Deposit" then "qty.deposit" else "qty.withdraw"
+		QuantityPicker.Open(Lang.T(key, Lang.T("item." .. itemId .. ".name")), def.iconImage, count, function(n)
+			transfer(direction, itemId, n)
+		end)
+	end
 	storageSection(1, "ui.backpack", "ui.emptyBackpack", s.inventory or {}, function(itemId, count)
-		transfer("Deposit", itemId, count)
+		move("Deposit", itemId, count)
 	end)
 	storageSection(2, "ui.storage", "ui.emptyChest", s.storage or {}, function(itemId, count)
-		transfer("Withdraw", itemId, count)
+		move("Withdraw", itemId, count)
 	end)
 end
 
@@ -739,7 +774,7 @@ function InventoryController.Start(remoteFolder: Folder)
 			-- G / B: drop what is in hand for a teammate.
 			local held = player:GetAttribute("Equipped")
 			if type(held) == "string" then
-				dropItem(held, "all")
+				dropChoose(held)
 			end
 		elseif input.KeyCode == Enum.KeyCode.ButtonR1 or input.KeyCode == Enum.KeyCode.DPadRight then
 			stepSlot(1)
