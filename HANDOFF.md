@@ -1,6 +1,6 @@
 # Skyline Zero — handoff
 
-State on 2026-10-17, live build **`b34 · 17.10 19:30`**. Continue branch may add Unreleased asset/docs work — see `CHANGELOG.md` and `docs/design/owner-gates.md`.
+State on 2026-10-18: code on **`master` is `b37 · 18.10 06:17`** (zombie free-catalog outfits). Publish needs `.roblox_api_key` on the publishing machine — see `CHANGELOG.md`.
 
 ## What the game is
 
