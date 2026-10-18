@@ -3,6 +3,28 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## b36 · 18.10 09:15
+
+Tablet swing + rubble room open (owner bugs on live b35).
+
+### Tablet / touch attack swing
+- Root cause: stacked AnimationTrack hacks still failed on tablet (clips often never load; hold tracks
+  overwrite Motor6D.Transform). World-tap heuristics stayed flaky with `processed` Touch.
+- Fix: dedicated **Hit** button (`ui.attack`) on TouchEnabled; local **procedural Motor6D** swing/punch
+  on touch (asset clips kept for PC). Attack tip copy points at the button.
+
+### Rubble clears but room stays closed
+- Root cause A: F1 SoftWing doorway at `x=-20, z∈[-31,-25]` was sealed by a solid west corridor wall
+  (`-20,-35`→`-20,-6`), so clearing the pile never opened the wing.
+- Root cause B: SoftRubble dress leaves an invisible colliding host; clear only hid it on the client —
+  some devices kept the wall. Server now opens collision/visibility on clear.
+- Also: F4 loose debris skips hard-rubble doorways; Collect/Loot prompts gated on `RequiresRubble`.
+
+### Check in game
+- Tablet: Hit button visible; arm clearly swings on press (fists or bat).
+- F1 SoftWing: clear rubble → walk into SW room for scrap.
+- F4 crowbar rubble: clear → walk in (no invisible wall).
+
 ## b35 · 17.10 17:27
 
 Merge publish of roadmap-continue (PR #4): Phase D FBX packs live via real PropLibrary ids + heartbeat SFX. Creator Hub Public still owner-only.

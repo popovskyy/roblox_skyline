@@ -95,8 +95,12 @@ local function applyResource(part: BasePart, s: { [string]: any })
 	local taken = if part:GetAttribute("Unique") == true
 		then s.uniqueNodesTaken and s.uniqueNodesTaken[nodeId]
 		else s.depletedNodes and s.depletedNodes[nodeId]
+	local requiredRubble = part:GetAttribute("RequiresRubble")
+	local rubbleOk = type(requiredRubble) ~= "string"
+		or (s.clearedRubble ~= nil and s.clearedRubble[requiredRubble] == true)
 	setTreeState(part, if taken then "hidden" else "normal")
-	setPrompt(part, not taken)
+	-- Keep the node visible behind the gate; only Collect is off so it cannot toast "завал".
+	setPrompt(part, not taken and rubbleOk)
 end
 
 local function applyRubble(part: BasePart, s: { [string]: any })
@@ -209,8 +213,11 @@ local function applyPart(d: BasePart, s: { [string]: any })
 		-- Opened crates stay as a faint outline until the next trip down.
 		local nodeId = d:GetAttribute("NodeId")
 		local opened = type(nodeId) == "string" and s.depletedNodes ~= nil and s.depletedNodes[nodeId] == true
+		local requiredRubble = d:GetAttribute("RequiresRubble")
+		local rubbleOk = type(requiredRubble) ~= "string"
+			or (s.clearedRubble ~= nil and s.clearedRubble[requiredRubble] == true)
 		setTreeState(d, if opened then "locked" else "normal")
-		setPrompt(d, not opened)
+		setPrompt(d, not opened and rubbleOk)
 	elseif interactType == "Storage" then
 		setPrompt(d, s.upgrades ~= nil and s.upgrades.StorageCrate == true)
 	elseif interactType == "Backpack" then

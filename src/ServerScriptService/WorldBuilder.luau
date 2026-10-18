@@ -1174,7 +1174,9 @@ local function buildFloor1(parent: Folder, interactables: Folder)
 	buildFloorShell(floor, level, true)
 
 	-- Two routes around the stairwell: a west corridor and an east hall.
-	wallBetween(floor, "Wall", level, -20, -35, -20, -6, WALL_HEIGHT)
+	-- SoftWing doorway sits on x=-20 at z∈[-31,-25]; leave that gap so clearing rubble actually opens the room.
+	wallBetween(floor, "Wall", level, -20, -35, -20, -31, WALL_HEIGHT)
+	wallBetween(floor, "Wall", level, -20, -25, -20, -6, WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, -20, 6, -20, 35, WALL_HEIGHT)
 	wallBetween(floor, "Wall", level, 12, -20, 35, -20, 10)
 	-- Soft rubble (hands): Crowbar room. Soft wing (SW): scrap behind a clear-path gate.
@@ -1354,12 +1356,14 @@ local function buildFloor4(parent: Folder, interactables: Folder)
 		"F4_Rubble_B",
 		{ requiresTool = "Crowbar", requiresUpgrade = "Generator" }
 	)
-	-- Loose debris that players walk around.
+	-- Loose debris that players walk around (never in hard-rubble doorways at ±20, ±28).
 	local rng = Random.new(404)
 	for _ = 1, 10 do
 		local x = rng:NextNumber(-30, 30)
 		local z = rng:NextNumber(-30, 30)
-		if math.abs(x) > HOLE_X + 4 or math.abs(z) > 20 then
+		local inDoor = (math.abs(x - -20) < 4 and math.abs(z - -28) < 5)
+			or (math.abs(x - 20) < 4 and math.abs(z - 28) < 5)
+		if not inDoor and (math.abs(x) > HOLE_X + 4 or math.abs(z) > 20) then
 			local s = rng:NextNumber(2, 4)
 			local chunk =
 				onFloor(floor, "Debris", level, x, z, Vector3.new(s, s * 0.6, s), COLORS.rubble, Enum.Material.Slate)

@@ -1,17 +1,17 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 17.10, build **b35 · 17.10 17:27** published (PR #4 merge: PropLibrary real ids + heartbeat).
+Owner: Popovskyi. Updated 18.10, build **b36 · 18.10 09:15** (tablet Hit + procedural swing; F1 SoftWing /
+server rubble open).
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
 
-## Now: live b35
+## Now: live b36
 
-Shipped with b35 (merge of roadmap-continue):
+Shipped with b36:
 
-- Phase D FBX regen (Weapons / InteriorProps / RoofProps) + PC upload → real `PropLibrary.ASSETS` ids.
-- Heartbeat SFX wired (`SoundConfig` **9043365842**).
-- HUD declutter / Phase D Has()-dress / lobby L1 Classes already from prior builds.
+- Touch: Hit button + procedural Motor6D swing (no more AnimationTrack-only tablet path).
+- F1 SoftWing corridor gap; server-side rubble collision clear; F4 debris doorway skip.
 
 ## Next (owner only — see `docs/design/owner-gates.md`)
 
