@@ -14,6 +14,15 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+## b50 · 18.10
+Tablet melee swing visible again (third try).
+- Root cause: b36 Motor6D Transform was stomped by idle/walk Animator; b46 RightGrip C1 is
+  server-owned so client Heartbeat writes were overwritten by replication — both looked like no swing.
+- Fix (touch only): hide the server Held tool locally, spawn a client-owned weapon clone welded with
+  `LocalSwingGrip` Motor6D, drive arm joints + grip with `BindToRenderStep` at Last priority (after
+  Animator), large wind-up / cross-chop / recover, longer trail. Hit button unchanged. PC unchanged.
+- Check in game: tablet, equip bat/club, tap Hit — arm and bat clearly wind up and chop; no freeze.
+
 ## b49 · 18.10
 Polish spec steps 2–3: hit feel and brighter light.
 - Hitting a zombie: white flash on it, a few sparks at the hit, a hit marker in the centre (amber and

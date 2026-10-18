@@ -143,9 +143,13 @@ local function stop(name: string)
 end
 
 -- Touch devices often never download custom AnimationTracks (or Play is ignored while Length==0).
--- Drive the arm with Motor6D.Transform so a swing is always visible locally; keep asset clips on PC.
+-- Server-owned RightGrip / Motor6D writes also fail locally: idle/walk Animator stomps Transform, and
+-- replication resets Weld.C1 every network frame (b36 Motor6D + b46 RightGrip both looked like no-ops
+-- on the owner's tablet). Fix: client-owned weapon clone + Transform applied AFTER the Animator.
+local SWING_STEP = "SkylineTouchSwing"
 local swingToken = 0
-local swingConn: RBXScriptConnection? = nil
+local localSwingModel: Model? = nil
+local hiddenParts: { { part: BasePart, modifier: number } } = {}
 
 local function findMotor(motorName: string): Motor6D?
 	local character = player.Character
@@ -168,44 +172,150 @@ local function restoreHoldPose()
 	end
 end
 
-local function proceduralSwing(kind: "weapon" | "punch")
+local function clearLocalSwingVisual()
+	for _, entry in hiddenParts do
+		if entry.part.Parent then
+			entry.part.LocalTransparencyModifier = entry.modifier
+		end
+	end
+	table.clear(hiddenParts)
+	if localSwingModel then
+		localSwingModel:Destroy()
+		localSwingModel = nil
+	end
+	local character = player.Character
+	local hand = character and character:FindFirstChild("RightHand")
+	local motor = hand and hand:FindFirstChild("LocalSwingGrip")
+	if motor then
+		motor:Destroy()
+	end
+end
+
+local function lerpCf(a: CFrame, b: CFrame, alpha: number): CFrame
+	return a:Lerp(b, alpha)
+end
+
+-- Build a client-only copy of the held weapon, welded with a Motor6D we own (replication cannot stomp it).
+-- Hide the server tool locally so the player only sees the swinging clone.
+local function buildLocalWeaponVisual(tool: Tool, hand: BasePart): Motor6D?
+	clearLocalSwingVisual()
+	local model = Instance.new("Model")
+	model.Name = "LocalSwingWeapon"
+	local handleClone: BasePart? = nil
+	for _, child in tool:GetChildren() do
+		if child:IsA("BasePart") then
+			table.insert(hiddenParts, { part = child, modifier = child.LocalTransparencyModifier })
+			child.LocalTransparencyModifier = 1
+			local clone = child:Clone()
+			clone.Anchored = false
+			clone.CanCollide = false
+			clone.CanQuery = false
+			clone.CanTouch = false
+			clone.Massless = true
+			clone.LocalTransparencyModifier = 0
+			clone.Parent = model
+			if child.Name == "Handle" then
+				handleClone = clone
+			end
+		end
+	end
+	if not handleClone then
+		local bat = Instance.new("Part")
+		bat.Name = "Handle"
+		bat.Size = Vector3.new(0.45, 0.45, 3.6)
+		bat.Color = Color3.fromRGB(210, 185, 130)
+		bat.Material = Enum.Material.Wood
+		bat.Anchored = false
+		bat.CanCollide = false
+		bat.CanQuery = false
+		bat.CanTouch = false
+		bat.Massless = true
+		bat.Parent = model
+		handleClone = bat
+	elseif handleClone.Transparency >= 1 then
+		-- Mesh weapons use an invisible Handle; if no opaque sibling cloned, show a readable bat.
+		local anyVisible = false
+		for _, part in model:GetChildren() do
+			if part:IsA("BasePart") and part ~= handleClone and part.Transparency < 0.9 then
+				anyVisible = true
+				break
+			end
+		end
+		if not anyVisible then
+			handleClone.Transparency = 0
+			handleClone.Size = Vector3.new(0.45, 0.45, 3.6)
+			handleClone.Color = Color3.fromRGB(210, 185, 130)
+			handleClone.Material = Enum.Material.Wood
+		end
+	end
+	for _, part in model:GetChildren() do
+		if part:IsA("BasePart") and part ~= handleClone then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = handleClone
+			weld.Part1 = part
+			weld.Parent = part
+		end
+	end
+	local trail = handleClone:FindFirstChild("SwingTrail")
+	if trail and trail:IsA("Trail") then
+		trail.Enabled = true
+		trail.Lifetime = 0.22
+	end
+	model.PrimaryPart = handleClone
+	model.Parent = tool.Parent
+	localSwingModel = model
+	local motor = Instance.new("Motor6D")
+	motor.Name = "LocalSwingGrip"
+	motor.Part0 = hand
+	motor.Part1 = handleClone
+	motor.C0 = CFrame.new()
+	motor.C1 = tool.Grip
+	motor.Parent = hand
+	return motor
+end
+
+local function touchSwing(kind: "weapon" | "punch")
+	local character = player.Character
 	local shoulder = findMotor("RightShoulder")
 	local elbow = findMotor("RightElbow")
 	local waist = findMotor("Waist")
+	local hand = character and character:FindFirstChild("RightHand")
+	local tool = character and character:FindFirstChild("Held")
 	if not shoulder then
 		return
 	end
-	-- Hold clips overwrite Transform every frame; pause them for the one-shot.
 	stop("WeaponHold")
 	stop("ItemHold")
-	if swingConn then
-		swingConn:Disconnect()
-		swingConn = nil
-	end
+	pcall(function()
+		RunService:UnbindFromRenderStep(SWING_STEP)
+	end)
+	clearLocalSwingVisual()
 	swingToken += 1
 	local token = swingToken
-	local duration = if kind == "punch" then 0.28 else 0.38
+	local duration = if kind == "punch" then 0.32 else 0.48
 	local started = os.clock()
-	-- Keyframes: t ∈ [0,1] → shoulder / elbow / waist Transform (joint space).
-	local windupS = if kind == "punch"
-		then CFrame.Angles(math.rad(50), 0, math.rad(20))
-		else CFrame.Angles(math.rad(95), math.rad(15), math.rad(35))
-	local strikeS = if kind == "punch"
-		then CFrame.Angles(math.rad(85), math.rad(10), math.rad(-8))
-		else CFrame.Angles(math.rad(55), math.rad(40), math.rad(-15))
-	local windupE = CFrame.Angles(math.rad(70), 0, 0)
-	local strikeE = CFrame.Angles(math.rad(8), 0, 0)
-	local windupW = CFrame.Angles(0, math.rad(-22), 0)
-	local strikeW = CFrame.Angles(math.rad(-8), math.rad(28), 0)
-
-	local function lerpCf(a: CFrame, b: CFrame, alpha: number): CFrame
-		return a:Lerp(b, alpha)
+	local gripMotor: Motor6D? = nil
+	local restGrip = CFrame.new()
+	if kind == "weapon" and tool and tool:IsA("Tool") and hand and hand:IsA("BasePart") then
+		restGrip = tool.Grip
+		gripMotor = buildLocalWeaponVisual(tool, hand)
 	end
+	-- Bigger than a subtle twitch: wind up high/back, chop across the camera, recover.
+	local windupS = if kind == "punch"
+		then CFrame.Angles(math.rad(70), math.rad(15), math.rad(35))
+		else CFrame.Angles(math.rad(110), math.rad(45), math.rad(55))
+	local strikeS = if kind == "punch"
+		then CFrame.Angles(math.rad(95), math.rad(-10), math.rad(-20))
+		else CFrame.Angles(math.rad(40), math.rad(-55), math.rad(-40))
+	local windupE = CFrame.Angles(math.rad(85), 0, 0)
+	local strikeE = CFrame.Angles(math.rad(5), 0, math.rad(-15))
+	local windupW = CFrame.Angles(0, math.rad(-35), 0)
+	local strikeW = CFrame.Angles(math.rad(-12), math.rad(45), 0)
+	local windupG = restGrip * CFrame.Angles(math.rad(-55), math.rad(70), math.rad(-25))
+	local strikeG = restGrip * CFrame.Angles(math.rad(95), math.rad(-50), math.rad(35))
 
-	-- Stepped runs after the Animator has posed the joints for this frame, so these Transforms are the
-	-- ones that get drawn. (Writing them in RenderStepped was overwritten by the idle/walk clips, which
-	-- is why tablet players never saw their own swing.)
-	swingConn = RunService.Stepped:Connect(function()
+	-- Last render priority: after Humanoid/Animator so our Transforms are what get drawn.
+	RunService:BindToRenderStep(SWING_STEP, Enum.RenderPriority.Last.Value, function()
 		if token ~= swingToken then
 			return
 		end
@@ -218,31 +328,35 @@ local function proceduralSwing(kind: "weapon" | "punch")
 			if waist then
 				waist.Transform = CFrame.new()
 			end
-			if swingConn then
-				swingConn:Disconnect()
-				swingConn = nil
-			end
+			pcall(function()
+				RunService:UnbindFromRenderStep(SWING_STEP)
+			end)
+			clearLocalSwingVisual()
 			restoreHoldPose()
 			return
 		end
 		local shoulderCf: CFrame
 		local elbowCf: CFrame
 		local waistCf: CFrame
-		if t < 0.35 then
-			local a = t / 0.35
+		local gripCf = restGrip
+		if t < 0.32 then
+			local a = t / 0.32
 			shoulderCf = lerpCf(CFrame.new(), windupS, a)
 			elbowCf = lerpCf(CFrame.new(), windupE, a)
 			waistCf = lerpCf(CFrame.new(), windupW, a)
-		elseif t < 0.55 then
-			local a = (t - 0.35) / 0.2
+			gripCf = lerpCf(restGrip, windupG, a)
+		elseif t < 0.52 then
+			local a = (t - 0.32) / 0.2
 			shoulderCf = lerpCf(windupS, strikeS, a)
 			elbowCf = lerpCf(windupE, strikeE, a)
 			waistCf = lerpCf(windupW, strikeW, a)
+			gripCf = lerpCf(windupG, strikeG, a)
 		else
-			local a = (t - 0.55) / 0.45
+			local a = (t - 0.52) / 0.48
 			shoulderCf = lerpCf(strikeS, CFrame.new(), a)
 			elbowCf = lerpCf(strikeE, CFrame.new(), a)
 			waistCf = lerpCf(strikeW, CFrame.new(), a)
+			gripCf = lerpCf(strikeG, restGrip, a)
 		end
 		shoulder.Transform = shoulderCf
 		if elbow then
@@ -251,69 +365,17 @@ local function proceduralSwing(kind: "weapon" | "punch")
 		if waist then
 			waist.Transform = waistCf
 		end
-	end)
-end
-
--- Touch devices: swing the weapon itself in the hand by animating the Tool's Grip (the weld between
--- hand and weapon). This does not depend on animation clips or joint timing at all, so the player always
--- sees the bat move: back, a fast chop forward, and back to rest. Other players see the server clip.
-local gripSwingToken = 0
-local function gripSwing()
-	local character = player.Character
-	local tool = character and character:FindFirstChild("Held")
-	if not tool or not tool:IsA("Tool") then
-		return
-	end
-	-- The weld Roblox makes between hand and weapon ("RightGrip"); its C1 is the Tool.Grip.
-	local hand = character and character:FindFirstChild("RightHand")
-	local weld = hand and hand:FindFirstChild("RightGrip")
-	if not weld or not weld:IsA("Weld") then
-		return
-	end
-	gripSwingToken += 1
-	local token = gripSwingToken
-	local rest = tool.Grip
-	local keys = {
-		{ t = 0, angle = 0 },
-		{ t = 0.12, angle = -70 }, -- wind up: bat back over the shoulder
-		{ t = 0.24, angle = 85 }, -- strike: fast chop forward and down
-		{ t = 0.42, angle = 0 },
-	}
-	local started = os.clock()
-	local conn: RBXScriptConnection
-	conn = RunService.Heartbeat:Connect(function()
-		if token ~= gripSwingToken or not tool.Parent or not weld.Parent then
-			conn:Disconnect()
-			return
+		if gripMotor and gripMotor.Parent then
+			gripMotor.C1 = gripCf
 		end
-		local t = os.clock() - started
-		local angle = 0
-		for i = 1, #keys - 1 do
-			local a, b = keys[i], keys[i + 1]
-			if t >= a.t and t <= b.t then
-				local alpha = (t - a.t) / (b.t - a.t)
-				angle = a.angle + (b.angle - a.angle) * alpha
-			end
-		end
-		if t >= keys[#keys].t then
-			weld.C1 = rest
-			conn:Disconnect()
-			return
-		end
-		weld.C1 = rest * CFrame.Angles(math.rad(angle), 0, 0)
 	end)
 end
 
 local function playSwing(name: "WeaponSwing" | "Punch")
-	-- The server plays the swing clip on our character for everyone (CombatService.playSwing), so the
-	-- client does not play its own copy. Touch devices also get the procedural arm swing locally, which
-	-- shows at once even if the clip is slow to load there.
+	-- Server still plays the clip for teammates (CombatService.playSwing). Touch devices need a local
+	-- owned visual: AnimationTracks often never load, and server welds/joints cannot be driven here.
 	if UserInputService.TouchEnabled then
-		if name == "WeaponSwing" then
-			gripSwing()
-		else
-			proceduralSwing("punch")
-		end
+		touchSwing(if name == "Punch" then "punch" else "weapon")
 	end
 end
 
@@ -416,6 +478,10 @@ local function watchTool(character: Model)
 		if child:IsA("Tool") and child.Name == "Held" and not character:FindFirstChild("Held") then
 			stop("WeaponHold")
 			stop("ItemHold")
+			pcall(function()
+				RunService:UnbindFromRenderStep(SWING_STEP)
+			end)
+			clearLocalSwingVisual()
 		end
 	end)
 end
