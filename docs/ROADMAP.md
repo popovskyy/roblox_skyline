@@ -1,17 +1,18 @@
 # Skyline Zero — roadmap
 
-Owner: Popovskyi. Updated 18.10, build **b36 · 18.10 09:15** (tablet Hit + procedural swing; F1 SoftWing /
-server rubble open).
+Owner: Popovskyi. Updated 18.10, build **b37 · 18.10 06:17** (zombie free-catalog outfits).
 One list for every agent; work top to bottom unless the owner says otherwise. When an item ships, move it
 to `CHANGELOG.md` and delete it here. Do not add items the owner did not ask for: put ideas in
 `docs/design/brainstorm-hooks.md` instead.
 
-## Now: live b36
+## Now: live b37
 
-Shipped with b36:
+Shipped with b37:
 
-- Touch: Hit button + procedural Motor6D swing (no more AnimationTrack-only tablet path).
-- F1 SoftWing corridor gap; server-side rubble collision clear; F4 debris doorway skip.
+- Zombie looks: free Roblox catalog shirt/pants outfits + Man Face + ashen/gaunt scales (`ZombieService`).
+
+Prior b36: tablet Hit + procedural swing; F1 SoftWing / server rubble open.
+
 
 ## Next (owner only — see `docs/design/owner-gates.md`)
 
