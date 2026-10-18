@@ -893,9 +893,9 @@ local S: { [string]: Entry } = {
 		en = "Back to the lobby…",
 	},
 	["hint.attackTouch"] = {
-		uk = "Тапни по екрану, щоб ударити. Зброю вибери в інвентарі внизу.",
-		ru = "Тапни по экрану, чтобы ударить. Оружие выбери в инвентаре внизу.",
-		en = "Tap the screen to hit. Pick a weapon from the inventory below.",
+		uk = "Натисни «Удар», щоб вдарити. Зброю вибери в інвентарі внизу.",
+		ru = "Нажми «Удар», чтобы ударить. Оружие выбери в инвентаре внизу.",
+		en = "Press Hit to attack. Pick a weapon from the inventory below.",
 	},
 	["hint.attackPc"] = {
 		uk = "Клікни мишкою, щоб ударити. Зброя: клавіші 1–0.",

@@ -4,6 +4,7 @@
 -- Every decision (hits, damage, revives, crafting) is made by the server.
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -116,57 +117,21 @@ local function play(name: string, fade: number?)
 		ensureTracks()
 		track = tracks[name]
 	end
-	-- Tablets can still be loading the Animator a beat after CharacterAdded; retry briefly.
 	if not track then
-		local missing = name
-		local missingFade = fade
-		task.spawn(function()
-			for _ = 1, 20 do
-				task.wait(0.1)
-				if ensureTracks() and tracks[missing] then
-					play(missing, missingFade)
-					return
-				end
-			end
-		end)
 		return
 	end
 	local spec = ANIMATIONS[name]
 	local oneShot = name == "WeaponSwing" or name == "Punch" or name == "ItemUse"
 	if spec then
-		-- Re-apply at play time. A looping hold or the default walk/tool pose (always on while
-		-- the thumbstick is down) covers a swing whose priority was left at the asset default.
 		track.Priority = spec.priority
 		track.Looped = not oneShot
 	end
-	local function start(playing: AnimationTrack)
-		-- Play() does nothing if this track is already playing, so a second tap shows no swing.
-		if oneShot and playing.IsPlaying then
-			playing:Stop(0)
-		end
-		playing:Play(fade or 0.1, 1, 1)
-		if oneShot then
-			playing:AdjustWeight(1, 0)
-		end
+	if oneShot and track.IsPlaying then
+		track:Stop(0)
 	end
-	start(track)
-	-- On a phone/tablet Play() before the clip has downloaded is ignored and never retried.
-	if oneShot and track.Length == 0 then
-		local playing = track
-		task.spawn(function()
-			for _ = 1, 25 do
-				if tracks[name] ~= playing or playing.Length > 0 then
-					break
-				end
-				task.wait(0.1)
-			end
-			if tracks[name] == playing and playing.Length > 0 then
-				if spec then
-					playing.Priority = spec.priority
-				end
-				start(playing)
-			end
-		end)
+	track:Play(fade or 0.1, 1, 1)
+	if oneShot then
+		track:AdjustWeight(1, 0)
 	end
 end
 
@@ -175,6 +140,122 @@ local function stop(name: string)
 	if track and track.IsPlaying then
 		track:Stop(0.2)
 	end
+end
+
+-- Touch devices often never download custom AnimationTracks (or Play is ignored while Length==0).
+-- Drive the arm with Motor6D.Transform so a swing is always visible locally; keep asset clips on PC.
+local swingToken = 0
+local SWING_STEP = "SkylineSwing"
+
+local function findMotor(motorName: string): Motor6D?
+	local character = player.Character
+	if not character then
+		return nil
+	end
+	local motor = character:FindFirstChild(motorName, true)
+	if motor and motor:IsA("Motor6D") then
+		return motor
+	end
+	return nil
+end
+
+local function restoreHoldPose()
+	local character = player.Character
+	local held = character and character:FindFirstChild("Held")
+	if held and held:IsA("Tool") then
+		local weapon = held:GetAttribute("Weapon") == true
+		play(if weapon then "WeaponHold" else "ItemHold", 0.15)
+	end
+end
+
+local function proceduralSwing(kind: "weapon" | "punch")
+	local shoulder = findMotor("RightShoulder")
+	local elbow = findMotor("RightElbow")
+	local waist = findMotor("Waist")
+	if not shoulder then
+		return
+	end
+	-- Hold clips overwrite Transform every frame; pause them for the one-shot.
+	stop("WeaponHold")
+	stop("ItemHold")
+	pcall(function()
+		RunService:UnbindFromRenderStep(SWING_STEP)
+	end)
+	swingToken += 1
+	local token = swingToken
+	local duration = if kind == "punch" then 0.28 else 0.38
+	local started = os.clock()
+	-- Keyframes: t ∈ [0,1] → shoulder / elbow / waist Transform (joint space).
+	local windupS = if kind == "punch"
+		then CFrame.Angles(math.rad(50), 0, math.rad(20))
+		else CFrame.Angles(math.rad(95), math.rad(15), math.rad(35))
+	local strikeS = if kind == "punch"
+		then CFrame.Angles(math.rad(85), math.rad(10), math.rad(-8))
+		else CFrame.Angles(math.rad(55), math.rad(40), math.rad(-15))
+	local windupE = CFrame.Angles(math.rad(70), 0, 0)
+	local strikeE = CFrame.Angles(math.rad(8), 0, 0)
+	local windupW = CFrame.Angles(0, math.rad(-22), 0)
+	local strikeW = CFrame.Angles(math.rad(-8), math.rad(28), 0)
+
+	local function lerpCf(a: CFrame, b: CFrame, alpha: number): CFrame
+		return a:Lerp(b, alpha)
+	end
+
+	RunService:BindToRenderStep(SWING_STEP, Enum.RenderPriority.Last.Value, function()
+		if token ~= swingToken then
+			return
+		end
+		local t = (os.clock() - started) / duration
+		if t >= 1 or not shoulder.Parent then
+			shoulder.Transform = CFrame.new()
+			if elbow then
+				elbow.Transform = CFrame.new()
+			end
+			if waist then
+				waist.Transform = CFrame.new()
+			end
+			pcall(function()
+				RunService:UnbindFromRenderStep(SWING_STEP)
+			end)
+			restoreHoldPose()
+			return
+		end
+		local shoulderCf: CFrame
+		local elbowCf: CFrame
+		local waistCf: CFrame
+		if t < 0.35 then
+			local a = t / 0.35
+			shoulderCf = lerpCf(CFrame.new(), windupS, a)
+			elbowCf = lerpCf(CFrame.new(), windupE, a)
+			waistCf = lerpCf(CFrame.new(), windupW, a)
+		elseif t < 0.55 then
+			local a = (t - 0.35) / 0.2
+			shoulderCf = lerpCf(windupS, strikeS, a)
+			elbowCf = lerpCf(windupE, strikeE, a)
+			waistCf = lerpCf(windupW, strikeW, a)
+		else
+			local a = (t - 0.55) / 0.45
+			shoulderCf = lerpCf(strikeS, CFrame.new(), a)
+			elbowCf = lerpCf(strikeE, CFrame.new(), a)
+			waistCf = lerpCf(strikeW, CFrame.new(), a)
+		end
+		shoulder.Transform = shoulderCf
+		if elbow then
+			elbow.Transform = elbowCf
+		end
+		if waist then
+			waist.Transform = waistCf
+		end
+	end)
+end
+
+local function playSwing(name: "WeaponSwing" | "Punch")
+	-- Touch: procedural only (asset clips fight Transform and often never load on tablet).
+	if UserInputService.TouchEnabled then
+		proceduralSwing(if name == "Punch" then "punch" else "weapon")
+		return
+	end
+	play(name, 0.05)
 end
 
 local lastSwing = 0
@@ -194,7 +275,7 @@ local function activate(tool: Tool)
 			return
 		end
 		lastSwing = now
-		play("WeaponSwing", 0.05)
+		playSwing("WeaponSwing")
 		remote(RemoteNames.Attack):FireServer()
 	elseif def.use == "eat" or def.use == "heal" then
 		play("ItemUse")
@@ -236,7 +317,7 @@ local function punch()
 		return
 	end
 	lastSwing = now
-	play("Punch", 0.05)
+	playSwing("Punch")
 	remote(RemoteNames.Attack):FireServer()
 end
 
@@ -588,25 +669,78 @@ local function touchOnGuiButton(screenPos: Vector3): boolean
 	return false
 end
 
-function CombatController.Start(remoteFolder: Folder)
-	-- Phones/tablets download clips slower than Studio. Preload so the first tap is not a silent Play().
-	task.spawn(function()
-		local ContentProvider = game:GetService("ContentProvider")
-		local assets: { Instance } = {}
-		for _, spec in ANIMATIONS do
-			local animation = Instance.new("Animation")
-			animation.AnimationId = spec.id
-			table.insert(assets, animation)
-		end
-		pcall(function()
-			ContentProvider:PreloadAsync(assets)
-		end)
+local function buildAttackButton(screen: ScreenGui)
+	-- Dedicated Hit control: world-tap heuristics kept failing on tablets (processed Touch, camera drag).
+	if not UserInputService.TouchEnabled then
+		return
+	end
+	local T = Theme.Colors
+	local holder = UIKit.New("Frame", {
+		Name = "AttackButton",
+		AnchorPoint = Vector2.new(1, 1),
+		-- Left of the interact button (InteractionController at -111); clear of the jump pad.
+		Position = UDim2.new(1, -190, 1, -42),
+		Size = UDim2.fromOffset(72, 72),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+		Parent = screen,
+	})
+	local button = UIKit.New("TextButton", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = T.Panel,
+		BackgroundTransparency = 0.15,
+		Text = "",
+		AutoButtonColor = false,
+		Active = true,
+		Parent = holder,
+	}, { UIKit.Corner(36) })
+	UIKit.New("UIStroke", {
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Color = T.Danger,
+		Thickness = 3,
+		Parent = button,
+	})
+	local label = UIKit.Label({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.85, 0.45),
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		FontFace = Theme.Bold,
+		TextSize = 18,
+		TextColor3 = T.Cream,
+		ZIndex = 5,
+		Parent = button,
+	})
+	Lang.Bind(label, "ui.attack")
+	local function refresh()
+		holder.Visible = player:GetAttribute("Downed") ~= true and player:GetAttribute("MatchOver") ~= true
+	end
+	button.Activated:Connect(function()
+		attackInput()
 	end)
-	-- Attack input (weapon, item or fist): a tap on the world, a click or R2.
-	-- Phones/tablets: a short tap that barely moves (not a camera drag). Tracked by hand because
-	-- TouchTapInWorld does not fire reliably next to the touch controls. The held Tool stays
-	-- ManualActivationOnly. On tablets Touch often arrives with processed=true even on the world —
-	-- only skip real GUI buttons.
+	player:GetAttributeChangedSignal("Downed"):Connect(refresh)
+	player:GetAttributeChangedSignal("MatchOver"):Connect(refresh)
+	refresh()
+end
+
+function CombatController.Start(remoteFolder: Folder)
+	-- PC still uses uploaded clips; preload only when not on touch.
+	if not UserInputService.TouchEnabled then
+		task.spawn(function()
+			local ContentProvider = game:GetService("ContentProvider")
+			local assets: { Instance } = {}
+			for _, spec in ANIMATIONS do
+				local animation = Instance.new("Animation")
+				animation.AnimationId = spec.id
+				table.insert(assets, animation)
+			end
+			pcall(function()
+				ContentProvider:PreloadAsync(assets)
+			end)
+		end)
+	end
+	-- Secondary: short world taps (phones). Tablets rely on the Hit button above.
 	local touches: { [InputObject]: { at: Vector3, started: number, moved: number } } = {}
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if input.UserInputType ~= Enum.UserInputType.Touch then
@@ -680,6 +814,7 @@ function CombatController.Start(remoteFolder: Folder)
 	task.spawn(hideDefaultCoreGui)
 	buildDowned(screen)
 	buildCraft(screen)
+	buildAttackButton(screen)
 
 	if player.Character then
 		task.spawn(watchTool, player.Character)

@@ -132,6 +132,30 @@ function ResourceService.Collect(player: Player, node: BasePart): (boolean, any)
 	return true, nil
 end
 
+-- Open the doorway on the server. Client-only CanCollide was leaving an invisible wall on some devices
+-- (SoftRubble dress makes the host transparent while it still collides until this runs).
+local function openClearedRubble(rubble: BasePart)
+	rubble.CanCollide = false
+	rubble.CanQuery = false
+	rubble.Transparency = 1
+	for _, d in rubble:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CanQuery = false
+			d.Transparency = 1
+		end
+		if d:IsA("ProximityPrompt") then
+			d.Enabled = false
+		end
+		if d:IsA("SurfaceGui") then
+			d.Enabled = false
+		end
+		if d:IsA("Light") then
+			d.Enabled = false
+		end
+	end
+end
+
 function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean, any)
 	local rubbleId = rubble:GetAttribute("RubbleId")
 	if type(rubbleId) ~= "string" then
@@ -150,6 +174,7 @@ function ResourceService.ClearRubble(player: Player, rubble: BasePart): (boolean
 	end
 
 	clearedRubble[rubbleId] = true
+	openClearedRubble(rubble)
 	SfxService.Play("Rubble", rubble.Position)
 	local reward = rubble:GetAttribute("RewardItem")
 	if ItemDefinitions.IsValid(reward) and InventoryService.GetCount(player, reward :: string) == 0 then
