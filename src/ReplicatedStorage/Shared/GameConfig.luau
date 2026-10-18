@@ -99,7 +99,7 @@ local GameConfig = {
 		SpawnStaggerSeconds = 0.7,
 		SirenVolume = 1.35,
 		-- Scary music bed + orange/dark sky while the wave is active (HordeSiren still plays once).
-		ThreatSeconds = 45,
+		ThreatSeconds = 80, -- the horde "night": about as long as a fight needs; leftovers leave at dawn
 	},
 
 	-- Barricade across the roof stair mouth: holds the horde until zombies break it; anyone repairs it.

@@ -8,6 +8,7 @@ local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local SfxService = require(script.Parent.SfxService)
@@ -23,6 +24,11 @@ local IDLE_ANIM = "rbxassetid://507766666"
 local TICK = 0.3
 
 type Zombie = {
+	route: { Vector3 }?, -- horde: fixed points up the stairs to the roof, followed in order
+	lastSeen: Vector3?, -- where the target was last seen (search there after losing it)
+	searchUntil: number,
+	wanderGoal: Vector3?,
+	routeIndex: number,
 	model: Model,
 	humanoid: Humanoid,
 	root: BasePart,
@@ -135,16 +141,16 @@ local function playAnimations(z: Zombie)
 	end)
 end
 
-local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxDrift: number)
+local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxDrift: number): Zombie?
 	if not folder then
-		return
+		return nil
 	end
 	local ok, model = pcall(function()
 		return Players:CreateHumanoidModelFromDescription(zombieDescription(), Enum.HumanoidRigType.R15)
 	end)
 	if not ok or not model then
 		warn("[Zombie] could not create a zombie:", model)
-		return
+		return nil
 	end
 	model.Name = "Zombie"
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -183,6 +189,8 @@ local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxD
 		alertUntil = 0,
 		maxDrift = maxDrift,
 		stuckSince = 0,
+		routeIndex = 1,
+		searchUntil = 0,
 	}
 	table.insert(zombies, z)
 	playAnimations(z)
@@ -197,6 +205,7 @@ local function createZombie(level: number, spawnAt: Vector3, home: Vector3, maxD
 		end)
 		-- No respawn: a cleared floor stays cleared for the rest of the match.
 	end)
+	return z
 end
 
 local spawnZombie: (level: number) -> ()
@@ -229,8 +238,34 @@ spawnZombie = function(level: number)
 end
 
 -- Roof horde: spawn on / just below the stair exit, chase anyone on the roof. Never respawns floor packs.
-function ZombieService.SpawnHordeZombie(spawnAt: Vector3, home: Vector3)
-	createZombie(0, spawnAt, home, 28)
+-- Horde zombies get a fixed route (landing → up the ramp → stair mouth → roof) so they never get lost
+-- or stuck below; pathfinding is only used once they are on the roof.
+function ZombieService.SpawnHordeZombie(spawnAt: Vector3, home: Vector3, route: { Vector3 }?)
+	local z = createZombie(0, spawnAt, home, 28)
+	if z then
+		z.route = route
+		z.routeIndex = 1
+	end
+end
+
+-- Dawn: horde zombies still around slink off (fade out and disappear) so none hang about afterwards.
+function ZombieService.DespawnHorde()
+	for _, z in table.clone(zombies) do
+		if z.level == 0 and z.humanoid.Health > 0 then
+			local index = table.find(zombies, z)
+			if index then
+				table.remove(zombies, index)
+			end
+			for _, d in z.model:GetDescendants() do
+				if d:IsA("BasePart") or d:IsA("Decal") then
+					TweenService:Create(d, TweenInfo.new(1.5), { Transparency = 1 }):Play()
+				end
+			end
+			task.delay(1.6, function()
+				z.model:Destroy()
+			end)
+		end
+	end
 end
 
 -- Nearest standing player on the same floor within aggro range.
@@ -286,17 +321,30 @@ function ZombieService.WallBetween(from: Vector3, to: Vector3, ignore: { Instanc
 	return workspace:Raycast(from, to - from, params) ~= nil
 end
 
+-- Can the zombie walk straight at the target? A body-wide corridor (three rays: centre and both
+-- shoulders) must be free of anything that collides, otherwise it uses a path. A single thin ray let
+-- them try to walk through door frames and wall corners.
 local function hasLineOfSight(z: Zombie, target: BasePart): boolean
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { z.model, target.Parent :: Instance }
-	local from = z.root.Position
-	local result = workspace:Raycast(from, target.Position - from, params)
-	if result == nil then
-		return true
+	local ignore: { Instance } = { z.model, target.Parent :: Instance }
+	if folder then
+		table.insert(ignore, folder)
 	end
-	-- Built boards count as a hard block even if a thin gap would otherwise look clear.
-	return not isBarricadeBlock(result.Instance)
+	params.FilterDescendantsInstances = ignore
+	params.RespectCanCollide = true
+	params.CollisionGroup = "Zombies"
+	local from = z.root.Position
+	local to = target.Position
+	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local side = if flat.Magnitude > 0.1 then flat.Unit:Cross(Vector3.yAxis) * 1.4 else Vector3.zero
+	for _, offset in { Vector3.zero, side, -side } do
+		local result = workspace:Raycast(from + offset, to - from, params)
+		if result then
+			return false
+		end
+	end
+	return true
 end
 
 local function stopInPlace(z: Zombie)
@@ -336,12 +384,10 @@ local function moveAlongPath(z: Zombie, goal: Vector3, now: number)
 			z.waypointIndex += 1
 		end
 	else
-		-- Path failed: do not fall back to naked MoveTo(goal) through a barricade.
-		if rayHitsBarricade(z.root.Position, goal, { z.model }) then
-			stopInPlace(z)
-		else
-			z.humanoid:MoveTo(goal)
-		end
+		-- No path: do not ram the goal (that is the "face in the wall" look). Step to a random nearby
+		-- spot and try again on the next path refresh.
+		local angle = math.random() * math.pi * 2
+		z.humanoid:MoveTo(z.root.Position + Vector3.new(math.cos(angle) * 6, 0, math.sin(angle) * 6))
 	end
 end
 
@@ -362,6 +408,7 @@ local function unstick(z: Zombie, now: number)
 		z.stuckAt = nil
 	elseif stuckFor > 1.5 then
 		z.lastPath = 0 -- recompute the path on the next move
+		z.humanoid.Jump = true -- hop over low clutter
 		local side = z.root.CFrame.RightVector * (if math.random() < 0.5 then -4 else 4)
 		z.humanoid:MoveTo(pos + side)
 	end
@@ -383,6 +430,8 @@ local function think(z: Zombie, now: number)
 		SfxService.Play("ZombieGroan", z.root, 0.8)
 	end
 	if target and targetRoot then
+		z.lastSeen = targetRoot.Position
+		z.searchUntil = now + 8
 		local distance = (targetRoot.Position - z.root.Position).Magnitude
 		local ignore: { Instance } = { z.model }
 		local character = target.Character
@@ -417,12 +466,34 @@ local function think(z: Zombie, now: number)
 		end
 		return
 	end
+	-- Lost the target: go to where it was last seen and look around for a few seconds.
+	if z.lastSeen and now < z.searchUntil then
+		if (z.lastSeen - z.root.Position).Magnitude > 4 then
+			moveAlongPath(z, z.lastSeen :: Vector3, now)
+		else
+			z.lastSeen = nil
+		end
+		return
+	end
 	-- A noise nearby (crowbar break-in): go and look.
 	if z.alertPos and now < z.alertUntil then
 		if (z.alertPos - z.root.Position).Magnitude > 4 then
 			moveAlongPath(z, z.alertPos, now)
 		end
 		return
+	end
+	-- Horde on its way up: walk the route point by point (the wire, if any, is handled below).
+	if z.level == 0 and z.route and z.routeIndex <= #(z.route :: { Vector3 }) then
+		local point = (z.route :: { Vector3 })[z.routeIndex]
+		local boards = rayHitsBarricade(z.root.Position, point, { z.model })
+		if not boards then
+			if (Vector3.new(point.X, z.root.Position.Y, point.Z) - z.root.Position).Magnitude < 3 then
+				z.routeIndex += 1
+			else
+				z.humanoid:MoveTo(point)
+			end
+			return
+		end
 	end
 	-- Horde climbing up: head for the roof; boards in the way get clawed at.
 	if z.level == 0 and (z.home - z.root.Position).Magnitude > 10 then
@@ -452,8 +523,13 @@ local function think(z: Zombie, now: number)
 		if rayHitsBarricade(z.root.Position, wanderGoal, { z.model }) then
 			stopInPlace(z)
 		else
-			z.humanoid:MoveTo(wanderGoal)
+			-- Wander along a real path so they turn at walls instead of pressing into them.
+			z.lastPath = 0
+			z.wanderGoal = wanderGoal
 		end
+	end
+	if z.wanderGoal and (z.wanderGoal - z.root.Position).Magnitude > 3 then
+		moveAlongPath(z, z.wanderGoal :: Vector3, now)
 	end
 end
 

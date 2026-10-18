@@ -9,6 +9,18 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b45 · 18.10
+- Horde night lasts 80 s (was 45 s) and ends cleanly: at dawn the remaining horde zombies fade out
+  instead of hanging around below.
+- Horde zombies follow a fixed route up the stairs (landing → foot of the roof ramp → up → out of the
+  mouth → roof), so they always arrive; the wire still stops them.
+- Zombie AI on every floor: walk straight at you only when a body-wide corridor is clear (three rays,
+  colliding parts only), otherwise follow a path; no more "face in the wall" when a path fails (short
+  detour instead); wander along paths; after losing you they go to where they last saw you and look
+  around for ~8 s; when stuck they re-path, hop over low clutter, side-step, then nudge.
+- Check in game: horde reaches the roof (or stops at the wire); after ~80 s the sky clears and leftovers
+  vanish; on floors 1–4 zombies follow you around corners and through doorways.
 ## b44 · 18.10
 - The barricade is now barbed wire: clearly visible rusty posts and coils across the roof stair mouth.
   Players walk straight through it (collision group "Wire" ignores players); zombies are stopped and tear

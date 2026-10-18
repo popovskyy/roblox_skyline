@@ -107,6 +107,8 @@ local function clearThreat(gen: number)
 		return
 	end
 	Atmosphere.SetHordeThreat(false, 3)
+	-- Dawn: whatever is left of the horde leaves.
+	ZombieService.DespawnHorde()
 end
 
 local function warnEveryone()
@@ -140,6 +142,18 @@ local function spawnPositions(_behindBarricade: boolean): (Vector3, Vector3)
 	return spawnAt, home
 end
 
+-- The way up: across the landing to the foot of the west (roof) ramp, up the ramp, out of the mouth.
+local function climbRoute(home: Vector3): { Vector3 }
+	local landingY = World.RoofY - World.FloorSpacing / 2 + 3
+	local laneX = -LANE_CENTER + (math.random() - 0.5) * 2
+	return {
+		Vector3.new(laneX, landingY, LANDING_Z + 1),
+		Vector3.new(laneX, World.RoofY + 3, HOLE_MIN_Z + 1),
+		Vector3.new(laneX, World.RoofY + 3, HOLE_MIN_Z - 3),
+		home,
+	}
+end
+
 local function releaseWave()
 	-- Re-read each wave so a mid-match Enabled = false (QA) stops further sirens/spawns.
 	if not H.Enabled then
@@ -160,7 +174,7 @@ local function releaseWave()
 				return
 			end
 			local spawnAt, home = spawnPositions(blocked)
-			ZombieService.SpawnHordeZombie(spawnAt, home)
+			ZombieService.SpawnHordeZombie(spawnAt, home, climbRoute(home))
 		end)
 	end
 end
