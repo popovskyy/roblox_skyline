@@ -4,6 +4,10 @@ Every published build gets an entry: build tag, date, what a player will notice,
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
 
+
+## b40 · 18.10
+- Backpack carries 30 instead of 20 (`GameConfig.MaxInventoryWeight`).
+- Check in game: the weight chip above the hotbar reads "x / 30".
 ## b39 · 18.10
 - Team pooling: builds and crafts on the roof pay from your backpack, then the team chest, then the
   backpacks of teammates who are on the roof (they get "you chipped in"). The workbench shows the team

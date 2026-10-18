@@ -3,7 +3,7 @@
 
 local GameConfig = {
 	-- Inventory and storage
-	MaxInventoryWeight = 20,
+	MaxInventoryWeight = 30,
 	StorageCapacity = 60,
 
 	-- Health
