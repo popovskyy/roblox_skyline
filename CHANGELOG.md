@@ -8,6 +8,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+
+## b44 · 18.10
+- The barricade is now barbed wire: clearly visible rusty posts and coils across the roof stair mouth.
+  Players walk straight through it (collision group "Wire" ignores players); zombies are stopped and tear
+  it down (health bar and repair stay). Players can hit zombies through the wire. The uploaded boards
+  mesh (it rendered invisible) is no longer used.
+- Check in game: walk through the wire both ways; horde stops at it and its bar drops; hit zombies
+  through it; repair at the wire.
 ## b43 · 18.10
 - Workbench: every ingredient shows "have/need" in green or red (e.g. "Bandage 1/2 · Food 1/1"), with a
   line saying what counts (your backpack + chest + teammates on the roof, the same pool the craft uses).

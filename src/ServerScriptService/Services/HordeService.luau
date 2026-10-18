@@ -68,9 +68,19 @@ local function setBarricadeHp(hp: number)
 	workspace:SetAttribute("BarricadeMax", B.MaxHp)
 end
 
+-- "Wire" collision group: blocks zombies, lets players (Default) walk straight through.
+local PhysicsService = game:GetService("PhysicsService")
+pcall(function()
+	PhysicsService:RegisterCollisionGroup("Wire")
+	PhysicsService:RegisterCollisionGroup("Zombies")
+end)
+PhysicsService:CollisionGroupSetCollidable("Wire", "Default", false)
+PhysicsService:CollisionGroupSetCollidable("Wire", "Zombies", true)
+
 local function applyBarricadeCollision(built: boolean)
 	for _, part in barricadeParts do
 		if part.Parent then
+			part.CollisionGroup = "Wire"
 			part.CanCollide = built
 			-- Keep raycasts / pathfinding in sync with the physical block.
 			part.CanQuery = true

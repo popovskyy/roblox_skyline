@@ -281,6 +281,8 @@ function ZombieService.WallBetween(from: Vector3, to: Vector3, ignore: { Instanc
 	end
 	params.FilterDescendantsInstances = list
 	params.RespectCanCollide = true
+	-- As a player would collide: the barbed wire (Wire group) is see-through for melee.
+	params.CollisionGroup = "Default"
 	return workspace:Raycast(from, to - from, params) ~= nil
 end
 

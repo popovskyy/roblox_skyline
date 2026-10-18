@@ -1737,15 +1737,22 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	-- Physical barrier across the stair exit (south mouth). Starts non-colliding; HordeService
 	-- enables collision when the team builds Barricade. Zombies cannot jump (AgentCanJump false).
 	-- Thick + tall so LoS/MoveTo cannot soft-clip the stair mouth.
+	-- Barbed wire across the stair mouth. The invisible "BarricadeBarrier" box is the collision: it is in
+	-- the "Wire" collision group (HordeService), which blocks zombies but lets players walk through.
+	-- The coils and posts are only the look. Before it is built everything shows as a hologram.
+	local mouthZ = HOLE_MIN_Z - 0.9
+	local width = HOLE_X * 2 + 2
 	local barricade = block(
 		visuals,
 		"BarricadeBarrier",
-		Vector3.new(HOLE_X * 2 + 2, 7, 2.4),
-		CFrame.new(0, roofY + 3.5, HOLE_MIN_Z - 0.9),
-		Color3.fromRGB(110, 78, 48),
-		Enum.Material.WoodPlanks
+		Vector3.new(width, 7, 2.4),
+		CFrame.new(0, roofY + 3.5, mouthZ),
+		Color3.fromRGB(60, 60, 60),
+		Enum.Material.Metal
 	)
+	barricade.Transparency = 1
 	barricade.CanCollide = false
+	barricade.CastShadow = false
 	barricade:SetAttribute("UpgradeVisual", "Barricade")
 	barricade:SetAttribute("VisualMode", "Show")
 	barricade:SetAttribute("BarricadeBlock", true)
@@ -1753,34 +1760,50 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	barrierMod.Label = "Barricade"
 	barrierMod.PassThrough = false
 	barrierMod.Parent = barricade
-	-- Extra plank strips so it reads as boarded-up boards, not a single slab.
-	for _, offsetX in { -5, 0, 5 } do
-		local plank = block(
-			barricade,
-			"Plank",
-			Vector3.new(4.2, 0.45, 2.2),
-			CFrame.new(offsetX, roofY + 1.2 + (offsetX % 3) * 0.15, HOLE_MIN_Z - 0.9)
-				* CFrame.Angles(0, 0, (offsetX * 0.02)),
-			Color3.fromRGB(95, 68, 40),
-			Enum.Material.WoodPlanks
-		)
-		plank.CanCollide = false
-		plank:SetAttribute("UpgradeVisual", "Barricade")
-		plank:SetAttribute("VisualMode", "Show")
-		plank:SetAttribute("BarricadeBlock", true)
+	local function wirePart(name: string, size: Vector3, cframe: CFrame, color: Color3, material: Enum.Material)
+		local part = block(barricade, name, size, cframe, color, material)
+		part.CanCollide = false
+		part.CanQuery = false
+		part:SetAttribute("UpgradeVisual", "Barricade")
+		part:SetAttribute("VisualMode", "Show")
+		return part
 	end
-	local barricadeTop = block(
-		barricade,
-		"BarricadeTop",
-		Vector3.new(HOLE_X * 2 + 1, 0.6, 2.2),
-		CFrame.new(0, roofY + 6.6, HOLE_MIN_Z - 0.9),
-		Color3.fromRGB(130, 95, 55),
-		Enum.Material.WoodPlanks
-	)
-	barricadeTop.CanCollide = false
-	barricadeTop:SetAttribute("UpgradeVisual", "Barricade")
-	barricadeTop:SetAttribute("VisualMode", "Show")
-	barricadeTop:SetAttribute("BarricadeBlock", true)
+	-- Rusty posts.
+	for i = 0, 4 do
+		local x = -width / 2 + 0.5 + i * (width - 1) / 4
+		wirePart(
+			"WirePost",
+			Vector3.new(0.35, 5.2, 0.35),
+			CFrame.new(x, roofY + 2.6, mouthZ) * CFrame.Angles(0, 0, math.rad((i % 2) * 6 - 3)),
+			Color3.fromRGB(96, 62, 40),
+			Enum.Material.CorrodedMetal
+		)
+	end
+	-- Coils: rings along the mouth at two heights, plus straight strands between the posts.
+	for _, height in { 1.2, 3.4 } do
+		local count = 10
+		for i = 0, count - 1 do
+			local x = -width / 2 + 1 + i * (width - 2) / (count - 1)
+			local ring = wirePart(
+				"WireCoil",
+				Vector3.new(0.12, 1.9, 1.9),
+				CFrame.new(x, roofY + height, mouthZ) * CFrame.Angles(0, 0, math.rad(i * 37)),
+				Color3.fromRGB(150, 150, 150),
+				Enum.Material.Metal
+			)
+			ring.Shape = Enum.PartType.Cylinder
+			ring.Transparency = 0.15
+		end
+	end
+	for _, height in { 0.6, 2.3, 4.4 } do
+		wirePart(
+			"WireStrand",
+			Vector3.new(width - 0.6, 0.08, 0.08),
+			CFrame.new(0, roofY + height, mouthZ),
+			Color3.fromRGB(120, 120, 120),
+			Enum.Material.Metal
+		)
+	end
 	-- What it is, right above it.
 	sign(visuals, "sign.barricade", CFrame.new(LANE_CENTER, roofY + 8.6, HOLE_MIN_Z - 0.2), Vector2.new(7, 1.4))
 	-- Repair spot on the roof side of the boards (the prompt shows only while it is built and damaged).
@@ -1797,33 +1820,6 @@ local function buildRoof(parent: Folder, interactables: Folder)
 	repair.CanQuery = false
 	repair:SetAttribute("InteractType", "BarricadeRepair")
 	addPrompt(repair, "barricade.repair", "barricade.repairCost", 1.5)
-	-- Optional Phase D boards mesh (visual only). BarricadeBlock collision parts stay authoritative.
-	if PropLibrary.Has("BarricadeBoards") then
-		local boards = PropLibrary.Place(
-			barricade,
-			"BarricadeBoards",
-			Vector3.new(0, roofY, HOLE_MIN_Z - 0.9),
-			Vector3.new(HOLE_X * 2 + 2, 7, 2.4),
-			0,
-			false
-		)
-		if boards then
-			for _, d in boards:GetDescendants() do
-				if d:IsA("BasePart") then
-					d.CanCollide = false
-					d:SetAttribute("UpgradeVisual", "Barricade")
-					d:SetAttribute("VisualMode", "Show")
-				end
-			end
-			barricade.Transparency = 1
-			for _, child in barricade:GetChildren() do
-				if child:IsA("BasePart") and (child.Name == "Plank" or child.Name == "BarricadeTop") then
-					child.Transparency = 1
-				end
-			end
-		end
-	end
-
 	-- Base lights: off until the player's Generator runs.
 	for _, p in
 		{

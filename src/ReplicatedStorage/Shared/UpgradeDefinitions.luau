@@ -51,8 +51,8 @@ local Upgrades: { [string]: UpgradeDef } = {
 	},
 	Barricade = {
 		id = "Barricade",
-		displayName = "Барикада",
-		description = "Дошки біля сходів: зомбі з орди не можуть вийти на дах.",
+		displayName = "Колючий дріт",
+		description = "Колючий дріт біля сходів: гравці проходять, зомбі з орди ні, поки не порвуть.",
 		cost = { Scrap = 6, Electronics = 1 },
 		requires = { "StorageCrate" },
 		order = 5,
