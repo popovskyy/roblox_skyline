@@ -53,12 +53,34 @@ Edit multi-line Cyrillic strings with a real editor, not shell heredocs (they br
 
 ## Uploaded assets
 
-- Interior props model 76157686296384, weapons model 126001413949023 (both in `PropLibrary.ASSETS`).
+- Interior props model **97341263879744**, weapons model **91152894600749** (both in `PropLibrary.ASSETS`; b35 PC upload).
 - Roof props come from `assets/models/RoofProps.rbxm` (mapped to `ReplicatedStorage.Models`).
 - 3D-rendered item icons were uploaded as images but the user rejected the look ("cheap"); NOT used:
   Medkit 129895350598881, Bandage 105469994496291, Cable 106193035511566, Club 125875118535946,
   Crowbar 100896719402218, Electronics 80217654901506, Flashlight 118270124098599, Food 115729061047678,
   Machete 71739707913931, Motor 130637537634065, Pipe 121452932787349, Scrap 72009556714655.
+
+### Zombie appearance (catalog, free)
+
+Wired in `ZombieService` via `HumanoidDescription` (not InsertService meshes). Verified 2026-10-18
+(`economy.roblox.com`, price 0, creator Roblox):
+
+| Role | Asset id | Catalog name |
+|---|---|---|
+| Face | 86487700 | Man Face |
+| Shirt | 144076436 | Grey Striped Shirt with Denim Jacket |
+| Shirt | 144076358 | Blue and Black Motorcycle Shirt |
+| Shirt | 4047884046 | Guitar Tee with Black Jacket |
+| Shirt | 607785314 | ROBLOX Jacket |
+| Shirt | 398633584 | Denim Jacket with White Hoodie |
+| Pants | 144076760 | Dark Green Jeans |
+| Pants | 382537569 | Black Jeans |
+| Pants | 398635338 | Ripped Skater Pants |
+| Pants | 382538503 | Black Jeans with Sneakers |
+
+Rejected for this pass: Drooling Zombie model `187789986` (meme silhouette); third-party Creator Store
+R15 packs (need ownership for InsertService). Custom Blender zombie mesh deferred until Open Cloud key
+is available on the publishing machine.
 
 ## Recent systems
 

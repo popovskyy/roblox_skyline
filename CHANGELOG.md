@@ -3,6 +3,17 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
+## Unreleased — zombie looks
+
+- Floor + roof-horde zombies no longer spawn as bare green R15 bodies. They use **verified free Roblox
+  catalog** shirts/pants (5 outfit pairs) + Man Face `86487700`, ashen olive skin, and a slightly
+  gaunt Height/Width scale so silhouettes read in dark floors.
+- Outfit asset ids (all price 0, creator Roblox): shirts `144076436`, `144076358`, `4047884046`,
+  `607785314`, `398633584`; pants `144076760`, `382537569`, `398635338`, `382538503`.
+- Skipped Creator Store mesh packs (Drooling Zombie / third-party R15) — either meme look or not
+  InsertService-loadable without ownership. No custom FBX upload (cloud has no `.roblox_api_key`).
+- Check in game: zombies wear muted jackets/jeans, faces readable, packs look varied; combat/AI unchanged.
+
 ## b36 · 18.10 09:15
 
 Tablet swing + rubble room open (owner bugs on live b35).

@@ -56,15 +56,44 @@ local function floorY(level: number): number
 	return World.RoofY - level * World.FloorSpacing
 end
 
+-- Free Roblox catalog clothing (price 0, creator Roblox). Verified via economy.roblox.com
+-- 2026-10-18. Prefer muted survivor looks over meme green drooling packs.
+-- Shirt (AssetType 11) / Pants (AssetType 12) / Face (AssetType 18).
+local OUTFITS: { { shirt: number, pants: number } } = {
+	{ shirt = 144076436, pants = 144076760 }, -- Grey Striped Shirt with Denim Jacket + Dark Green Jeans
+	{ shirt = 144076358, pants = 382537569 }, -- Blue and Black Motorcycle Shirt + Black Jeans
+	{ shirt = 4047884046, pants = 398635338 }, -- Guitar Tee with Black Jacket + Ripped Skater Pants
+	{ shirt = 607785314, pants = 382538503 }, -- ROBLOX Jacket + Black Jeans with Sneakers
+	{ shirt = 398633584, pants = 144076760 }, -- Denim Jacket with White Hoodie + Dark Green Jeans
+}
+local FACE_MAN = 86487700 -- Man Face (Roblox, free)
+
+local function pick<T>(list: { T }): T
+	return list[math.random(1, #list)]
+end
+
 local function zombieDescription(): HumanoidDescription
 	local desc = Instance.new("HumanoidDescription")
-	local skin = Color3.fromRGB(118, 138, 96):Lerp(Color3.fromRGB(150, 150, 120), math.random())
+	-- Ashen / olive corpse tones (readable in dark floors, not cartoon lime).
+	local skin = Color3.fromRGB(92, 108, 78):Lerp(Color3.fromRGB(128, 132, 108), math.random())
+	local cloth = Color3.fromRGB(58, 54, 48):Lerp(Color3.fromRGB(72, 68, 62), math.random())
 	desc.HeadColor = skin
 	desc.LeftArmColor = skin
 	desc.RightArmColor = skin
-	desc.LeftLegColor = Color3.fromRGB(70, 60, 50)
-	desc.RightLegColor = Color3.fromRGB(70, 60, 50)
-	desc.TorsoColor = Color3.fromRGB(90, 80, 70):Lerp(Color3.fromRGB(60, 70, 80), math.random())
+	desc.LeftLegColor = cloth
+	desc.RightLegColor = cloth
+	desc.TorsoColor = cloth:Lerp(Color3.fromRGB(64, 70, 58), math.random() * 0.5)
+	desc.Face = FACE_MAN
+	local outfit = pick(OUTFITS)
+	desc.Shirt = outfit.shirt
+	desc.Pants = outfit.pants
+	-- Gaunt silhouette: a bit taller/thinner so packs read against dark concrete.
+	desc.HeightScale = 1.04 + math.random() * 0.08
+	desc.WidthScale = 0.88 + math.random() * 0.08
+	desc.DepthScale = 0.90 + math.random() * 0.08
+	desc.HeadScale = 0.98 + math.random() * 0.06
+	desc.BodyTypeScale = 0.05 + math.random() * 0.2
+	desc.ProportionScale = 0.4 + math.random() * 0.35
 	return desc
 end
 

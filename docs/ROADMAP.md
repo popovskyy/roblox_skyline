@@ -13,6 +13,12 @@ Shipped with b36:
 - Touch: Hit button + procedural Motor6D swing (no more AnimationTrack-only tablet path).
 - F1 SoftWing corridor gap; server-side rubble collision clear; F4 debris doorway skip.
 
+## In flight
+
+- **Zombie looks** — free Roblox catalog outfits + ashen skin on `ZombieService` (branch
+  `cursor/zombie-models-7623`). Publish after loot/horde music agent takes its Build bump; use next free
+  number (do not steal b37).
+
 ## Next (owner only — see `docs/design/owner-gates.md`)
 
 1. **Launch Public** — Art approve `assets/store/` → Creator Hub Public when you say so. **Do not flip without owner OK.**
