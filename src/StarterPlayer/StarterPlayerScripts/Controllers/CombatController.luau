@@ -4,7 +4,6 @@
 -- Every decision (hits, damage, revives, crafting) is made by the server.
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -35,11 +34,13 @@ local function remote(name: string): RemoteEvent
 	return remotes:FindFirstChild(name) :: RemoteEvent
 end
 
--- Uploaded with scripts/build_animations.py. Priorities are set here too so they never depend on the
--- uploaded asset: the swings must beat the hold poses and the default walk/idle.
+-- Hold / use / punch: experience-owned clips from scripts/build_animations.py.
+-- WeaponSwing: official free R15 toolslash (default Animate) — catalog id 522635514 from
+-- DevForum "List of the Default R15 Animation IDs". Custom swing ids often never load on
+-- tablet (Length==0); this free id always streams. Migrated alt: 12520999032.
 local ANIMATIONS: { [string]: { id: string, priority: Enum.AnimationPriority } } = {
 	WeaponHold = { id = "rbxassetid://85303283403730", priority = Enum.AnimationPriority.Action },
-	WeaponSwing = { id = "rbxassetid://106693888316440", priority = Enum.AnimationPriority.Action4 },
+	WeaponSwing = { id = "rbxassetid://522635514", priority = Enum.AnimationPriority.Action },
 	ItemHold = { id = "rbxassetid://113741024764678", priority = Enum.AnimationPriority.Action },
 	ItemUse = { id = "rbxassetid://73366190002807", priority = Enum.AnimationPriority.Action4 },
 	Punch = { id = "rbxassetid://129369444994134", priority = Enum.AnimationPriority.Action4 },
@@ -142,302 +143,28 @@ local function stop(name: string)
 	end
 end
 
--- Touch devices often never download custom AnimationTracks (or Play is ignored while Length==0).
--- History of invisible local swings on tablet:
---   b36/b41 — Motor6D.Transform (Animator stomps it)
---   b46 — server RightGrip.C1 (replication resets it)
---   b50 — client LocalSwingWeapon + Transform at Last: still idle in live. Root miss: Clone() kept
---         WeldConstraints to the *server* Handle, so visible mesh parts stayed glued to the static
---         tool while only the invisible handleClone moved (screenshot: upright club, arms down).
--- Fix now: strip clone welds and re-weld to our handle; drive arm lean via Motor6D.C0 (Animator
--- writes Transform, not C0); tween anchored handle + neon smear through a huge world-space arc.
--- No invented asset ids.
-local SWING_STEP = "SkylineTouchSwing"
-local swingToken = 0
-local localSwingModel: Model? = nil
-local smearPart: BasePart? = nil
-local hiddenParts: { { part: BasePart, modifier: number } } = {}
-local savedC0: { [Motor6D]: CFrame } = {}
-
-local function needsLocalSwing(): boolean
-	-- Any device with a touch screen (phones + tablets). PreferredInput alone is too narrow:
-	-- docked keyboards flip it to Keyboard while the player still taps.
-	return UserInputService.TouchEnabled
-end
-
-local function findMotor(motorName: string): Motor6D?
-	local character = player.Character
-	if not character then
-		return nil
-	end
-	local motor = character:FindFirstChild(motorName, true)
-	if motor and motor:IsA("Motor6D") then
-		return motor
-	end
-	return nil
-end
-
-local function restoreHoldPose()
-	local character = player.Character
-	local held = character and character:FindFirstChild("Held")
-	if held and held:IsA("Tool") then
-		local weapon = held:GetAttribute("Weapon") == true
-		play(if weapon then "WeaponHold" else "ItemHold", 0.15)
-	end
-end
-
-local function restoreMotorC0()
-	for motor, c0 in savedC0 do
-		if motor.Parent then
-			motor.C0 = c0
-		end
-	end
-	table.clear(savedC0)
-end
-
-local function applyMotorOffset(motor: Motor6D?, offset: CFrame)
-	if not motor then
-		return
-	end
-	if savedC0[motor] == nil then
-		savedC0[motor] = motor.C0
-	end
-	motor.C0 = savedC0[motor] * offset
-end
-
-local function clearLocalSwingVisual()
-	restoreMotorC0()
-	for _, entry in hiddenParts do
-		if entry.part.Parent then
-			entry.part.LocalTransparencyModifier = entry.modifier
-		end
-	end
-	table.clear(hiddenParts)
-	if smearPart then
-		smearPart:Destroy()
-		smearPart = nil
-	end
-	if localSwingModel then
-		localSwingModel:Destroy()
-		localSwingModel = nil
-	end
-end
-
-local function lerpCf(a: CFrame, b: CFrame, alpha: number): CFrame
-	return a:Lerp(b, alpha)
-end
-
--- Client-only weapon copy. Anchored PrimaryPart driven in world space (no Motor6D / no Transform).
--- Hide the server tool locally so only the swinging clone is visible.
-local function buildLocalWeaponVisual(tool: Tool): BasePart?
-	clearLocalSwingVisual()
-	local model = Instance.new("Model")
-	model.Name = "LocalSwingWeapon"
-	local handleClone: BasePart? = nil
-	for _, child in tool:GetChildren() do
-		if child:IsA("BasePart") then
-			table.insert(hiddenParts, { part = child, modifier = child.LocalTransparencyModifier })
-			child.LocalTransparencyModifier = 1
-			local clone = child:Clone()
-			-- b50 miss: Clone keeps WeldConstraints aimed at the server Handle, so mesh visuals
-			-- stay stuck on the idle server tool. Strip joints before we re-weld to our handle.
-			for _, joint in clone:GetChildren() do
-				if joint:IsA("WeldConstraint") or joint:IsA("Weld") or joint:IsA("Motor6D") then
-					joint:Destroy()
-				end
-			end
-			clone.Anchored = false
-			clone.CanCollide = false
-			clone.CanQuery = false
-			clone.CanTouch = false
-			clone.Massless = true
-			clone.CastShadow = false
-			clone.LocalTransparencyModifier = 0
-			clone.Parent = model
-			if child.Name == "Handle" then
-				handleClone = clone
-			end
-		end
-	end
-	if not handleClone then
-		local bat = Instance.new("Part")
-		bat.Name = "Handle"
-		bat.Size = Vector3.new(0.5, 0.5, 3.8)
-		bat.Color = Color3.fromRGB(210, 185, 130)
-		bat.Material = Enum.Material.Wood
-		bat.Anchored = false
-		bat.CanCollide = false
-		bat.CanQuery = false
-		bat.CanTouch = false
-		bat.Massless = true
-		bat.CastShadow = false
-		bat.Parent = model
-		handleClone = bat
-	elseif handleClone.Transparency >= 1 then
-		-- Mesh weapons use an invisible Handle; if no opaque sibling cloned, show a readable bat.
-		local anyVisible = false
-		for _, part in model:GetChildren() do
-			if part:IsA("BasePart") and part ~= handleClone and part.Transparency < 0.9 then
-				anyVisible = true
-				break
-			end
-		end
-		if not anyVisible then
-			handleClone.Transparency = 0
-			handleClone.Size = Vector3.new(0.5, 0.5, 3.8)
-			handleClone.Color = Color3.fromRGB(210, 185, 130)
-			handleClone.Material = Enum.Material.Wood
-		end
-	end
-	-- Capture mesh offsets while parts still sit at their cloned world poses, then pin to handle.
-	local handleCf = handleClone.CFrame
-	handleClone.Anchored = true
-	for _, part in model:GetChildren() do
-		if part:IsA("BasePart") and part ~= handleClone then
-			local offset = handleCf:ToObjectSpace(part.CFrame)
-			part.Anchored = false
-			part.CFrame = handleClone.CFrame * offset
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = handleClone
-			weld.Part1 = part
-			weld.Parent = part
-		end
-	end
-	local trail = handleClone:FindFirstChild("SwingTrail")
-	if trail and trail:IsA("Trail") then
-		trail.Enabled = true
-		trail.Lifetime = 0.28
-	end
-	model.PrimaryPart = handleClone
-	model.Parent = tool.Parent
-	localSwingModel = model
-	return handleClone
-end
-
--- Bright wedge that rides the same arc — obvious even if the mesh is hard to read from behind.
-local function buildSmear(parent: Instance): BasePart
-	local smear = Instance.new("Part")
-	smear.Name = "SwingSmear"
-	smear.Size = Vector3.new(0.4, 3.2, 0.15)
-	smear.Color = Color3.fromRGB(255, 196, 72)
-	smear.Material = Enum.Material.Neon
-	smear.Anchored = true
-	smear.CanCollide = false
-	smear.CanQuery = false
-	smear.CanTouch = false
-	smear.CastShadow = false
-	smear.Transparency = 0.2
-	smear.Parent = parent
-	smearPart = smear
-	return smear
-end
-
--- World pose: shoulder of the body → huge wind-up / cross-chop relative to HumanoidRootPart.
-local function weaponWorldCf(root: BasePart, pose: CFrame): CFrame
-	local shoulder = root.CFrame * CFrame.new(1.15, 1.4, 0.1)
-	return shoulder * pose * CFrame.new(0, 0, -1.85)
-end
-
-local function touchSwing(kind: "weapon" | "punch")
-	local character = player.Character
-	local shoulder = findMotor("RightShoulder")
-	local elbow = findMotor("RightElbow")
-	local waist = findMotor("Waist")
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local tool = character and character:FindFirstChild("Held")
-	if not shoulder or not root or not root:IsA("BasePart") then
-		return
-	end
+-- Play the real character slash (replicates). No local weapon clones — those failed on b50/b51.
+-- Official free toolslash moves the arm; server Motor6D RightGrip makes the Held tool follow.
+local function playSwing(name: "WeaponSwing" | "Punch")
 	stop("WeaponHold")
 	stop("ItemHold")
-	pcall(function()
-		RunService:UnbindFromRenderStep(SWING_STEP)
-	end)
-	clearLocalSwingVisual()
-	swingToken += 1
-	local token = swingToken
-	local duration = if kind == "punch" then 0.36 else 0.55
-	local started = os.clock()
-	local handle: BasePart? = nil
-	local smear: BasePart? = nil
-	if kind == "weapon" and tool and tool:IsA("Tool") then
-		handle = buildLocalWeaponVisual(tool)
-		smear = buildSmear(character)
+	play(name, 0.05)
+	-- Resume hold after the slash so the club does not droop forever.
+	if name == "WeaponSwing" then
+		task.delay(0.45, function()
+			local character = player.Character
+			local held = character and character:FindFirstChild("Held")
+			if held and held:IsA("Tool") and held:GetAttribute("Weapon") == true then
+				play("WeaponHold", 0.2)
+			end
+		end)
 	end
-	-- C0 offsets: Animator keeps writing Transform; C0 still moves the limb.
-	local windupS = if kind == "punch"
-		then CFrame.Angles(math.rad(-55), math.rad(25), math.rad(40))
-		else CFrame.Angles(math.rad(-80), math.rad(55), math.rad(65))
-	local strikeS = if kind == "punch"
-		then CFrame.Angles(math.rad(-30), math.rad(-35), math.rad(-25))
-		else CFrame.Angles(math.rad(15), math.rad(-70), math.rad(-55))
-	local windupE = CFrame.Angles(math.rad(-70), 0, math.rad(10))
-	local strikeE = CFrame.Angles(math.rad(-10), 0, math.rad(-20))
-	local windupW = CFrame.Angles(0, math.rad(-40), 0)
-	local strikeW = CFrame.Angles(math.rad(-15), math.rad(50), 0)
-	-- World-space club poses (radians large on purpose — readable from tablet third-person).
-	local restPose = CFrame.Angles(math.rad(-25), math.rad(10), math.rad(5))
-	local windupPose = CFrame.Angles(math.rad(-130), math.rad(85), math.rad(55))
-	local strikePose = CFrame.Angles(math.rad(35), math.rad(-100), math.rad(-45))
-
-	RunService:BindToRenderStep(SWING_STEP, Enum.RenderPriority.Last.Value, function()
-		if token ~= swingToken then
-			return
-		end
-		local t = (os.clock() - started) / duration
-		if t >= 1 or not shoulder.Parent or not root.Parent then
-			pcall(function()
-				RunService:UnbindFromRenderStep(SWING_STEP)
-			end)
-			clearLocalSwingVisual()
-			restoreHoldPose()
-			return
-		end
-		local shoulderCf: CFrame
-		local elbowCf: CFrame
-		local waistCf: CFrame
-		local pose = restPose
-		if t < 0.3 then
-			local a = t / 0.3
-			shoulderCf = lerpCf(CFrame.new(), windupS, a)
-			elbowCf = lerpCf(CFrame.new(), windupE, a)
-			waistCf = lerpCf(CFrame.new(), windupW, a)
-			pose = lerpCf(restPose, windupPose, a)
-		elseif t < 0.55 then
-			local a = (t - 0.3) / 0.25
-			shoulderCf = lerpCf(windupS, strikeS, a)
-			elbowCf = lerpCf(windupE, strikeE, a)
-			waistCf = lerpCf(windupW, strikeW, a)
-			pose = lerpCf(windupPose, strikePose, a)
-		else
-			local a = (t - 0.55) / 0.45
-			shoulderCf = lerpCf(strikeS, CFrame.new(), a)
-			elbowCf = lerpCf(strikeE, CFrame.new(), a)
-			waistCf = lerpCf(strikeW, CFrame.new(), a)
-			pose = lerpCf(strikePose, restPose, a)
-		end
-		applyMotorOffset(shoulder, shoulderCf)
-		applyMotorOffset(elbow, elbowCf)
-		applyMotorOffset(waist, waistCf)
-		local world = weaponWorldCf(root, pose)
-		if handle and handle.Parent then
-			handle.CFrame = world
-		end
-		if smear and smear.Parent then
-			smear.CFrame = world * CFrame.new(0, 0, -0.4) * CFrame.Angles(0, 0, math.rad(90))
-			-- Brightest mid-chop so the smear reads as a slash, not a stuck glow.
-			local mid = 1 - math.abs(t - 0.42) / 0.42
-			smear.Transparency = 0.15 + 0.55 * (1 - math.clamp(mid, 0, 1))
-		end
-	end)
 end
 
-local function playSwing(name: "WeaponSwing" | "Punch")
-	-- Server still plays the clip for teammates (CombatService.playSwing). Touch devices need a local
-	-- owned visual: AnimationTracks often never load, and Transform/server-weld paths already failed.
-	if needsLocalSwing() then
-		touchSwing(if name == "Punch" then "punch" else "weapon")
-	end
+-- Hit button: any touch screen (phones + tablets). Do not use PreferredInput alone — docked
+-- keyboards flip it to KeyboardAndMouse while the player still taps.
+local function needsHitButton(): boolean
+	return UserInputService.TouchEnabled
 end
 
 local lastSwing = 0
@@ -539,10 +266,6 @@ local function watchTool(character: Model)
 		if child:IsA("Tool") and child.Name == "Held" and not character:FindFirstChild("Held") then
 			stop("WeaponHold")
 			stop("ItemHold")
-			pcall(function()
-				RunService:UnbindFromRenderStep(SWING_STEP)
-			end)
-			clearLocalSwingVisual()
 		end
 	end)
 end
@@ -879,39 +602,38 @@ local function touchOnGuiButton(screenPos: Vector3): boolean
 end
 
 local function buildAttackButton(_screen: ScreenGui)
-	-- Dedicated Hit control: world-tap heuristics kept failing on tablets (processed Touch, camera drag).
-	-- Owner tablet screenshot on b50 showed no obvious Hit control — put it on TopScreen (higher
-	-- DisplayOrder) with a brighter fill so it cannot hide behind CoreGui jump / safe-area wash.
-	if not needsLocalSwing() then
+	-- Dedicated Hit control: world-tap heuristics fail on tablets (processed Touch, camera drag).
+	-- Always show on TouchEnabled devices — large, high DisplayOrder, cream stroke.
+	if not needsHitButton() then
 		return
 	end
 	local T = Theme.Colors
 	local layer = UIKit.TopScreen()
-	layer.DisplayOrder = math.max(layer.DisplayOrder, 8)
+	layer.DisplayOrder = math.max(layer.DisplayOrder, 12)
 	local holder = UIKit.New("Frame", {
 		Name = "AttackButton",
 		AnchorPoint = Vector2.new(1, 1),
-		-- Left of the interact button (InteractionController at -111); clear of the jump pad.
-		Position = UDim2.new(1, -200, 1, -48),
-		Size = UDim2.fromOffset(84, 84),
+		-- Clear of jump pad and interact; oversized so a thumb cannot miss it.
+		Position = UDim2.new(1, -210, 1, -56),
+		Size = UDim2.fromOffset(110, 110),
 		BackgroundTransparency = 1,
-		ZIndex = 20,
+		ZIndex = 30,
 		Parent = layer,
 	})
 	local button = UIKit.New("TextButton", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = T.Danger,
-		BackgroundTransparency = 0.05,
+		BackgroundTransparency = 0,
 		Text = "",
-		AutoButtonColor = false,
+		AutoButtonColor = true,
 		Active = true,
-		ZIndex = 20,
+		ZIndex = 30,
 		Parent = holder,
-	}, { UIKit.Corner(42) })
+	}, { UIKit.Corner(55) })
 	UIKit.New("UIStroke", {
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Color = T.Cream,
-		Thickness = 3,
+		Thickness = 4,
 		Parent = button,
 	})
 	local label = UIKit.Label({
@@ -921,9 +643,9 @@ local function buildAttackButton(_screen: ScreenGui)
 		BackgroundTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		FontFace = Theme.Bold,
-		TextSize = 22,
+		TextSize = 28,
 		TextColor3 = T.Cream,
-		ZIndex = 21,
+		ZIndex = 31,
 		Parent = button,
 	})
 	Lang.Bind(label, "ui.attack")
@@ -939,21 +661,19 @@ local function buildAttackButton(_screen: ScreenGui)
 end
 
 function CombatController.Start(remoteFolder: Folder)
-	-- PC still uses uploaded clips; preload only when not on touch.
-	if not UserInputService.TouchEnabled then
-		task.spawn(function()
-			local ContentProvider = game:GetService("ContentProvider")
-			local assets: { Instance } = {}
-			for _, spec in ANIMATIONS do
-				local animation = Instance.new("Animation")
-				animation.AnimationId = spec.id
-				table.insert(assets, animation)
-			end
-			pcall(function()
-				ContentProvider:PreloadAsync(assets)
-			end)
+	-- Preload on every device — especially free toolslash 522635514 for tablet owners.
+	task.spawn(function()
+		local ContentProvider = game:GetService("ContentProvider")
+		local assets: { Instance } = {}
+		for _, spec in ANIMATIONS do
+			local animation = Instance.new("Animation")
+			animation.AnimationId = spec.id
+			table.insert(assets, animation)
+		end
+		pcall(function()
+			ContentProvider:PreloadAsync(assets)
 		end)
-	end
+	end)
 	-- Secondary: short world taps (phones). Tablets rely on the Hit button above.
 	local touches: { [InputObject]: { at: Vector3, started: number, moved: number } } = {}
 	UserInputService.InputBegan:Connect(function(input, processed)

@@ -14,6 +14,17 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+## b52 · 18.10
+Tablet melee swing via Classic Sword pattern (b50/b51 local clones still invisible).
+- Root rethink: animate the **real character**, not a client weapon clone. Custom swing asset
+  ids often stay Length==0 on mobile; free Roblox R15 toolslash `522635514` always streams.
+- Equip: server replaces `RightGrip` Weld with **Motor6D** (Part0 hand, Part1 Handle) so the
+  Held tool follows the arm under Animator.
+- Attack (Hit + PC): client + server `Animator:LoadAnimation` of `522635514`, Priority Action;
+  stop hold pose during slash; `toolanim` Slash cue as soft Animate fallback. Damage unchanged.
+- Drop LocalSwingWeapon / world-arc / C0 / neon smear. Hit button larger (110px) on TopScreen.
+- Check in game: tablet third-person, equip Club/Bat, tap Hit — arm and club chop; not upright idle.
+
 ## b51 · 18.10
 Tablet melee swing visible (fourth try — b50 still idle in live).
 - Root cause of b50 miss: `Clone()` kept `WeldConstraint`s to the **server** Handle, so visible club

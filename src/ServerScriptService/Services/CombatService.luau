@@ -213,20 +213,60 @@ local function makeTool(character: Model, def: ItemDefinitions.ItemDef): Tool
 	return tool
 end
 
--- Swing animations played on the server, so every player sees them (a client-played clip on a
--- phone or tablet did not always show). Loaded once per character.
+-- Official Roblox free R15 toolslash (default Animate) — works on every client without
+-- experience-owned animation permissions. Custom WeaponSwing ids often stay Length==0 on mobile.
+-- Source: DevForum "List of the Default R15 Animation IDs" toolslash = 522635514.
 local SWING_ANIMATIONS = {
-	Weapon = "rbxassetid://106693888316440",
+	Weapon = "rbxassetid://522635514",
 	Punch = "rbxassetid://129369444994134",
 }
 local swingTracks: { [Model]: { [string]: AnimationTrack } } = {}
 
+-- Replace Roblox's default RightGrip Weld with a Motor6D (same Part0/Part1/C0/C1).
+-- Documented pattern: DevForum "How to animate tools (the easiest and best way)".
+local function ensureMotorGrip(character: Model)
+	task.defer(function()
+		local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
+		if not hand then
+			return
+		end
+		local grip = hand:FindFirstChild("RightGrip")
+		if not grip then
+			local ok, waited = pcall(function()
+				return hand:WaitForChild("RightGrip", 1.5)
+			end)
+			grip = if ok then waited else nil
+		end
+		if not grip then
+			return
+		end
+		if grip:IsA("Motor6D") then
+			return
+		end
+		if not grip:IsA("Weld") then
+			return
+		end
+		local m6d = Instance.new("Motor6D")
+		m6d.Name = "RightGrip"
+		m6d.Part0 = grip.Part0
+		m6d.Part1 = grip.Part1
+		m6d.C0 = grip.C0
+		m6d.C1 = grip.C1
+		m6d.Parent = hand
+		grip:Destroy()
+	end)
+end
+
 local function playSwing(player: Player, kind: string)
 	local character = player.Character
 	local humanoid = CharacterUtil.GetHumanoid(player)
-	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-	if not character or not animator then
+	if not character or not humanoid then
 		return
+	end
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = humanoid
 	end
 	local tracks = swingTracks[character]
 	if not tracks then
@@ -237,22 +277,35 @@ local function playSwing(player: Player, kind: string)
 		end)
 	end
 	local track = tracks[kind]
-	if not track then
+	if not track or track.Parent == nil then
 		local animation = Instance.new("Animation")
+		animation.Name = "Skyline" .. kind .. "Slash"
 		animation.AnimationId = SWING_ANIMATIONS[kind]
 		local ok, loaded = pcall(function()
-			return animator:LoadAnimation(animation)
+			return (animator :: Animator):LoadAnimation(animation)
 		end)
 		if not ok or not loaded then
 			return
 		end
 		track = loaded
-		track.Priority = Enum.AnimationPriority.Action4
+		-- Action beats idle/walk; hold poses are stopped client-side before swing.
+		track.Priority = Enum.AnimationPriority.Action
 		track.Looped = false
 		tracks[kind] = track
+		animation.Parent = animator
 	end
-	track:Play(0.05, 1, 1)
+	track:Play(0.05, 1, 1.15)
+	-- Soft fallback for the default Animate script (R6-style toolanim cue).
 	local tool = character:FindFirstChild(TOOL_NAME)
+	if tool and kind == "Weapon" then
+		local cue = Instance.new("StringValue")
+		cue.Name = "toolanim"
+		cue.Value = "Slash"
+		cue.Parent = tool
+		task.delay(0.35, function()
+			cue:Destroy()
+		end)
+	end
 	local handle = tool and tool:FindFirstChild("Handle")
 	local trail = handle and handle:FindFirstChild("SwingTrail")
 	if trail and trail:IsA("Trail") then
@@ -298,7 +351,11 @@ local function refreshTool(player: Player)
 			end
 		end
 	end
-	makeTool(character, def).Parent = character
+	local tool = makeTool(character, def)
+	tool.Parent = character
+	-- Classic Sword / DevForum: replace default RightGrip Weld with Motor6D so the
+	-- Animator can drive the hand+Handle as one rig (Weld alone ignores Handle keys).
+	ensureMotorGrip(character)
 	held[player] = def.id
 end
 
