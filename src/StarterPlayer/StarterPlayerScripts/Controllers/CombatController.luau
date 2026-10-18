@@ -143,8 +143,9 @@ local function stop(name: string)
 	end
 end
 
--- Play the real character slash (replicates). No local weapon clones — those failed on b50/b51.
--- Official free toolslash moves the arm; server Motor6D RightGrip makes the Held tool follow.
+-- Sole visible slash: Classic Sword toolslash on this client's Animator (replicates to others).
+-- Server must not also LoadAnimation / toolanim — that doubled the chop on tablet (b52).
+-- Motor6D RightGrip (server equip) still makes the Held tool follow the arm.
 local function playSwing(name: "WeaponSwing" | "Punch")
 	stop("WeaponHold")
 	stop("ItemHold")
@@ -676,11 +677,13 @@ function CombatController.Start(remoteFolder: Folder)
 	end)
 	-- Secondary: short world taps (phones). Tablets rely on the Hit button above.
 	local touches: { [InputObject]: { at: Vector3, started: number, moved: number } } = {}
-	UserInputService.InputBegan:Connect(function(input, processed)
+	UserInputService.InputBegan:Connect(function(input, _processed)
 		if input.UserInputType ~= Enum.UserInputType.Touch then
 			return
 		end
-		if processed and touchOnGuiButton(input.Position) then
+		-- Skip Hit / hotbar / jump: those buttons fire their own Activated (avoid double attackInput).
+		-- Still accept processed world taps — tablets often mark camera touches processed.
+		if touchOnGuiButton(input.Position) then
 			return
 		end
 		touches[input] = { at = input.Position, started = os.clock(), moved = 0 }

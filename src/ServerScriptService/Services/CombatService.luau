@@ -213,17 +213,11 @@ local function makeTool(character: Model, def: ItemDefinitions.ItemDef): Tool
 	return tool
 end
 
--- Official Roblox free R15 toolslash (default Animate) — works on every client without
--- experience-owned animation permissions. Custom WeaponSwing ids often stay Length==0 on mobile.
--- Source: DevForum "List of the Default R15 Animation IDs" toolslash = 522635514.
-local SWING_ANIMATIONS = {
-	Weapon = "rbxassetid://522635514",
-	Punch = "rbxassetid://129369444994134",
-}
-local swingTracks: { [Model]: { [string]: AnimationTrack } } = {}
-
 -- Replace Roblox's default RightGrip Weld with a Motor6D (same Part0/Part1/C0/C1).
 -- Documented pattern: DevForum "How to animate tools (the easiest and best way)".
+-- Grip only — do NOT also LoadAnimation here. Client CombatController plays the single
+-- Classic Sword toolslash (522635514); a second server track + toolanim Slash stacked as a
+-- doubled swing on tablet (b52).
 local function ensureMotorGrip(character: Model)
 	task.defer(function()
 		local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
@@ -257,55 +251,10 @@ local function ensureMotorGrip(character: Model)
 	end)
 end
 
-local function playSwing(player: Player, kind: string)
+-- Visual slash is client-only (one AnimationTrack). Server only flashes the Handle trail.
+local function flashSwingTrail(player: Player)
 	local character = player.Character
-	local humanoid = CharacterUtil.GetHumanoid(player)
-	if not character or not humanoid then
-		return
-	end
-	local animator = humanoid:FindFirstChildOfClass("Animator")
-	if not animator then
-		animator = Instance.new("Animator")
-		animator.Parent = humanoid
-	end
-	local tracks = swingTracks[character]
-	if not tracks then
-		tracks = {}
-		swingTracks[character] = tracks
-		character.Destroying:Once(function()
-			swingTracks[character] = nil
-		end)
-	end
-	local track = tracks[kind]
-	if not track or track.Parent == nil then
-		local animation = Instance.new("Animation")
-		animation.Name = "Skyline" .. kind .. "Slash"
-		animation.AnimationId = SWING_ANIMATIONS[kind]
-		local ok, loaded = pcall(function()
-			return (animator :: Animator):LoadAnimation(animation)
-		end)
-		if not ok or not loaded then
-			return
-		end
-		track = loaded
-		-- Action beats idle/walk; hold poses are stopped client-side before swing.
-		track.Priority = Enum.AnimationPriority.Action
-		track.Looped = false
-		tracks[kind] = track
-		animation.Parent = animator
-	end
-	track:Play(0.05, 1, 1.15)
-	-- Soft fallback for the default Animate script (R6-style toolanim cue).
-	local tool = character:FindFirstChild(TOOL_NAME)
-	if tool and kind == "Weapon" then
-		local cue = Instance.new("StringValue")
-		cue.Name = "toolanim"
-		cue.Value = "Slash"
-		cue.Parent = tool
-		task.delay(0.35, function()
-			cue:Destroy()
-		end)
-	end
+	local tool = character and character:FindFirstChild(TOOL_NAME)
 	local handle = tool and tool:FindFirstChild("Handle")
 	local trail = handle and handle:FindFirstChild("SwingTrail")
 	if trail and trail:IsA("Trail") then
@@ -379,7 +328,8 @@ local function swing(player: Player)
 		return
 	end
 	lastSwing[player] = now
-	playSwing(player, if def then "Weapon" else "Punch")
+	-- No server Animator / toolanim — client owns the single 522635514 (or Punch) track.
+	flashSwingTrail(player)
 
 	SfxService.Play("Swing", root, 0.8)
 	local look = root.CFrame.LookVector

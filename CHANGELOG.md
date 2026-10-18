@@ -14,6 +14,14 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+## b53 · 18.10
+Tablet swing dedupe — one visible chop per Hit (b52 looked doubled / «задвоєна»).
+- Root cause: client `CombatController` played `522635514` **and** server `CombatService` played
+  the same track again (replicates back), plus `toolanim` Slash for Animate — two layered swings.
+- Fix: keep Classic Sword client `522635514` only; strip server `LoadAnimation` and `toolanim`.
+  Keep Motor6D RightGrip on equip + Handle SwingTrail. Ignore world-tap when finger is on Hit GUI.
+- Check in game: tablet third-person, one clean arm+club slash per Hit — not two stacked chops.
+
 ## b52 · 18.10
 Tablet melee swing via Classic Sword pattern (b50/b51 local clones still invisible).
 - Root rethink: animate the **real character**, not a client weapon clone. Custom swing asset
