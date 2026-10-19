@@ -181,7 +181,8 @@ function Scenery.Dress(
 			pos = Vector3.new((side * 2 - 5) * (width / 2 + 0.25), h, offset * depth)
 			size = Vector3.new(0.2, 3, 3)
 		end
-		local lit = part(model, "Lit", size, CFrame.new(base + pos), PALETTE.lit, Enum.Material.Neon)
+		-- Warm window glow without plastic Neon (city silhouette only).
+		local lit = part(model, "Lit", size, CFrame.new(base + pos), PALETTE.lit, Enum.Material.SmoothPlastic)
 		lit.CanCollide = false
 		lit.CastShadow = false
 	end
