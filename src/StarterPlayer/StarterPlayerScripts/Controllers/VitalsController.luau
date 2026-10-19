@@ -521,9 +521,7 @@ local function updateFlashlight()
 	local seconds = if type(charge) == "number" then charge else (s and s.flashlightCharge or 0)
 	local on = player:GetAttribute("FlashlightOn") == true
 	flashlightLabel.Text = Lang.T("hud.flashlight", Lang.T(if on then "hud.on" else "hud.off"), seconds)
-	-- Low battery turns danger-coloured (no extra toast spam).
-	local low = seconds > 0 and seconds <= 45
-	flashlightLabel.TextColor3 = if seconds <= 0 or (on and low) then T.Danger elseif on then T.AmberText else T.CreamDim
+	flashlightLabel.TextColor3 = if seconds <= 0 then T.Danger elseif on then T.AmberText else T.CreamDim
 end
 
 local function watchCharacter(character: Model)

@@ -40,20 +40,19 @@ local LANE_CENTER = (HOLE_X + 0.5) / 2
 local LANE_WIDTH = HOLE_X - 0.5
 local WALL_HEIGHT = World.FloorSpacing - World.SlabThickness
 
--- Cold concrete palette (Pass 1 vibe): grey-blue floors, warmer roof slab only as contrast.
 local COLORS = {
-	concrete = Color3.fromRGB(78, 80, 84),
-	darkConcrete = Color3.fromRGB(48, 50, 54),
-	roof = Color3.fromRGB(88, 86, 82),
-	metal = Color3.fromRGB(90, 94, 98),
-	rust = Color3.fromRGB(118, 72, 48),
-	rail = Color3.fromRGB(170, 140, 55),
-	glass = Color3.fromRGB(90, 110, 120),
-	rubble = Color3.fromRGB(72, 68, 64),
-	toxic = Color3.fromRGB(90, 160, 55),
-	wood = Color3.fromRGB(100, 78, 52),
-	fabric = Color3.fromRGB(55, 60, 72),
-	silhouette = Color3.fromRGB(28, 30, 34),
+	concrete = Color3.fromRGB(120, 118, 115),
+	darkConcrete = Color3.fromRGB(82, 80, 78),
+	roof = Color3.fromRGB(96, 98, 100),
+	metal = Color3.fromRGB(110, 115, 120),
+	rust = Color3.fromRGB(130, 82, 52),
+	rail = Color3.fromRGB(200, 170, 40),
+	glass = Color3.fromRGB(150, 180, 190),
+	rubble = Color3.fromRGB(105, 95, 85),
+	toxic = Color3.fromRGB(110, 200, 60),
+	wood = Color3.fromRGB(120, 90, 60),
+	fabric = Color3.fromRGB(80, 90, 110),
+	silhouette = Color3.fromRGB(45, 48, 55),
 }
 
 -- Collapsed spots in a floor slab: the floor of that level is broken there and you look down into the
@@ -375,21 +374,15 @@ local function buildStairwell(parent: Folder)
 			Vector3.new(LANE_CENTER, lower, HOLE_MIN_Z - MOUTH_INSET + 0.05),
 			LANE_WIDTH
 		)
-		-- Sparse warm caged lamps + green emergency ExitLamp (only Neon kept for signage).
-		-- Dimmer deeper; wall lamps join blackout for the landing floor; ExitLamps stay lit.
+		-- Lamps along the way down: caged wall lamps at the top, the landing and the exit, plus a green
+		-- emergency light over each floor's doorway. Bright on the first floors, dimmer deeper down.
+		-- Wall lamps join the blackout for the floor this flight lands on; green ExitLamps stay lit.
 		local landFloor = flight + 1
-		local strength = if flight <= 1 then 0.7 elseif flight == 2 then 0.5 else 0.35
-		local warm = Color3.fromRGB(255, 188, 120)
+		local strength = if flight <= 1 then 1 elseif flight == 2 then 0.75 else 0.55
+		local warm = Color3.fromRGB(255, 205, 150)
 		local function wallLamp(position: Vector3, facing: number, color: Color3, range: number)
-			-- Metal housing (not plastic Neon); the PointLight carries the warmth.
-			local lamp = block(
-				stairs,
-				"StairLamp",
-				Vector3.new(0.5, 0.8, 1.4),
-				CFrame.new(position),
-				Color3.fromRGB(70, 58, 45),
-				Enum.Material.Metal
-			)
+			local lamp =
+				block(stairs, "StairLamp", Vector3.new(0.5, 0.8, 1.4), CFrame.new(position), color, Enum.Material.Neon)
 			lamp.CanCollide = false
 			lamp.CastShadow = false
 			local cage = block(
@@ -402,21 +395,22 @@ local function buildStairwell(parent: Folder)
 			)
 			cage.Transparency = 0.6
 			cage.CanCollide = false
-			pointLight(lamp, color, range, 0.75 * strength, true, landFloor)
+			pointLight(lamp, color, range, 1.1 * strength, true, landFloor)
 		end
-		-- Two lamps per flight (was four) — pools of warmth, not a lit corridor.
-		wallLamp(Vector3.new(-HOLE_X + 0.1, upper + 6, HOLE_MIN_Z + 3), 1, warm, 16)
-		wallLamp(Vector3.new(HOLE_X - 0.1, lower + 6, HOLE_MIN_Z + 3), -1, warm, 16)
+		wallLamp(Vector3.new(-HOLE_X + 0.1, upper + 6, HOLE_MIN_Z + 3), 1, warm, 20)
+		wallLamp(Vector3.new(-HOLE_X + 0.1, mid + 6, HOLE_MAX_Z - 3), 1, warm, 22)
+		wallLamp(Vector3.new(HOLE_X - 0.1, mid + 6, HOLE_MAX_Z - 3), -1, warm, 22)
+		wallLamp(Vector3.new(HOLE_X - 0.1, lower + 6, HOLE_MIN_Z + 3), -1, warm, 20)
 		local exitLamp = block(
 			stairs,
 			"ExitLamp",
 			Vector3.new(3, 0.6, 0.4),
 			CFrame.new(LANE_CENTER, lower + 10.5, HOLE_MIN_Z - 0.3),
-			Color3.fromRGB(70, 220, 110),
+			Color3.fromRGB(90, 255, 130),
 			Enum.Material.Neon
 		)
 		exitLamp.CanCollide = false
-		pointLight(exitLamp, Color3.fromRGB(70, 220, 110), 14, 0.7 * strength, true)
+		pointLight(exitLamp, Color3.fromRGB(90, 255, 130), 16, 0.9 * strength, true)
 
 		-- Floor number above each stairwell exit, so players always know where they are.
 		local isBottom = flight + 1 == World.FloorCount
@@ -538,22 +532,17 @@ local function buildFloorShell(parent: Instance, level: number, lit: boolean)
 	end
 
 	if lit then
-		-- Sparse emergency ceiling pools (Metal + PointLight). Deeper floors: one corner only.
-		local positions = if level <= 2
-			then { Vector2.new(-22, -22), Vector2.new(22, 22) }
-			else { Vector2.new(-22, -22) }
-		local strength = if level <= 1 then 0.55 elseif level == 2 then 0.4 else 0.28
-		for _, pos in positions do
+		for _, pos in { Vector2.new(-22, -22), Vector2.new(22, -22), Vector2.new(-22, 22), Vector2.new(22, 22) } do
 			local lamp = block(
 				parent,
 				"CeilingLamp",
-				Vector3.new(2.4, 0.35, 0.8),
+				Vector3.new(3, 0.4, 1),
 				CFrame.new(pos.X, floorY + WALL_HEIGHT - 0.3, pos.Y),
-				Color3.fromRGB(55, 48, 40),
-				Enum.Material.Metal
+				Color3.fromRGB(255, 200, 140),
+				Enum.Material.Neon
 			)
 			lamp.CanCollide = false
-			pointLight(lamp, Color3.fromRGB(255, 175, 110), 18, strength, true, level)
+			pointLight(lamp, Color3.fromRGB(255, 190, 130), 26, 0.8, true, level)
 		end
 	end
 end
@@ -563,15 +552,15 @@ local function nodeLook(itemId: string): (Vector3, Color3, Enum.Material, Enum.P
 		-- Brighter / larger than rubble heaps so "немає scrap" is not a camouflage problem.
 		return Vector3.new(2.8, 1.9, 2.8), Color3.fromRGB(200, 120, 55), Enum.Material.Metal, Enum.PartType.Block
 	elseif itemId == "Electronics" then
-		return Vector3.new(1.8, 1.2, 1.8), Color3.fromRGB(45, 120, 80), Enum.Material.Metal, Enum.PartType.Block
+		return Vector3.new(1.8, 1.2, 1.8), Color3.fromRGB(40, 160, 90), Enum.Material.Neon, Enum.PartType.Block
 	elseif itemId == "Food" then
 		return Vector3.new(1.4, 1.4, 1.4),
-			Color3.fromRGB(200, 120, 40),
+			Color3.fromRGB(230, 140, 40),
 			Enum.Material.SmoothPlastic,
 			Enum.PartType.Cylinder
 	elseif itemId == "Medkit" then
 		return Vector3.new(1.8, 1.2, 1.4),
-			Color3.fromRGB(220, 220, 215),
+			Color3.fromRGB(235, 235, 235),
 			Enum.Material.SmoothPlastic,
 			Enum.PartType.Block
 	elseif itemId == "Cable" then
@@ -579,7 +568,7 @@ local function nodeLook(itemId: string): (Vector3, Color3, Enum.Material, Enum.P
 	elseif itemId == "Motor" then
 		return Vector3.new(2.2, 2, 2.2), Color3.fromRGB(60, 70, 85), Enum.Material.Metal, Enum.PartType.Block
 	elseif itemId == "Key" then
-		return Vector3.new(0.4, 1.4, 0.7), Color3.fromRGB(200, 160, 60), Enum.Material.Metal, Enum.PartType.Block
+		return Vector3.new(0.4, 1.4, 0.7), Color3.fromRGB(230, 185, 70), Enum.Material.Neon, Enum.PartType.Block
 	elseif itemId == "Flashlight" then
 		return Vector3.new(0.8, 0.8, 1.8),
 			Color3.fromRGB(240, 200, 40),
@@ -702,7 +691,7 @@ local function lootCrate(
 				Vector3.new(0.3, 2.35, 2.5),
 				crate.CFrame * CFrame.new(offset, 0, 0),
 				look.trim,
-				Enum.Material.Metal
+				if look.glow then Enum.Material.Neon else Enum.Material.Metal
 			)
 			band.CanCollide = false
 		end
@@ -1066,26 +1055,25 @@ local function furnish(floor: Folder, level: number)
 			window, inward = Vector3.new(half, floorY + 10, along), Vector3.new(-1, 0, 0)
 		end
 		local landing = window + inward * 12 - Vector3.new(0, 10, 0)
-		-- Soft dust shaft (Glass, not Neon); dim so flashlight still owns the room.
 		local beam = block(
 			floor,
 			"LightShaft",
 			Vector3.new(5, 0.2, (landing - window).Magnitude),
 			CFrame.lookAt((window + landing) / 2, landing),
-			Color3.fromRGB(180, 185, 190),
-			Enum.Material.Glass
+			Color3.fromRGB(255, 236, 200),
+			Enum.Material.Neon
 		)
-		beam.Transparency = 0.94
+		beam.Transparency = 0.93
 		beam.CanCollide = false
 		beam.CastShadow = false
 		beam.CanQuery = false
 		local sun = Instance.new("SpotLight")
 		sun.Face = Enum.NormalId.Front
-		sun.Angle = 48
-		sun.Range = 18
-		sun.Brightness = 0.45
+		sun.Angle = 60
+		sun.Range = 24
+		sun.Brightness = 1.4
 		sun.Shadows = false
-		sun.Color = Color3.fromRGB(200, 205, 210)
+		sun.Color = Color3.fromRGB(255, 226, 180)
 		sun:SetAttribute("BlackoutFloor", level)
 		sun.Parent = beam
 	end
@@ -1488,7 +1476,7 @@ local PROP_PAINTS: { [string]: { color: Color3, material: Enum.Material } } = {
 	Dark = { color = Color3.fromRGB(38, 40, 45), material = Enum.Material.Metal },
 	Rust = { color = Color3.fromRGB(125, 65, 35), material = Enum.Material.CorrodedMetal },
 	Yellow = { color = Color3.fromRGB(215, 160, 40), material = Enum.Material.Metal },
-	Glow = { color = Color3.fromRGB(200, 120, 55), material = Enum.Material.Metal },
+	Glow = { color = Color3.fromRGB(255, 150, 60), material = Enum.Material.Neon },
 	Teal = { color = Color3.fromRGB(60, 130, 140), material = Enum.Material.Metal },
 	Red = { color = Color3.fromRGB(180, 40, 35), material = Enum.Material.Metal },
 }

@@ -182,9 +182,8 @@ local function applyLight(part: BasePart, s: { [string]: any })
 		return
 	end
 	local on = s.upgrades and s.upgrades[upgradeId] == true
-	-- Warm glass when Generator runs — PointLight carries the glow (no plastic Neon).
-	part.Material = Enum.Material.Glass
-	part.Color = if on then Color3.fromRGB(255, 220, 160) else Color3.fromRGB(90, 90, 80)
+	part.Material = if on then Enum.Material.Neon else Enum.Material.Glass
+	part.Color = if on then Color3.fromRGB(255, 225, 170) else Color3.fromRGB(90, 90, 80)
 	for _, d in part:GetDescendants() do
 		if d:IsA("Light") then
 			d.Enabled = on

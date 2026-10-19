@@ -1,55 +1,54 @@
 --!strict
--- Shared look of both places (lobby and tower): 99 Nights dread translated to the tower —
--- dark floors, cold fog, sparse warm pools; roof keeps a little outdoor breath.
--- HordeThreat: denser fog + orange dusk crush + emergency lamp flicker (HordeService).
+-- Shared look of both places (lobby and tower), in the spirit of The Last of Us: a quiet, ruined city under
+-- a heavy sky. Muted colours, grey-brown haze, soft light; the tower adds day/night and rain (WeatherService).
+-- HordeThreat darkens / oranges the sky while roof zombies climb out (HordeService).
 
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 
 local Atmosphere = {}
 
--- Dark floors (Ambient); roof/outdoors a touch brighter (OutdoorAmbient). Not sunny Studio default.
+-- Brighter than before (owner: "too dark"); values from the polish spec, section 5.
 local BASE = {
-	ClockTime = 17.4,
-	Brightness = 1.15,
-	ExposureCompensation = -0.35,
-	Ambient = Color3.fromRGB(22, 24, 28),
-	OutdoorAmbient = Color3.fromRGB(58, 56, 62),
-	ColorShift_Top = Color3.fromRGB(160, 150, 140),
-	ColorShift_Bottom = Color3.fromRGB(28, 30, 34),
-	Density = 0.48,
-	Haze = 2.8,
-	Glare = 0.12,
-	AtmoColor = Color3.fromRGB(110, 108, 105),
-	Decay = Color3.fromRGB(48, 50, 55),
-	Tint = Color3.fromRGB(210, 215, 220),
-	Saturation = -0.18,
-	Contrast = 0.14,
-	GradeBrightness = -0.06,
+	ClockTime = 15.5,
+	Brightness = 2.6,
+	ExposureCompensation = 0.15,
+	Ambient = Color3.fromRGB(78, 74, 66),
+	OutdoorAmbient = Color3.fromRGB(160, 152, 134),
+	ColorShift_Top = Color3.fromRGB(255, 226, 180),
+	ColorShift_Bottom = Color3.fromRGB(60, 70, 50),
+	Density = 0.3,
+	Haze = 2,
+	Glare = 0.35,
+	AtmoColor = Color3.fromRGB(199, 190, 170),
+	Decay = Color3.fromRGB(92, 94, 86),
+	Tint = Color3.fromRGB(255, 246, 230),
+	Saturation = -0.05,
+	Contrast = 0.1,
+	GradeBrightness = 0.03,
 }
 
--- Night fell: denser fog, colder crush, orange sky while the roof horde is active.
+-- Orange dusk crush while the roof horde is active.
 local HORDE = {
-	ClockTime = 20.4,
-	Brightness = 0.55,
-	ExposureCompensation = -0.55,
-	Ambient = Color3.fromRGB(14, 12, 16),
-	OutdoorAmbient = Color3.fromRGB(72, 42, 28),
-	ColorShift_Top = Color3.fromRGB(255, 110, 45),
-	ColorShift_Bottom = Color3.fromRGB(28, 16, 12),
-	Density = 0.72,
-	Haze = 3.6,
-	Glare = 0.4,
-	AtmoColor = Color3.fromRGB(120, 70, 45),
-	Decay = Color3.fromRGB(55, 30, 22),
-	Tint = Color3.fromRGB(255, 175, 130),
-	Saturation = -0.08,
-	Contrast = 0.22,
-	GradeBrightness = -0.1,
+	ClockTime = 19.2,
+	Brightness = 1.35,
+	ExposureCompensation = -0.25,
+	Ambient = Color3.fromRGB(42, 28, 22),
+	OutdoorAmbient = Color3.fromRGB(110, 70, 45),
+	ColorShift_Top = Color3.fromRGB(255, 140, 60),
+	ColorShift_Bottom = Color3.fromRGB(40, 25, 18),
+	Density = 0.42,
+	Haze = 2.4,
+	Glare = 0.55,
+	AtmoColor = Color3.fromRGB(160, 100, 70),
+	Decay = Color3.fromRGB(70, 40, 30),
+	Tint = Color3.fromRGB(255, 190, 150),
+	Saturation = -0.05,
+	Contrast = 0.18,
+	GradeBrightness = -0.04,
 }
 
 local hordeOn = false
-local flickerGeneration = 0
 
 local function tween(instance: Instance, seconds: number, goal: { [string]: any })
 	TweenService:Create(instance, TweenInfo.new(seconds, Enum.EasingStyle.Sine), goal):Play()
@@ -86,67 +85,20 @@ local function applyLook(look: typeof(BASE), seconds: number)
 	end
 end
 
--- Emergency ExitLamps + warm StairLamps flicker while night has fallen (horde).
-local function startEmergencyFlicker(gen: number)
-	task.spawn(function()
-		local rng = Random.new()
-		while gen == flickerGeneration and hordeOn do
-			local world = workspace:FindFirstChild("GeneratedWorld")
-			if world then
-				for _, d in world:GetDescendants() do
-					if d:IsA("PointLight") then
-						local parent = d.Parent
-						if parent and parent:IsA("BasePart") then
-							local name = parent.Name
-							if name == "ExitLamp" or name == "StairLamp" then
-								local base = d:GetAttribute("FlickerBase")
-								if typeof(base) ~= "number" then
-									base = d.Brightness
-									d:SetAttribute("FlickerBase", base)
-								end
-								local baseN = base :: number
-								if rng:NextNumber() < 0.35 then
-									d.Brightness = baseN * rng:NextNumber(0.15, 0.55)
-								else
-									d.Brightness = baseN * rng:NextNumber(0.85, 1.05)
-								end
-							end
-						end
-					end
-				end
-			end
-			task.wait(rng:NextNumber(0.08, 0.28))
-		end
-		-- Restore when flicker ends.
-		local world = workspace:FindFirstChild("GeneratedWorld")
-		if world then
-			for _, d in world:GetDescendants() do
-				if d:IsA("PointLight") then
-					local base = d:GetAttribute("FlickerBase")
-					if typeof(base) == "number" then
-						d.Brightness = base
-					end
-				end
-			end
-		end
-	end)
-end
-
 function Atmosphere.Apply()
 	hordeOn = false
-	flickerGeneration += 1
 	Lighting.ClockTime = BASE.ClockTime
-	Lighting.GeographicLatitude = 42
+	Lighting.GeographicLatitude = 30
 	Lighting.Brightness = BASE.Brightness
 	Lighting.ExposureCompensation = BASE.ExposureCompensation
-	-- Ambient = interiors (flashlight must matter). OutdoorAmbient = roof breath.
+	-- Ambient decides how dark the interiors are: dim enough for the flashlight to matter, never pitch black.
 	Lighting.Ambient = BASE.Ambient
 	Lighting.OutdoorAmbient = BASE.OutdoorAmbient
 	Lighting.ColorShift_Top = BASE.ColorShift_Top
 	Lighting.ColorShift_Bottom = BASE.ColorShift_Bottom
-	Lighting.EnvironmentDiffuseScale = 0.18
-	Lighting.EnvironmentSpecularScale = 0.12
-	Lighting.ShadowSoftness = 0.55
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.35
+	Lighting.ShadowSoftness = 0.3
 	Lighting.GlobalShadows = true
 
 	-- Replace whatever the template place shipped with.
@@ -157,30 +109,32 @@ function Atmosphere.Apply()
 	end
 
 	local sky = Instance.new("Sky")
-	sky.SunAngularSize = 6
+	sky.SunAngularSize = 12
 	sky.MoonAngularSize = 0
 	sky.StarCount = 0
 	sky.Parent = Lighting
 
+	-- Light haze near the player, thicker towards the horizon so the ruins fade into a warm green-grey.
 	local atmosphere = Instance.new("Atmosphere")
 	atmosphere.Density = BASE.Density
-	atmosphere.Offset = 0.22
+	atmosphere.Offset = 0.3
 	atmosphere.Haze = BASE.Haze
 	atmosphere.Glare = BASE.Glare
 	atmosphere.Color = BASE.AtmoColor
 	atmosphere.Decay = BASE.Decay
 	atmosphere.Parent = Lighting
 
+	-- Broken cloud cover lit by the afternoon sun.
 	local terrain = workspace.Terrain
 	local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
-	clouds.Cover = 0.78
-	clouds.Density = 0.7
-	clouds.Color = Color3.fromRGB(120, 122, 128)
+	clouds.Cover = 0.6
+	clouds.Density = 0.5
+	clouds.Color = Color3.fromRGB(214, 210, 204)
 	clouds.Parent = terrain
 
 	local rays = Instance.new("SunRaysEffect")
-	rays.Intensity = 0.02
-	rays.Spread = 0.35
+	rays.Intensity = 0.06
+	rays.Spread = 0.5
 	rays.Parent = Lighting
 
 	local grading = Instance.new("ColorCorrectionEffect")
@@ -191,9 +145,9 @@ function Atmosphere.Apply()
 	grading.Parent = Lighting
 
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.22
-	bloom.Size = 18
-	bloom.Threshold = 1.9
+	bloom.Intensity = 0.35
+	bloom.Size = 24
+	bloom.Threshold = 1.6
 	bloom.Parent = Lighting
 end
 
@@ -205,19 +159,10 @@ function Atmosphere.SetHordeThreat(active: boolean, seconds: number?)
 	hordeOn = active
 	workspace:SetAttribute("HordeThreat", active)
 	applyLook(if active then HORDE else BASE, seconds or 2.5)
-	flickerGeneration += 1
-	if active then
-		startEmergencyFlicker(flickerGeneration)
-	end
 end
 
 function Atmosphere.IsHordeThreat(): boolean
 	return hordeOn
-end
-
--- WeatherService restores haze to these when rain ends (must match BASE).
-function Atmosphere.BaseHaze(): (number, number)
-	return BASE.Density, BASE.Haze
 end
 
 return Atmosphere

@@ -96,17 +96,11 @@ local function killLights(level: number)
 			table.insert(lightSaves, { light = d, enabled = d.Enabled })
 			d.Enabled = false
 			local parent = d.Parent
-			-- Kill Neon plastic + warm lamp housings; keep green ExitLamp signage lit.
 			if
 				parent
 				and parent:IsA("BasePart")
+				and parent.Material == Enum.Material.Neon
 				and parent.Name ~= "ExitLamp"
-				and (
-					parent.Material == Enum.Material.Neon
-					or parent.Name == "StairLamp"
-					or parent.Name == "CeilingLamp"
-					or parent.Name == "LightShaft"
-				)
 			then
 				table.insert(neonSaves, { part = parent, material = parent.Material, color = parent.Color })
 				parent.Material = Enum.Material.Metal

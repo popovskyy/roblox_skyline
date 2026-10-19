@@ -1,18 +1,16 @@
 --!strict
--- Time of day and rain, the same for everyone in the server. The clock runs from late afternoon through dusk
+-- Time of day and rain, the same for everyone in the server. The clock runs from afternoon through dusk
 -- and night to morning; now and then it rains for a few minutes (clouds thicken, haze closes in).
 -- Clients draw the rain itself and play its sound (WeatherController) from workspace's "Raining" attribute.
--- HordeThreat owns Lighting while active — do not fight Atmosphere's night crush.
+-- Plain module with no requires, so it can never stop the world from being built.
 
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 
-local Atmosphere = require(script.Parent.Atmosphere)
-
 local WeatherService = {}
 
 local DAY_MINUTES = 24 -- one full day in real minutes
-local START_CLOCK = 17.4
+local START_CLOCK = 15.5
 local RAIN_GAP = { 150, 330 } -- seconds between showers
 local RAIN_LENGTH = { 70, 160 }
 
@@ -32,15 +30,11 @@ local function setRain(on: boolean)
 	end
 	local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds")
 	if clouds then
-		tween(clouds, 20, { Cover = if on then 0.92 else 0.78, Density = if on then 0.9 else 0.7 })
+		tween(clouds, 20, { Cover = if on then 0.9 else 0.6, Density = if on then 0.85 else 0.5 })
 	end
 	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 	if atmosphere then
-		local baseDensity, baseHaze = Atmosphere.BaseHaze()
-		tween(atmosphere, 20, {
-			Density = if on then math.min(0.62, baseDensity + 0.1) else baseDensity,
-			Haze = if on then baseHaze + 0.5 else baseHaze,
-		})
+		tween(atmosphere, 20, { Density = if on then 0.4 else 0.3, Haze = if on then 2.6 else 1.8 })
 	end
 end
 

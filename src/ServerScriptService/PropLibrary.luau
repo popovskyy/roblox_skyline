@@ -23,7 +23,7 @@ local PAINTS: { [string]: { color: Color3, material: Enum.Material } } = {
 	Dark = { color = Color3.fromRGB(38, 40, 45), material = Enum.Material.Metal },
 	Rust = { color = Color3.fromRGB(125, 65, 35), material = Enum.Material.CorrodedMetal },
 	Yellow = { color = Color3.fromRGB(215, 160, 40), material = Enum.Material.Metal },
-	Glow = { color = Color3.fromRGB(200, 120, 55), material = Enum.Material.Metal },
+	Glow = { color = Color3.fromRGB(255, 150, 60), material = Enum.Material.Neon },
 	Teal = { color = Color3.fromRGB(60, 120, 120), material = Enum.Material.Metal },
 	Red = { color = Color3.fromRGB(170, 45, 38), material = Enum.Material.Metal },
 	Fabric = { color = Color3.fromRGB(84, 90, 62), material = Enum.Material.Fabric },

@@ -1,7 +1,6 @@
 --!strict
 -- Flashlight: the server owns the on/off state, the battery and the light on the character.
 -- The battery drains while on and charges next to the player's built Generator.
--- Cone stays readable; low battery dims the beam so deep floors feel nearly blind without it.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,27 +18,12 @@ local FlashlightService = {}
 
 local BEAM_NAME = "FlashlightBeam"
 local TICK = 0.5
--- Full-charge cone: bright enough to cut fog; angle tight enough to read as a beam.
-local FULL_BRIGHTNESS = 4.2
-local FULL_RANGE = 42
-local BEAM_ANGLE = 58
-local LOW_BATTERY_FRACTION = 0.2
 
 local isOn: { [Player]: boolean } = {}
 local generatorPart: BasePart? = nil
 
 function FlashlightService.SetGeneratorPart(part: BasePart)
 	generatorPart = part
-end
-
-local function beamStrength(charge: number): (number, number)
-	local max = GameConfig.FlashlightBatterySeconds
-	local fraction = if max > 0 then math.clamp(charge / max, 0, 1) else 0
-	-- Below ~20%: flicker-ish dim so empty battery feels scary before it cuts out.
-	local scale = if fraction <= LOW_BATTERY_FRACTION
-		then 0.28 + 0.45 * (fraction / LOW_BATTERY_FRACTION)
-		else 0.55 + 0.45 * fraction
-	return FULL_BRIGHTNESS * scale, FULL_RANGE * (0.7 + 0.3 * scale)
 end
 
 local function getBeam(player: Player, create: boolean): SpotLight?
@@ -55,15 +39,16 @@ local function getBeam(player: Player, create: boolean): SpotLight?
 	if not create then
 		return nil
 	end
-	-- No shadows: casting shadows made light strobe when walking into corridors / doorways.
+	-- Dim SpotLight, no shadows: casting shadows made light strobe when walking into
+	-- corridors / doorways as occluders entered the beam. Interior lamps already leave shadows off.
 	local light = Instance.new("SpotLight")
 	light.Name = BEAM_NAME
-	light.Brightness = FULL_BRIGHTNESS
-	light.Range = FULL_RANGE
-	light.Angle = BEAM_ANGLE
+	light.Brightness = 1.8
+	light.Range = 32
+	light.Angle = 75
 	light.Face = Enum.NormalId.Front
 	light.Shadows = false
-	light.Color = Color3.fromRGB(255, 236, 200)
+	light.Color = Color3.fromRGB(255, 240, 210)
 	light.Enabled = false
 	light.Parent = head
 	return light
@@ -72,14 +57,8 @@ end
 local function apply(player: Player)
 	local on = isOn[player] == true
 	player:SetAttribute("FlashlightOn", on)
-	local data = PlayerDataService.Get(player)
-	local charge = if data then data.flashlightCharge else 0
 	local beam = getBeam(player, on)
 	if beam then
-		local brightness, range = beamStrength(charge)
-		beam.Brightness = brightness
-		beam.Range = range
-		beam.Angle = BEAM_ANGLE
 		beam.Enabled = on
 	end
 end
@@ -139,9 +118,6 @@ local function tick(player: Player, dt: number)
 				isOn[player] = false
 				apply(player)
 				Net.Notify(player, "flash.drained", "warning")
-			else
-				-- Keep cone brightness in sync with battery while on.
-				apply(player)
 			end
 		end
 	elseif InventoryService.Has(player, "Flashlight", 1) and nearGenerator(player) then
