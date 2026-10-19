@@ -14,6 +14,16 @@ check in the game. Newest first. Agents: add your entry in the same commit as th
 
 
 
+## b54 · 19.10
+Pass 1 vibe lighting — 99 Nights dread on the tower (no new systems).
+- Floors: cold concrete, low ambient, denser fog; sparse warm Metal lamps (not plastic Neon).
+  Green ExitLamp + terminal screen stay Neon. Roof OutdoorAmbient a touch brighter (camp breath).
+- Horde: deeper “night fell” — thicker fog, orange crush, Exit/Stair lamp flicker.
+- Flashlight: readable cone; dims hard under ~20% battery; deep floors nearly blind without it.
+- HUD: low battery turns danger-coloured on the existing flashlight line (no new tip spam).
+- Check in game: tablet screenshot without UI on floor 2 / stairs / roof; horde siren → fog + flicker;
+  flashlight on/off and near-empty battery.
+
 ## b53 · 18.10
 Tablet swing dedupe — one visible chop per Hit (b52 looked doubled / «задвоєна»).
 - Root cause: client `CombatController` played `522635514` **and** server `CombatService` played
