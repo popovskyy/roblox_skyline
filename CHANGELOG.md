@@ -3,16 +3,8 @@
 Every published build gets an entry: build tag, date, what a player will notice, and what still needs a
 check in the game. Newest first. Agents: add your entry in the same commit as the change.
 
-
-
-
-
-
-
-
-
-
-
+## b55 · 19.10 rollback
+Rolled back b54 lighting — gameplay lighting restored to b53-era (revert of Pass 1 dark floors / fog / flashlight pass).
 
 ## b53 · 18.10
 Tablet swing dedupe — one visible chop per Hit (b52 looked doubled / «задвоєна»).
